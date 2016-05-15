@@ -7,7 +7,7 @@ Enhanced Graph Plotting And General GUI Improvements In Prism.
 # Tracking issues
 * [Prism model checker bug tracking](https://sourceforge.net/p/prism-mc/bugs/)
 
-# Related reads
+# Related readings
 * [Prism model checker documentation](http://www.prismmodelchecker.org/doc/)
 * [Prism model checker tutorial](http://www.prismmodelchecker.org/tutorial/)
 

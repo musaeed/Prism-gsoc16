@@ -4,6 +4,12 @@ Enhanced Graph Plotting And General GUI Improvements In Prism.
 * [Description of the project](http://www.prismmodelchecker.org/gsoc/#basic)
 * [Project proposal page with abstract](https://summerofcode.withgoogle.com/projects/#5766970154680320)
 
+# Roadmap
+* [Week 1](https://github.com/musaeed/Prism-gsoc16/blob/master/roadmap/week1.md)
+* Week 2
+* Week 3
+* ...
+
 # Tracking issues
 * [Prism model checker bug tracking](https://sourceforge.net/p/prism-mc/bugs/)
 

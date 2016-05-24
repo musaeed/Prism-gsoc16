@@ -70,7 +70,6 @@ public class GraphResultListener implements ResultListener
 	public void notifyResult(ResultsCollection resultsCollection, Values values, Object result)
 	{
 		Object xObj = isInSeries(values);
-		
 		/* This is a result of our series, xObj is our x-coordinate. */
 		if(xObj != null)
 		{
@@ -112,6 +111,19 @@ public class GraphResultListener implements ResultListener
 					y = ((Integer) interval.upper).intValue();
 					graph.addPointToSeries(seriesKey.next, new XYDataItem(x, y));
 				}
+			}
+			else if(result instanceof Pair<?, ?>){
+				/**
+				 * This is the case when the error value is also provided with the mean value
+				 * @author Muhammad Omer Saeed
+				 * */
+				Pair<Double, Double> res = (Pair<Double, Double>)result;
+				y = res.first;
+				double error = res.second;
+				
+				XYIntervalDataItem dataItem = new XYIntervalDataItem(x, x, x, y, y-error, y+error);
+				graph.addPointToSeries(seriesKey, dataItem);
+				graph.setShowErrorBars(true);
 			}
 		}
 	}

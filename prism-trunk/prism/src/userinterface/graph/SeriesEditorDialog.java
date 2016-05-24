@@ -152,14 +152,15 @@ public class SeriesEditorDialog extends JDialog
 		
 		for (Graph.SeriesKey key : series)
 		{
-			SeriesSettings settings = graph.getGraphSeries(key);
+			/*@Muhammad*/
+			/*SeriesSettings settings = graph.getGraphSeries(key);
 			PrismXYSeries xySeries = (PrismXYSeries)graph.getXYSeries(key);
 			
 			SeriesEditor editor = new SeriesEditor(graph, xySeries, settings, cut, copy, paste, delete);
 			editor.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 			
 			tabbedPane.addTab(settings.getSeriesHeading(), editor);
-			editors.add(editor);
+			editors.add(editor);*/
 		}		
 		
 		this.getRootPane().setDefaultButton(okayButton);

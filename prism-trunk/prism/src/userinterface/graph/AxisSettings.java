@@ -694,8 +694,9 @@ public class AxisSettings extends Observable implements SettingOwner
 			synchronized (graph.getSeriesLock())
 			{
 				for (Graph.SeriesKey key : graph.getAllSeriesKeys())
-				{					
-					XYSeries series = graph.getXYSeries(key);
+				{	
+					/*@Muhammad*/
+					/*XYSeries series = graph.getXYSeries(key);
 					
 					if (series instanceof PrismXYSeries)
 					{
@@ -705,7 +706,7 @@ public class AxisSettings extends Observable implements SettingOwner
 							prismSeries.setLogarithmicDomainAxis(true);
 						else
 							prismSeries.setLogarithmicRangeAxis(true);
-					}						
+					}*/						
 				}
 			}
 			
@@ -740,8 +741,8 @@ public class AxisSettings extends Observable implements SettingOwner
 			synchronized (graph.getSeriesLock())
 			{
 				for (Graph.SeriesKey key : graph.getAllSeriesKeys())
-				{					
-					XYSeries series = graph.getXYSeries(key);
+				{	/*@Muhammad*/				
+					/*XYSeries series = graph.getXYSeries(key);
 					
 					if (series instanceof PrismXYSeries)
 					{
@@ -751,7 +752,7 @@ public class AxisSettings extends Observable implements SettingOwner
 							prismSeries.setLogarithmicDomainAxis(false);
 						else
 							prismSeries.setLogarithmicRangeAxis(false);
-					}						
+					}*/						
 				}
 			}
 		}

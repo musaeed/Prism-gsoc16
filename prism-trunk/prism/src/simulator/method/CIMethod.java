@@ -31,6 +31,7 @@ import parser.ast.Expression;
 import parser.ast.ExpressionProb;
 import parser.ast.ExpressionReward;
 import parser.ast.RelOp;
+import prism.Pair;
 import prism.PrismException;
 import simulator.sampler.Sampler;
 
@@ -131,13 +132,15 @@ public abstract class CIMethod extends SimulationMethod
 
 	@Override
 	public Object getResult(Sampler sampler) throws PrismException
-	{
+	{	
 		double mean = sampler.getMeanValue();
 		//double variance = sampler.getVariance();
 		//double stddev = Math.sqrt(variance);
 		switch (prOp) {
 		case 0: // 0=quantitative
-			return new Double(mean);
+
+			return new Pair<Double, Double>(mean, width); //@Muhammad Now we need to pass the error information too to be plotted as error plot
+//			return new Double(mean);
 			//return new prism.Interval(mean - stddev, mean + stddev);
 			//return new Double(stddev / mean); // noise
 		case -1: // -1=lower bound

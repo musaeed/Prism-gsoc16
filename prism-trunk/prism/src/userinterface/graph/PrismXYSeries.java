@@ -26,10 +26,12 @@
 
 package userinterface.graph;
 
-import java.util.*;
+import java.util.LinkedList;
+import java.util.List;
 
-import org.jfree.data.xy.*;
-import org.jfree.data.general.*;
+import org.jfree.data.general.SeriesException;
+import org.jfree.data.xy.XYDataItem;
+import org.jfree.data.xy.XYSeries;
 
 public class PrismXYSeries extends XYSeries
 {
@@ -166,11 +168,10 @@ public class PrismXYSeries extends XYSeries
 	 *  @return A copy of the overwritten data item, or <code>null</code> if no 
      *  	    item was overwritten.
 	 */
-	@Override
-	public XYDataItem addOrUpdate(Number x, Number y) {
-		
-		XYDataItem item = new XYDataItem(x,y);
-		XYDataItem result = null;
+	
+	public PrismXYDataItem addOrUpdate(PrismXYDataItem item) {
+//		PrismXYDataItem item = new PrismXYDataItem(x,y);
+		PrismXYDataItem result = null;
 		
 		/** If this is a valid update. */
 		if (checkValidity(item))
@@ -181,13 +182,13 @@ public class PrismXYSeries extends XYSeries
 			/* If in discarded items, then remove and return this. */ 
 			if (indexD >= 0)
 			{
-				result = discardedItems.remove(indexD);
+				result = (PrismXYDataItem) discardedItems.remove(indexD);
 			}
 			
 			/* If in main items, then remove and return this. (Should not be both in discarded and main items) */ 
 			if (indexS >= 0)
 			{
-				result = super.remove(indexS);
+				result = (PrismXYDataItem) super.remove(indexS);
 			}
 			
 			this.add(item, true);

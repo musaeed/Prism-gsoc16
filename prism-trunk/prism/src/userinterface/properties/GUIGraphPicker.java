@@ -27,18 +27,26 @@
 
 package userinterface.properties;
 
-import java.util.Vector;
+import java.awt.BorderLayout;
 import java.util.ArrayList;
-import javax.swing.*;
-import java.awt.*;
-import org.jfree.data.xy.*;
+import java.util.Vector;
 
-import userinterface.*;
+import javax.swing.JOptionPane;
+import javax.swing.JScrollPane;
+
+import org.jfree.data.xy.XYDataItem;
+
+import parser.Values;
+import parser.type.TypeInterval;
+import prism.DefinedConstant;
+import prism.Interval;
+import prism.PrismException;
+import prism.ResultsCollection;
+import userinterface.GUIPlugin;
+import userinterface.GUIPrism;
 import userinterface.graph.Graph;
 import userinterface.graph.GraphResultListener;
-import prism.*;
-import parser.*;
-import parser.type.TypeInterval;
+import userinterface.graph.PrismXYDataItem;
 
 public class GUIGraphPicker extends javax.swing.JDialog
 {
@@ -181,22 +189,22 @@ public class GUIGraphPicker extends javax.swing.JDialog
 							if (validX) {
 								if (result instanceof Double) {
 									y = ((Double) result).doubleValue();
-									graphModel.addPointToSeries(seriesKey, new XYDataItem(x, y));
+									graphModel.addPointToSeries(seriesKey, new PrismXYDataItem(x, y));
 								} else if (result instanceof Integer) {
 									y = ((Integer) result).intValue();
-									graphModel.addPointToSeries(seriesKey, new XYDataItem(x, y));
+									graphModel.addPointToSeries(seriesKey, new PrismXYDataItem(x, y));
 								} else if (result instanceof Interval) {
 									Interval interval = (Interval) result;
 									if (interval.lower instanceof Double) {
 										y = ((Double) interval.lower).doubleValue();
-										graphModel.addPointToSeries(seriesKey, new XYDataItem(x, y));
+										graphModel.addPointToSeries(seriesKey, new PrismXYDataItem(x, y));
 										y = ((Double) interval.upper).doubleValue();
-										graphModel.addPointToSeries(seriesKey.next, new XYDataItem(x, y));
+										graphModel.addPointToSeries(seriesKey.next, new PrismXYDataItem(x, y));
 									} else if (result instanceof Integer) {
 										y = ((Integer) interval.lower).intValue();
-										graphModel.addPointToSeries(seriesKey, new XYDataItem(x, y));
+										graphModel.addPointToSeries(seriesKey, new PrismXYDataItem(x, y));
 										y = ((Integer) interval.upper).intValue();
-										graphModel.addPointToSeries(seriesKey.next, new XYDataItem(x, y));
+										graphModel.addPointToSeries(seriesKey.next, new PrismXYDataItem(x, y));
 									}
 								}
 							}

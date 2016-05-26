@@ -69,15 +69,14 @@ import org.jfree.chart.labels.XYToolTipGenerator;
 import org.jfree.chart.plot.DefaultDrawingSupplier;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
-import org.jfree.chart.renderer.xy.XYErrorRenderer;
 import org.jfree.chart.renderer.xy.XYItemRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.chart.title.LegendTitle;
-import org.jfree.data.xy.XYDataItem;
 import org.jfree.data.xy.XYDataset;
-import org.jfree.data.xy.XYIntervalDataItem;
 import org.jfree.data.xy.XYIntervalSeries;
 import org.jfree.data.xy.XYIntervalSeriesCollection;
+import org.jfree.data.xy.XYSeries;
+import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.ui.RectangleEdge;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
@@ -92,6 +91,7 @@ import net.sf.epsgraphics.EpsGraphics;
 import prism.PrismException;
 import settings.BooleanSetting;
 import settings.ChoiceSetting;
+import settings.DoubleSetting;
 import settings.FontColorPair;
 import settings.FontColorSetting;
 import settings.MultipleLineStringSetting;
@@ -119,13 +119,13 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	 * List of currently available series data to plot. (Make sure to
 	 * synchronize)
 	 */
-	private XYIntervalSeriesCollection seriesCollection;
+	private XYSeriesCollection seriesCollection;
 
 	/**
 	 * Maps SeriesKeys to a XYSeries. (Make sure to synchronize on
 	 * seriesCollection)
 	 */
-	private HashMap<SeriesKey, XYIntervalSeries> keyToSeries;
+	private HashMap<SeriesKey, XYSeries> keyToSeries;
 
 	/**
 	 * Maps SeriesKeys to a Graph Series. (Make sure to synchronize on
@@ -137,12 +137,14 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	 * Allows us to batch graph points (JFreeChart is not realtime). (Make sure
 	 * to synchronize on seriesCollection)
 	 */
-	private HashMap<SeriesKey, LinkedList<XYIntervalDataItem>> graphCache;
+	private HashMap<SeriesKey, LinkedList<PrismXYDataItem>> graphCache;
 	
 	/**
-	 * Allows us to display the error bars on the plot
+	 * Allows us to render errors on the graph
+	 * @author Muhammad Omer Saeed
 	 */
-	private XYErrorRenderer errorRenderer;
+	
+	private PrismErrorRenderer errorRenderer;
 
 	/** Display for settings. Required to implement SettingsOwner */
 	private SettingDisplay display;
@@ -153,6 +155,8 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	private BooleanSetting legendVisible;
 	private ChoiceSetting legendPosition;
 	private FontColorSetting legendFont;
+	private BooleanSetting errorBarVisible;
+	private DoubleSetting errorBarCapLength;
 
 	/** Settings of the axis. */
 	private AxisSettings xAxisSettings;
@@ -170,15 +174,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	public static final int RIGHT = 1;
 	public static final int BOTTOM = 2;
 	public static final int TOP = 3;
-	
-	/**Controls the error bars on the plot
-	 *
-	 * @author Muhammad Omer Saeed
-	 */
-	private boolean showErrorBars;
-	
-	/**/
-	
+
 	/**
 	 * Initialises the GraphModel's series and canvas list. Also starts off the
 	 * graph update timer (one per chart).
@@ -187,8 +183,6 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	{
 		this("");
 	}
-	
-	
 	
 	/**
 	 * Initialises the GraphModel's series and canvas list. Also starts off the
@@ -200,14 +194,23 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	public Graph(String title) 
 	{
 		super(ChartFactory.createXYLineChart(title, "X", "Y",
-				new XYIntervalSeriesCollection(), PlotOrientation.VERTICAL, true, true,
+				new XYSeriesCollection(), PlotOrientation.VERTICAL, true, true,
 				false));
+
 		
-		errorRenderer = new XYErrorRenderer(); //just initializing the error renderer
-		
-		graphCache = new HashMap<SeriesKey, LinkedList<XYIntervalDataItem>>();
-		keyToSeries = new HashMap<SeriesKey, XYIntervalSeries>();
+		graphCache = new HashMap<SeriesKey, LinkedList<PrismXYDataItem>>();
+		keyToSeries = new HashMap<SeriesKey, XYSeries>();
 		keyToGraphSeries = new HashMap<SeriesKey, SeriesSettings>();
+		
+		/**
+		 * This sets the error renderer to the graph. It plots the error bars wherever the errors are available
+		 * @author Muhammad Omer Saeed
+		 */
+		
+		errorRenderer = new PrismErrorRenderer();
+		super.getChart().getXYPlot().setRenderer(errorRenderer);
+		setToolTipRenderer();
+		
 		graphTitle = new MultipleLineStringSetting("title", title,
 				"The main title heading for the chart.", this, false);
 		titleFont = new FontColorSetting("title font", new FontColorPair(
@@ -225,12 +228,14 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 		legendFont = new FontColorSetting("legend font", new FontColorPair(
 				new Font("SansSerif", Font.PLAIN, 11), Color.black),
 				"The font for the legend", this, false);
-
+		
+		errorBarVisible = new BooleanSetting("Error bars visible?", new Boolean(true), "Should the graph show error bars (if available)?", this, false);
+		errorBarCapLength = new DoubleSetting("Width of the error bar cap", errorRenderer.getCapLength(), "Set the width of the error bar cap", this, false);
 		// Some easy references
 		chart = super.getChart();
 		plot = chart.getXYPlot();
 		plot.setBackgroundPaint((Paint)Color.white);
-		seriesCollection = (XYIntervalSeriesCollection) plot.getDataset();
+		seriesCollection = (XYSeriesCollection) plot.getDataset();
 		
 		xAxisSettings = new AxisSettings("X", true, this);
 		yAxisSettings = new AxisSettings("Y", false, this);
@@ -272,74 +277,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 		new java.util.Timer().scheduleAtFixedRate(new GraphUpdateTask(), 0, // start now
 				updateInterval);
 		
-		/* This will show the x and y + error values as tool tips*/
-		errorRenderer.setBaseToolTipGenerator(new XYToolTipGenerator() {
 
-			@Override
-			public String generateToolTip(XYDataset dataset, int seriesIndex, int item) {
-				
-				XYIntervalSeriesCollection collection = (XYIntervalSeriesCollection)dataset;
-				XYIntervalSeries series = collection.getSeries(seriesIndex);
-				Number x = series.getX(item);
-				Number y = series.getYValue(item);
-				Number error = series.getYHighValue(item);
-				StringBuilder stringBuilder = new StringBuilder();
-				stringBuilder.append(String.format("<html><p style='color:#0000ff;'>Series: '%s'</p>", dataset.getSeriesKey(seriesIndex)));
-				stringBuilder.append("X: " + x.doubleValue() + "<br>");
-				stringBuilder.append("Y: " + y.doubleValue() + " +/- " + (error.doubleValue()-y.doubleValue()) + "<br>");
-				stringBuilder.append("</html>");
-				return stringBuilder.toString();
-			}
-		});
-		
-		plot.setRenderer(errorRenderer); //Set the error renderer to the plot
-	}
-	
-	/**
-	 * The method controls that whether the error bars should be rendered on the plot or not
-	 * 
-	 * @param showErrorBars when this is true error bars are rendered on the plot whenever available otherwise not
-	 * @author Muhammad Omer Saeed
-	 */
-	public void setShowErrorBars(boolean showErrorBars){
-		this.showErrorBars = showErrorBars;
-		configureRenderer();
-		
-	}
-	
-	/**
-	 * Getter method for the field showErrorBars
-	 * @return the field value
-	 * @author Muhammad Omer Saeed
-	 */
-	public boolean getShowErrorBars(){
-		return this.showErrorBars;
-	}
-	
-	/**
-	 * This method controls whether error should be shown on the plot or not depending on the value of the
-	 * field showErrorBars. This method will force the chart to update.
-	 * 
-	 * @author Muhammad Omer Saeed
-	 */
-	
-	public void configureRenderer(){
-		
-		if(showErrorBars){
-			
-			errorRenderer.setDrawXError(true);
-			errorRenderer.setDrawYError(true);
-			errorRenderer.setErrorPaint(Color.RED);
-			
-		}
-		else{
-			
-			errorRenderer.setDrawXError(false);
-			errorRenderer.setDrawYError(false);
-			
-		}
-		
-		getChart().fireChartChanged();
 	}
 
 	public int compareTo(Object o) {
@@ -355,8 +293,43 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 			return 0;
 	}
 
+	public PrismErrorRenderer getErrorRenderer(){
+		return errorRenderer;
+	}
+	
+	public void showErrorBars(boolean showErrors){
+		errorRenderer.setDrawError(showErrors);
+	}
+	
+	/**
+	 * Displays the info about the vertex including the error in each vertex nicely
+	 * @author Muhammad Omer Saeed
+	 */
+	public void setToolTipRenderer(){
+		
+		errorRenderer.setBaseToolTipGenerator(new XYToolTipGenerator() {
+			
+			@Override
+			public String generateToolTip(XYDataset dataset, int seriesIndex, int item) {
+				
+
+				XYSeriesCollection collection = (XYSeriesCollection)dataset;
+				XYSeries series = collection.getSeries(seriesIndex);
+				Number x = series.getX(item);
+				Number y = series.getY(item);
+				double error = ((PrismXYDataItem)series.getDataItem(item)).getError();
+				StringBuilder stringBuilder = new StringBuilder();
+				stringBuilder.append(String.format("<html><p style='color:#0000ff;'>Series: '%s'</p>", dataset.getSeriesKey(seriesIndex)));
+				stringBuilder.append("X: " + x.doubleValue() + "<br>");
+				stringBuilder.append("Y: " + y.doubleValue() + " +/- " + (error) + "<br>");
+				stringBuilder.append("</html>");
+				return stringBuilder.toString();
+			}
+		});
+	}
+	
 	public int getNumSettings() {
-		return 5;
+		return 7;
 	}
 
 	public Setting getSetting(int index) {
@@ -371,6 +344,10 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 			return legendPosition;
 		case 4:
 			return legendFont;
+		case 5:
+			return errorBarVisible;
+		case 6:
+			return errorBarCapLength;
 		default:
 			return null;
 		}
@@ -391,6 +368,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	public void doEnables() {
 		legendPosition.setEnabled(legendVisible.getBooleanValue());
 		legendFont.setEnabled(legendVisible.getBooleanValue());
+		
 	}
 
 	public void update(Observable o, Object arg) {
@@ -445,6 +423,20 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 
 				this.chart.addLegend(legend);
 			}
+		}
+		
+		if(errorBarVisible.getBooleanValue() == true){
+			this.showErrorBars(true);
+			chart.fireChartChanged();
+		}
+		else{
+			this.showErrorBars(false);
+			chart.fireChartChanged();
+		}
+		
+		{
+			errorRenderer.setCapLength(errorBarCapLength.getDoubleValue());
+			chart.fireChartChanged();
 		}
 
 		if (this.chart.getLegend() != null) {
@@ -510,7 +502,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 		{
 			java.util.Vector<SeriesKey> result = new java.util.Vector<SeriesKey>();
 			
-			for (Map.Entry<SeriesKey, XYIntervalSeries> entries : keyToSeries.entrySet())
+			for (Map.Entry<SeriesKey, XYSeries> entries : keyToSeries.entrySet())
 			{
 				result.add(entries.getKey());
 			}
@@ -543,7 +535,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	/**
 	 * Should always be synchronised on seriesCollection when called.
 	 */
-	public XYIntervalSeries getXYSeries(SeriesKey key)
+	public XYSeries getXYSeries(SeriesKey key)
 	{
 		synchronized (seriesCollection)
 		{
@@ -564,7 +556,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	{
 		synchronized (seriesCollection) 
 		{
-			XYIntervalSeries series = keyToSeries.get(key);
+			XYSeries series = keyToSeries.get(key);
 			
 			for (int i = 0; i < seriesCollection.getSeriesCount(); i++)
 			{
@@ -684,6 +676,22 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 		}
 	}
 	
+	public boolean isErrorBarShow(){
+		return errorBarVisible.getBooleanValue();
+	}
+	
+	public void setErrorBarVisible (boolean visible){
+		
+		try{
+			errorBarVisible.setValue(visible);
+			doEnables();
+			updateGraph();
+		}
+		catch(SettingException e){
+			
+		}
+	}
+	
 	/**
 	 * Getter for property logarithmic.
 	 * @return the legend's position index:
@@ -755,7 +763,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 			{
 				boolean nameExists = false;
 				
-				for (Map.Entry<SeriesKey, XYIntervalSeries> entry : keyToSeries.entrySet())
+				for (Map.Entry<SeriesKey, XYSeries> entry : keyToSeries.entrySet())
 				{
 					if (name.equals(entry.getValue().getKey()))
 					{
@@ -783,8 +791,8 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	{
 		synchronized (seriesCollection)
 		{
-			XYIntervalSeries[] newOrder = new XYIntervalSeries[seriesCollection.getSeriesCount()];
-			java.util.Vector<XYIntervalSeries> moveUpSet = new java.util.Vector<XYIntervalSeries>();
+			XYSeries[] newOrder = new XYSeries[seriesCollection.getSeriesCount()];
+			java.util.Vector<XYSeries> moveUpSet = new java.util.Vector<XYSeries>();
 			
 			for (int i = 0; i < newOrder.length; i++)
 				newOrder[i] = seriesCollection.getSeries(i);
@@ -799,13 +807,13 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 			{
 				if (moveUpSet.contains(newOrder[i]))
 				{
-					XYIntervalSeries tmp = newOrder[i];
+					XYSeries tmp = newOrder[i];
 					newOrder[i] = newOrder[i-1];
 					newOrder[i-1] = tmp;
 				}
 			}
 			
-			XYIntervalSeriesCollection newCollection = new XYIntervalSeriesCollection();
+			XYSeriesCollection newCollection = new XYSeriesCollection();
 			
 			for (int i = 0; i < newOrder.length; i++)
 				newCollection.addSeries(newOrder[i]);
@@ -821,8 +829,8 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	{
 		synchronized (seriesCollection)
 		{
-			XYIntervalSeries[] newOrder = new XYIntervalSeries[seriesCollection.getSeriesCount()];
-			java.util.Vector<XYIntervalSeries> moveDownSet = new java.util.Vector<XYIntervalSeries>();
+			XYSeries[] newOrder = new XYSeries[seriesCollection.getSeriesCount()];
+			java.util.Vector<XYSeries> moveDownSet = new java.util.Vector<XYSeries>();
 			
 			for (int i = 0; i < newOrder.length; i++)
 				newOrder[i] = seriesCollection.getSeries(i);
@@ -837,13 +845,13 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 			{
 				if (moveDownSet.contains(newOrder[i]))
 				{
-					XYIntervalSeries tmp = newOrder[i];
+					XYSeries tmp = newOrder[i];
 					newOrder[i] = newOrder[i+1];
 					newOrder[i+1] = tmp;
 				}
 			}
 			
-			XYIntervalSeriesCollection newCollection = new XYIntervalSeriesCollection();
+			XYSeriesCollection newCollection = new XYSeriesCollection();
 			
 			for (int i = 0; i < newOrder.length; i++)
 				newCollection.addSeries(newOrder[i]);
@@ -870,15 +878,14 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 			seriesName = getUniqueSeriesName(seriesName);
 			
 			// create a new XYSeries without sorting, disallowing duplicates
-			//XYSeries newSeries = new PrismXYSeries(seriesName);
-			XYIntervalSeries newSeries = new XYIntervalSeries(seriesName);
+			PrismXYSeries newSeries = new PrismXYSeries(seriesName);
 			this.seriesCollection.addSeries(newSeries);
 			// allocate a new cache for this series
 
 			key = new SeriesKey();
 
 			this.keyToSeries.put(key, newSeries);
-			this.graphCache.put(key, new LinkedList<XYIntervalDataItem>());
+			this.graphCache.put(key, new LinkedList<PrismXYDataItem>());
 			
 			SeriesSettings graphSeries = new SeriesSettings(this, key);
 			this.keyToGraphSeries.put(key, graphSeries);
@@ -904,7 +911,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 			
 			if (keyToSeries.containsKey(key))
 			{
-				XYIntervalSeries series = keyToSeries.get(key);
+				XYSeries series = keyToSeries.get(key);
 				series.setKey(seriesName);
 			}			
 		}	
@@ -919,7 +926,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 		synchronized (seriesCollection) {
 			// Delete from keyToSeries and seriesCollection.
 			if (keyToSeries.containsKey(seriesKey)) {
-				XYIntervalSeries series = keyToSeries.get(seriesKey);
+				XYSeries series = keyToSeries.get(seriesKey);
 				seriesCollection.removeSeries(series);
 				keyToSeries.remove(seriesKey);
 			}
@@ -944,47 +951,22 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	/**
 	 * Add a point to the specified graph series.
 	 * @param seriesKey Key of series to update.
-	 * @param dataItem XYIntervalDataItem object to insert into this series.
-	 * @author Muhammad Omer Saeed
+	 * @param dataItem XYDataItem object to insert into this series.
 	 */
-	public void addPointToSeries(SeriesKey seriesKey, XYIntervalDataItem dataItem) {
+	public void addPointToSeries(SeriesKey seriesKey, PrismXYDataItem dataItem) {
 		
 		synchronized (seriesCollection) {
 			if (graphCache.containsKey(seriesKey)) {
 				
 				if (true) {
-					LinkedList<XYIntervalDataItem> seriesCache = graphCache
+					LinkedList<PrismXYDataItem> seriesCache = graphCache
 							.get(seriesKey);
 					seriesCache.add(dataItem);
 				}
 			}
 		}
 	}
-	
-/**
- * Legacy function!! Many of the classes are still using XYDataItem to add data to the graph. Please use XYIntervalDataItem instead
- * since the Graph class is now updated to support XYIntervalDataseries
- * 
- * @param seriesKey Key of series to update.
- * @param temp XYDataItem object to insert into this series as an XYIntervalDataset.
- */
-	
-public void addPointToSeries(SeriesKey seriesKey, XYDataItem temp) {
-	
-	XYIntervalDataItem dataItem = new XYIntervalDataItem(temp.getXValue(), temp.getXValue(), temp.getXValue(), temp.getYValue(), temp.getYValue(), temp.getYValue());
-	
-		synchronized (seriesCollection) {
-			if (graphCache.containsKey(seriesKey)) {
-				
-				if (true) {
-					LinkedList<XYIntervalDataItem> seriesCache = graphCache
-							.get(seriesKey);
-					seriesCache.add(dataItem);
-				}
-			}
-		}
-}
-/**/
+
 	/**
 	 * Remove all points from a graph series and its cache.
 	 * 
@@ -994,12 +976,12 @@ public void addPointToSeries(SeriesKey seriesKey, XYDataItem temp) {
 	public void removeAllPoints(SeriesKey seriesKey) {
 		synchronized (seriesCollection) {
 			if (graphCache.containsKey(seriesKey)) {
-				LinkedList<XYIntervalDataItem> seriesCache = graphCache.get(seriesKey);
+				LinkedList<PrismXYDataItem> seriesCache = graphCache.get(seriesKey);
 				seriesCache.clear();
 			}
 
 			if (keyToSeries.containsKey(seriesKey)) {
-				XYIntervalSeries series = keyToSeries.get(seriesKey);
+				XYSeries series = keyToSeries.get(seriesKey);
 				series.clear();
 			}
 		}
@@ -1227,7 +1209,7 @@ public void addPointToSeries(SeriesKey seriesKey, XYDataItem temp) {
 					  for (int j = 0; j < graphChildren.getLength(); j++) 
 					  { 
 						  Element point = (Element) graphChildren.item(j);
-						  graph.addPointToSeries(key, new XYIntervalDataItem(parseDouble(point.getAttribute("x")),parseDouble(point.getAttribute("x")),parseDouble(point.getAttribute("x")), parseDouble(point.getAttribute("y")),parseDouble(point.getAttribute("y")),parseDouble(point.getAttribute("y"))));
+						  graph.addPointToSeries(key, new PrismXYDataItem(parseDouble(point.getAttribute("x")), parseDouble(point.getAttribute("y"))));
 					  }
 				  }
 			  }		  
@@ -1326,15 +1308,14 @@ public void addPointToSeries(SeriesKey seriesKey, XYDataItem temp) {
 					SeriesSettings seriesSettings = getGraphSeries(key);
 					seriesSettings.save(series);
 					
-					XYIntervalSeries seriesData = getXYSeries(key);
+					XYSeries seriesData = getXYSeries(key);
 					
 					for (int j = 0; j < seriesData.getItemCount(); j++)
 					{ 
 						Element point = doc.createElement("point");
 						 
 						point.setAttribute("x", "" + seriesData.getX(j));
-						//point.setAttribute("y", "" + seriesData.getY(j));
-						point.setAttribute("y", "" + seriesData.getYValue(j));
+						point.setAttribute("y", "" + seriesData.getY(j));
 						
 						series.appendChild(point);
 					}
@@ -1401,12 +1382,12 @@ public void addPointToSeries(SeriesKey seriesKey, XYDataItem temp) {
 					
 				SeriesKey key = seriesList.getKeyAt(i);
 				
-				XYIntervalSeries seriesData = getXYSeries(key);
+				XYSeries seriesData = getXYSeries(key);
 				
 				for (int j = 0; j < seriesData.getItemCount(); j++)
 				{ 
 					x.append(seriesData.getX(j) + " ");
-					y.append(seriesData.getYValue(j) + " ");
+					y.append(seriesData.getY(j) + " ");
 				}
 				
 				x.append("];");
@@ -1717,20 +1698,20 @@ public void addPointToSeries(SeriesKey seriesKey, XYDataItem temp) {
 	 */
 	private class GraphUpdateTask extends TimerTask {
 		private void processGraphCache(
-				HashMap<SeriesKey, LinkedList<XYIntervalDataItem>> graphCache) {
+				HashMap<SeriesKey, LinkedList<PrismXYDataItem>> graphCache) {
 			synchronized (seriesCollection) {
-				for (Map.Entry<SeriesKey, LinkedList<XYIntervalDataItem>> entry : graphCache
+				for (Map.Entry<SeriesKey, LinkedList<PrismXYDataItem>> entry : graphCache
 						.entrySet()) {
 					
 					/* The series key should map to a series. */
 					if (keyToSeries.containsKey(entry.getKey())) {
-						XYIntervalSeries series = keyToSeries.get(entry.getKey());
-						LinkedList<XYIntervalDataItem> seriesCache = entry.getValue();
+						PrismXYSeries series = (PrismXYSeries)keyToSeries.get(entry.getKey());
+						LinkedList<PrismXYDataItem> seriesCache = entry.getValue();
 
 						while (!seriesCache.isEmpty()) {
-							XYIntervalDataItem item = seriesCache.removeFirst();
-							series.add(item.getX(), item.getXLowValue(), item.getXHighValue(), item.getYValue(), item.getYLowValue(), item.getYHighValue());
-							
+							PrismXYDataItem item = seriesCache.removeFirst();
+							//series.addOrUpdate(item.getX(), item.getY());
+							series.addOrUpdate(item);
 						}
 					}
 				}

@@ -38,6 +38,7 @@ import parser.type.TypeDouble;
 import prism.PrismException;
 import userinterface.graph.Graph;
 import userinterface.graph.Graph.SeriesKey;
+import userinterface.graph.PrismXYDataItem;
 
 /**
  * Class to display a simulation path in text form, sending to a PrismLog.
@@ -157,8 +158,8 @@ public class PathToGraph extends PathDisplayer
 				boolean plot = force || lastStateRewards[j] != stateRewards[j];
 				if (plot) {
 					if (skippedRewards.get(j))
-						graphModel.addPointToSeries(rewardSeriesKeys.get(j), new XYDataItem(lastTime, lastStateRewards[j]));
-					graphModel.addPointToSeries(rewardSeriesKeys.get(j), new XYDataItem(time, d));
+						graphModel.addPointToSeries(rewardSeriesKeys.get(j), new PrismXYDataItem(lastTime, lastStateRewards[j]));
+					graphModel.addPointToSeries(rewardSeriesKeys.get(j), new PrismXYDataItem(time, d));
 				}
 				skippedRewards.set(j, !plot);
 			}
@@ -179,11 +180,11 @@ public class PathToGraph extends PathDisplayer
 		double d;
 		try {
 			d = TypeDouble.getInstance().castValueTo(val).doubleValue();
-			graphModel.addPointToSeries(seriesKey, new XYDataItem(x, d));
+			graphModel.addPointToSeries(seriesKey, new PrismXYDataItem(x, d));
 		} catch (PrismException e) {
 			if (val instanceof Boolean) {
 				d = ((Boolean) val).booleanValue() ? 1.0 : 0.0;
-				graphModel.addPointToSeries(seriesKey, new XYDataItem(x, d));
+				graphModel.addPointToSeries(seriesKey, new PrismXYDataItem(x, d));
 			}
 		}
 	}

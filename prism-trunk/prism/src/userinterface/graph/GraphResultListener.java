@@ -28,11 +28,15 @@
 
 package userinterface.graph;
 
-import param.BigRational;
-import parser.*;
-import prism.*;
+import org.jfree.data.xy.XYDataItem;
 
-import org.jfree.data.xy.*;
+import param.BigRational;
+import parser.Values;
+import prism.Interval;
+import prism.Pair;
+import prism.PrismException;
+import prism.ResultListener;
+import prism.ResultsCollection;
 
 // TODO: When either the graph or the resultset seizes to exist, then so should this listener.
 
@@ -91,25 +95,25 @@ public class GraphResultListener implements ResultListener
 			// Add point to graph (if of valid type) 
 			if (result instanceof Double) {
 				y = ((Double) result).doubleValue();
-				graph.addPointToSeries(seriesKey, new XYDataItem(x, y));
+				graph.addPointToSeries(seriesKey, new PrismXYDataItem(x, y));
 			} else if (result instanceof Integer) {
 				y = ((Integer) result).intValue();
-				graph.addPointToSeries(seriesKey, new XYDataItem(x, y));
+				graph.addPointToSeries(seriesKey, new PrismXYDataItem(x, y));
 			} else if (result instanceof BigRational) {
 				y = ((BigRational) result).doubleValue();
-				graph.addPointToSeries(seriesKey, new XYDataItem(x, y));
+				graph.addPointToSeries(seriesKey, new PrismXYDataItem(x, y));
 			} else if (result instanceof Interval) {
 				Interval interval = (Interval) result;
 				if (interval.lower instanceof Double) {
 					y = ((Double) interval.lower).doubleValue();
-					graph.addPointToSeries(seriesKey, new XYDataItem(x, y));
+					graph.addPointToSeries(seriesKey, new PrismXYDataItem(x, y));
 					y = ((Double) interval.upper).doubleValue();
-					graph.addPointToSeries(seriesKey.next, new XYDataItem(x, y));
+					graph.addPointToSeries(seriesKey.next, new PrismXYDataItem(x, y));
 				} else if (result instanceof Integer) {
 					y = ((Integer) interval.lower).intValue();
-					graph.addPointToSeries(seriesKey, new XYDataItem(x, y));
+					graph.addPointToSeries(seriesKey, new PrismXYDataItem(x, y));
 					y = ((Integer) interval.upper).intValue();
-					graph.addPointToSeries(seriesKey.next, new XYDataItem(x, y));
+					graph.addPointToSeries(seriesKey.next, new PrismXYDataItem(x, y));
 				}
 			}
 			else if(result instanceof Pair<?, ?>){
@@ -121,9 +125,11 @@ public class GraphResultListener implements ResultListener
 				y = res.first;
 				double error = res.second;
 				
-				XYIntervalDataItem dataItem = new XYIntervalDataItem(x, x, x, y, y-error, y+error);
+				PrismXYDataItem dataItem = new PrismXYDataItem(x, y);
+				dataItem.setError(error);
+				
 				graph.addPointToSeries(seriesKey, dataItem);
-				graph.setShowErrorBars(true);
+				graph.showErrorBars(true);
 			}
 		}
 	}

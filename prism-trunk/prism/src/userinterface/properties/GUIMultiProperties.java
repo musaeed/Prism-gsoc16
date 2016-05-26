@@ -108,6 +108,7 @@ import userinterface.OptionsPanel;
 import userinterface.SimulationInformation;
 import userinterface.graph.Graph;
 import userinterface.graph.Graph.SeriesKey;
+import userinterface.graph.PrismXYDataItem;
 import userinterface.model.GUIModelEvent;
 import userinterface.model.GUIMultiModelHandler;
 import userinterface.model.computation.ExportBuiltModelThread;
@@ -958,7 +959,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 
 					for (prism.Point p : l) {
 						prism.Point pReal = p.toRealProperties(tl.getOpsAndBoundsList());
-						XYDataItem di = new XYDataItem(pReal.getCoord(0), pReal.getCoord(1));
+						PrismXYDataItem di = new PrismXYDataItem(pReal.getCoord(0), pReal.getCoord(1));
 						graph.addPointToSeries(sk, di);
 					}
 					this.getGraphHandler().addGraph(graph);

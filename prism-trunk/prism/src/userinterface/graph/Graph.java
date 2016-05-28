@@ -73,8 +73,6 @@ import org.jfree.chart.renderer.xy.XYItemRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.chart.title.LegendTitle;
 import org.jfree.data.xy.XYDataset;
-import org.jfree.data.xy.XYIntervalSeries;
-import org.jfree.data.xy.XYIntervalSeriesCollection;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.ui.RectangleEdge;
@@ -132,18 +130,18 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	 * seriesCollection)
 	 */
 	private HashMap<SeriesKey, SeriesSettings> keyToGraphSeries;	
-	
+
 	/**
 	 * Allows us to batch graph points (JFreeChart is not realtime). (Make sure
 	 * to synchronize on seriesCollection)
 	 */
 	private HashMap<SeriesKey, LinkedList<PrismXYDataItem>> graphCache;
-	
+
 	/**
 	 * Allows us to render errors on the graph
 	 * @author Muhammad Omer Saeed
 	 */
-	
+
 	private PrismErrorRenderer errorRenderer;
 
 	/** Display for settings. Required to implement SettingsOwner */
@@ -157,6 +155,8 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	private FontColorSetting legendFont;
 	private BooleanSetting errorBarVisible;
 	private DoubleSetting errorBarCapLength;
+	private DoubleSetting errorAlpha;
+	private ChoiceSetting currentErrorMethod;
 
 	/** Settings of the axis. */
 	private AxisSettings xAxisSettings;
@@ -165,7 +165,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 
 	/** Display settings */
 	private DisplaySettings displaySettings;
-	
+
 	/** GraphSeriesList */
 	private SeriesSettingsList seriesList;
 
@@ -183,7 +183,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	{
 		this("");
 	}
-	
+
 	/**
 	 * Initialises the GraphModel's series and canvas list. Also starts off the
 	 * graph update timer (one per chart).
@@ -197,20 +197,20 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 				new XYSeriesCollection(), PlotOrientation.VERTICAL, true, true,
 				false));
 
-		
+
 		graphCache = new HashMap<SeriesKey, LinkedList<PrismXYDataItem>>();
 		keyToSeries = new HashMap<SeriesKey, XYSeries>();
 		keyToGraphSeries = new HashMap<SeriesKey, SeriesSettings>();
-		
+
 		/**
 		 * This sets the error renderer to the graph. It plots the error bars wherever the errors are available
 		 * @author Muhammad Omer Saeed
 		 */
-		
+
 		errorRenderer = new PrismErrorRenderer();
 		super.getChart().getXYPlot().setRenderer(errorRenderer);
 		setToolTipRenderer();
-		
+
 		graphTitle = new MultipleLineStringSetting("title", title,
 				"The main title heading for the chart.", this, false);
 		titleFont = new FontColorSetting("title font", new FontColorPair(
@@ -228,15 +228,28 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 		legendFont = new FontColorSetting("legend font", new FontColorPair(
 				new Font("SansSerif", Font.PLAIN, 11), Color.black),
 				"The font for the legend", this, false);
+
+		errorBarVisible = new BooleanSetting("Error info visible?", new Boolean(true), 
+				"Should the graph show the information (if available)?", this, false);
+
+		errorBarCapLength = new DoubleSetting("Width of the error bar cap", errorRenderer.getCapLength(), 
+				"Set the width of the error bar cap", this, false);
+
+		errorAlpha = new DoubleSetting("Transparency alpha deviation plot", errorRenderer.getAlpha(), 
+				"Set the transparency of the deviation error plot", this, false);
+
+		String[] methods = {"Error bars" , "Deviation plot"};
+		currentErrorMethod = new ChoiceSetting("Error render method", methods,
+				"Error bars", "Select the error render method", this, false);
+
+		errorAlpha.setEnabled(false);
 		
-		errorBarVisible = new BooleanSetting("Error bars visible?", new Boolean(true), "Should the graph show error bars (if available)?", this, false);
-		errorBarCapLength = new DoubleSetting("Width of the error bar cap", errorRenderer.getCapLength(), "Set the width of the error bar cap", this, false);
 		// Some easy references
 		chart = super.getChart();
 		plot = chart.getXYPlot();
 		plot.setBackgroundPaint((Paint)Color.white);
 		seriesCollection = (XYSeriesCollection) plot.getDataset();
-		
+
 		xAxisSettings = new AxisSettings("X", true, this);
 		yAxisSettings = new AxisSettings("Y", false, this);
 
@@ -245,9 +258,9 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 
 		displaySettings = new DisplaySettings(this);
 		displaySettings.addObserver(this);
-		
+
 		seriesList = new SeriesSettingsList(this);
-		
+
 		// create a regular XY line chart
 		XYItemRenderer r = plot.getRenderer();
 		// if possible, try to match the old grapher
@@ -259,14 +272,14 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 			renderer.setAutoPopulateSeriesPaint(true);
 			renderer.setAutoPopulateSeriesShape(true);
 		}
-		
+
 		plot.setDrawingSupplier(new DefaultDrawingSupplier(
 				SeriesSettings.DEFAULT_PAINTS,
 				DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
 				DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
 				DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
 				SeriesSettings.DEFAULT_SHAPES
-		));	
+				));	
 
 		super.setPopupMenu(null);
 
@@ -276,7 +289,6 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 		// schedule a periodic timer for graph updates
 		new java.util.Timer().scheduleAtFixedRate(new GraphUpdateTask(), 0, // start now
 				updateInterval);
-		
 
 	}
 
@@ -293,25 +305,38 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 			return 0;
 	}
 
+	/**
+	 * Get the current error renderer
+	 * @return errorRenderer
+	 */
 	public PrismErrorRenderer getErrorRenderer(){
 		return errorRenderer;
 	}
-	
-	public void showErrorBars(boolean showErrors){
+
+	/**
+	 * Should the graph show the error information?
+	 * 
+	 * @param showErrors
+	 */
+	public void showErrorInformation(boolean showErrors){
 		errorRenderer.setDrawError(showErrors);
 	}
-	
+
+	public void setCurrentErrorInfoMethod(int method){
+		errorRenderer.setCurrentMethod(method);
+	}
+
 	/**
 	 * Displays the info about the vertex including the error in each vertex nicely
 	 * @author Muhammad Omer Saeed
 	 */
 	public void setToolTipRenderer(){
-		
+
 		errorRenderer.setBaseToolTipGenerator(new XYToolTipGenerator() {
-			
+
 			@Override
 			public String generateToolTip(XYDataset dataset, int seriesIndex, int item) {
-				
+
 
 				XYSeriesCollection collection = (XYSeriesCollection)dataset;
 				XYSeries series = collection.getSeries(seriesIndex);
@@ -327,9 +352,9 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 			}
 		});
 	}
-	
+
 	public int getNumSettings() {
-		return 7;
+		return 9;
 	}
 
 	public Setting getSetting(int index) {
@@ -347,7 +372,11 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 		case 5:
 			return errorBarVisible;
 		case 6:
+			return currentErrorMethod;
+		case 7:
 			return errorBarCapLength;
+		case 8:
+			return errorAlpha;
 		default:
 			return null;
 		}
@@ -368,7 +397,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	public void doEnables() {
 		legendPosition.setEnabled(legendVisible.getBooleanValue());
 		legendFont.setEnabled(legendVisible.getBooleanValue());
-		
+
 	}
 
 	public void update(Observable o, Object arg) {
@@ -424,20 +453,60 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 				this.chart.addLegend(legend);
 			}
 		}
-		
+
+		/**Update the setting for the error information
+		 * */
 		if(errorBarVisible.getBooleanValue() == true){
-			this.showErrorBars(true);
+			this.showErrorInformation(true);
 			chart.fireChartChanged();
+
+			currentErrorMethod.setEnabled(true);
+			displaySettings.getErrorColorSetting().setEnabled(true);
+
+			if(currentErrorMethod.getStringValue() == "Error bars")
+				errorBarCapLength.setEnabled(true);
+			else
+				errorAlpha.setEnabled(true);
+
 		}
 		else{
-			this.showErrorBars(false);
+			
+			this.showErrorInformation(false);
 			chart.fireChartChanged();
+			currentErrorMethod.setEnabled(false);
+			errorBarCapLength.setEnabled(false);
+			errorAlpha.setEnabled(false);
+			displaySettings.getErrorColorSetting().setEnabled(false);
+		}
+
+		/**Update the current error rendering method*/
+		if(currentErrorMethod.isEnabled()){
+			
+			if(currentErrorMethod.getStringValue().equals("Error bars")){
+				errorRenderer.setCurrentMethod(PrismErrorRenderer.ERRORBARS);
+				errorAlpha.setEnabled(false);
+			}
+			else{
+				errorRenderer.setCurrentMethod(PrismErrorRenderer.ERRORDEVIATION);
+				errorBarCapLength.setEnabled(false);
+			}
+
 		}
 		
-		{
+		/**Update the properties of the error renderer depending on which method is selected*/
+
+		if(errorRenderer.getCurrentMethod() == PrismErrorRenderer.ERRORBARS && errorBarCapLength.isEnabled()){
+
 			errorRenderer.setCapLength(errorBarCapLength.getDoubleValue());
 			chart.fireChartChanged();
 		}
+		else if(errorRenderer.getCurrentMethod() == PrismErrorRenderer.ERRORDEVIATION && errorAlpha.isEnabled()){
+
+			errorRenderer.setAlpha(errorAlpha.getDoubleValue());
+			chart.fireChartChanged();
+		}
+
+
 
 		if (this.chart.getLegend() != null) {
 			LegendTitle legend = this.chart.getLegend();
@@ -486,7 +555,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	{
 		return display;
 	}
-	
+
 	/** 
 	 * Returns an object that you have to synchronise in one case:
 	 * - You depend on series not changing.
@@ -495,27 +564,27 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	{
 		return seriesCollection;
 	}
-	
+
 	public java.util.Vector<SeriesKey> getAllSeriesKeys()
 	{
 		synchronized (seriesCollection)
 		{
 			java.util.Vector<SeriesKey> result = new java.util.Vector<SeriesKey>();
-			
+
 			for (Map.Entry<SeriesKey, XYSeries> entries : keyToSeries.entrySet())
 			{
 				result.add(entries.getKey());
 			}
-		
+
 			return result;
 		}
 	}
-	
+
 	public SeriesSettingsList getGraphSeriesList()
 	{
 		return seriesList;
 	}
-	
+
 	/**
 	 * Should always be synchronised on seriesCollection when called.
 	 */
@@ -527,11 +596,11 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 			{
 				return keyToGraphSeries.get(key);
 			}
-		
+
 			return null;
 		}
 	}
-	
+
 	/**
 	 * Should always be synchronised on seriesCollection when called.
 	 */
@@ -543,11 +612,11 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 			{
 				return keyToSeries.get(key);
 			}
-		
+
 			return null;
 		}
 	}
-		
+
 	/**
 	 * Should always be synchronised on seriesCollection when called.
 	 * @return >0 when series found.
@@ -557,17 +626,17 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 		synchronized (seriesCollection) 
 		{
 			XYSeries series = keyToSeries.get(key);
-			
+
 			for (int i = 0; i < seriesCollection.getSeriesCount(); i++)
 			{
 				if (seriesCollection.getSeries(i).equals((series)))
 					return i;
 			}
-			
+
 			return -1;
 		}
 	}
-	
+
 	/**
 	 * Getter for property graphTitle.
 	 * @return Value of property graphTitle.
@@ -576,7 +645,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	{
 		return graphTitle.getStringValue();
 	}
-	
+
 	/**
 	 * Setter for property graphTitle.
 	 * @param value Value of property graphTitle.
@@ -594,7 +663,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 			// Shouldn't happen.
 		}
 	}
-	
+
 	/**
 	 * Getter for property titleFont.
 	 * @return Value of property titleFont.
@@ -603,7 +672,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	{
 		return titleFont.getFontColorValue();
 	}
-	
+
 	/**
 	 * Setter for property titleFont.
 	 * @param font Value of property titleFont.
@@ -621,7 +690,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 			// Shouldn't happen.
 		}
 	}
-	
+
 	/**
 	 * Getter for property legendFont.
 	 * @return Value of property legendFont.
@@ -630,7 +699,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	{
 		return legendFont.getFontColorValue();
 	}
-	
+
 	/**
 	 * Setter for property legendFont.
 	 * @param font Value of property legendFont.
@@ -648,7 +717,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 			// Shouldn't happen.
 		}
 	}
-	
+
 	/**
 	 * Getter for property legendVisible.
 	 * @return Value of property legendVisible.
@@ -657,7 +726,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	{
 		return legendVisible.getBooleanValue();
 	}
-	
+
 	/**
 	 * Setter for property legendVisible.
 	 * @param visible Value of property legendVisible.
@@ -675,23 +744,23 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 			// Shouldn't happen.
 		}
 	}
-	
+
 	public boolean isErrorBarShow(){
 		return errorBarVisible.getBooleanValue();
 	}
-	
+
 	public void setErrorBarVisible (boolean visible){
-		
+
 		try{
 			errorBarVisible.setValue(visible);
 			doEnables();
 			updateGraph();
 		}
 		catch(SettingException e){
-			
+
 		}
 	}
-	
+
 	/**
 	 * Getter for property logarithmic.
 	 * @return the legend's position index:
@@ -706,7 +775,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	{
 		return legendPosition.getCurrentIndex();
 	}
-	
+
 	/**
 	 * Setter for property logarithmic.
 	 * @param value Represents legend position
@@ -723,7 +792,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 		doEnables();
 		updateGraph();
 	}
-	
+
 	/**
 	 * Return settings of the x-Axis.
 	 * 
@@ -750,19 +819,19 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	public DisplaySettings getDisplaySettings() {
 		return displaySettings;
 	}
-	
+
 	private String getUniqueSeriesName(String seriesName)
 	{
 		synchronized (seriesCollection) 
 		{
 			int counter = 0;
 			String name = seriesName;
-				
+
 			/* Name sure seriesName is unique */
 			while (true)
 			{
 				boolean nameExists = false;
-				
+
 				for (Map.Entry<SeriesKey, XYSeries> entry : keyToSeries.entrySet())
 				{
 					if (name.equals(entry.getValue().getKey()))
@@ -771,7 +840,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 						break;
 					}
 				}
-				
+
 				if (nameExists)
 				{
 					counter++;
@@ -782,27 +851,27 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 					break;
 				}				 
 			}
-			
+
 			return name;
 		}	
 	}
-	
+
 	public void moveUp(java.util.Vector<SeriesKey> keys)
 	{
 		synchronized (seriesCollection)
 		{
 			XYSeries[] newOrder = new XYSeries[seriesCollection.getSeriesCount()];
 			java.util.Vector<XYSeries> moveUpSet = new java.util.Vector<XYSeries>();
-			
+
 			for (int i = 0; i < newOrder.length; i++)
 				newOrder[i] = seriesCollection.getSeries(i);
-			
+
 			for (SeriesKey key : keys)
 			{	
 				if (keyToSeries.containsKey(key))
 					moveUpSet.add(keyToSeries.get(key));			
 			}
-						
+
 			for (int i = 1; i < newOrder.length; i++)
 			{
 				if (moveUpSet.contains(newOrder[i]))
@@ -812,35 +881,35 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 					newOrder[i-1] = tmp;
 				}
 			}
-			
+
 			XYSeriesCollection newCollection = new XYSeriesCollection();
-			
+
 			for (int i = 0; i < newOrder.length; i++)
 				newCollection.addSeries(newOrder[i]);
-			
+
 			plot.setDataset(newCollection);
-			
+
 			this.seriesCollection = newCollection;			
 			this.seriesList.updateSeriesList();		
 		}
 	}
-	
+
 	public void moveDown(java.util.Vector<SeriesKey> keys)
 	{
 		synchronized (seriesCollection)
 		{
 			XYSeries[] newOrder = new XYSeries[seriesCollection.getSeriesCount()];
 			java.util.Vector<XYSeries> moveDownSet = new java.util.Vector<XYSeries>();
-			
+
 			for (int i = 0; i < newOrder.length; i++)
 				newOrder[i] = seriesCollection.getSeries(i);
-			
+
 			for (SeriesKey key : keys)
 			{	
 				if (keyToSeries.containsKey(key))
 					moveDownSet.add(keyToSeries.get(key));			
 			}
-						
+
 			for (int i = newOrder.length - 2; i >= 0; i--)
 			{
 				if (moveDownSet.contains(newOrder[i]))
@@ -850,14 +919,14 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 					newOrder[i+1] = tmp;
 				}
 			}
-			
+
 			XYSeriesCollection newCollection = new XYSeriesCollection();
-			
+
 			for (int i = 0; i < newOrder.length; i++)
 				newCollection.addSeries(newOrder[i]);
-			
+
 			plot.setDataset(newCollection);
-			
+
 			this.seriesCollection = newCollection;			
 			this.seriesList.updateSeriesList();		
 		}
@@ -872,11 +941,11 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	public SeriesKey addSeries(String seriesName) 
 	{
 		SeriesKey key;
-		
+
 		synchronized (seriesCollection) 
 		{
 			seriesName = getUniqueSeriesName(seriesName);
-			
+
 			// create a new XYSeries without sorting, disallowing duplicates
 			PrismXYSeries newSeries = new PrismXYSeries(seriesName);
 			this.seriesCollection.addSeries(newSeries);
@@ -886,17 +955,17 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 
 			this.keyToSeries.put(key, newSeries);
 			this.graphCache.put(key, new LinkedList<PrismXYDataItem>());
-			
+
 			SeriesSettings graphSeries = new SeriesSettings(this, key);
 			this.keyToGraphSeries.put(key, graphSeries);
 			graphSeries.addObserver(this);
-			
+
 			this.seriesList.updateSeriesList();			
 		}		
-		
+
 		return key;		
 	}
-	
+
 	/**
 	 * Changes the name of a series.
 	 * 
@@ -908,7 +977,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 		synchronized (seriesCollection) 
 		{
 			seriesName = getUniqueSeriesName(seriesName);
-			
+
 			if (keyToSeries.containsKey(key))
 			{
 				XYSeries series = keyToSeries.get(key);
@@ -935,16 +1004,16 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 			if (graphCache.containsKey(seriesKey)) {
 				graphCache.remove(seriesKey);
 			}
-			
+
 			if (keyToGraphSeries.containsKey(seriesKey))
 			{
 				keyToGraphSeries.get(seriesKey).deleteObservers();				
 				keyToGraphSeries.remove(seriesKey);
 			}
-			
+
 			this.seriesList.updateSeriesList();	
 		}
-		
+
 		seriesList.updateSeriesList();
 	}
 
@@ -954,10 +1023,10 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	 * @param dataItem XYDataItem object to insert into this series.
 	 */
 	public void addPointToSeries(SeriesKey seriesKey, PrismXYDataItem dataItem) {
-		
+
 		synchronized (seriesCollection) {
 			if (graphCache.containsKey(seriesKey)) {
-				
+
 				if (true) {
 					LinkedList<PrismXYDataItem> seriesCache = graphCache
 							.get(seriesKey);
@@ -1044,12 +1113,12 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 		axis.setTickMarkInsideLength((float) minor);
 		axis.setTickMarkInsideLength((float) major);
 	}
-	
+
 	public static boolean parseBoolean(String boolStr)
 	{
 		return ("true").equals(boolStr);
 	}
-	
+
 	public static int parseInt(String intStr)
 	{
 		try 
@@ -1062,7 +1131,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 			return 0;
 		}
 	}
-	
+
 	public static double parseDouble(String doubleStr)
 	{
 		try 
@@ -1133,96 +1202,96 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	 * @throws GraphException if I/O errors have occurred.
 	 */
 	public static Graph load(File file) throws GraphException {
-				
-		  Graph graph = new Graph();
-		  
-		  try 
-		  { 
-			  DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-		  
-			  factory.setValidating(true);
-			  factory.setIgnoringElementContentWhitespace(true); DocumentBuilder
-			  builder = factory.newDocumentBuilder();
-			  builder.setEntityResolver(graph); Document doc = builder.parse(file);
-			  Element chartFormat = doc.getDocumentElement();
-		  
-			  graph.setTitle(chartFormat.getAttribute("graphTitle"));
-			  
-			  String titleFontName = chartFormat.getAttribute("titleFontName");
-			  String titleFontSize = chartFormat.getAttribute("titleFontSize");
-			  String titleFontStyle = chartFormat.getAttribute("titleFontStyle");
-			  
-			  Font titleFont = parseFont( titleFontName, titleFontStyle, titleFontSize ); 
-			  			  
-			  String titleFontColourR = chartFormat.getAttribute("titleFontColourR"); 
-			  String titleFontColourG = chartFormat.getAttribute("titleFontColourG"); 
-			  String titleFontColourB = chartFormat.getAttribute("titleFontColourB"); 
-			  Color titleFontColour = parseColor(titleFontColourR, titleFontColourG, titleFontColourB);
-			  
-			  graph.setTitleFont(new FontColorPair(titleFont, titleFontColour));
-			  graph.setLegendVisible(parseBoolean(chartFormat.getAttribute("legendVisible")));
-			  
-			  String legendPosition = chartFormat.getAttribute("legendPosition");
-			
-			  // Facilitate for bugs export in previous prism versions.
-			  if (chartFormat.getAttribute("versionString").equals(""))
-				  graph.setLegendPosition(RIGHT);
-			  else
-			  {
-				  if (legendPosition.equals("left"))
-					  graph.setLegendPosition(LEFT);
-				  else if (legendPosition.equals("right"))
-					  graph.setLegendPosition(RIGHT);
-				  else if (legendPosition.equals("bottom"))
-					  graph.setLegendPosition(BOTTOM);
-				  else if (legendPosition.equals("top"))
-					  graph.setLegendPosition(TOP);
-				  else // Probably was manual, now depricated
-					  graph.setLegendPosition(RIGHT);
-			  }
-			  
-			  //Get the nodes used to describe the various parts of the graph
-			  NodeList rootChildren = chartFormat.getChildNodes(); 
-			  
-			  // Element layout is depricated for now. 
-			  Element layout = (Element) rootChildren.item(0); 
-			  Element xAxis = (Element) rootChildren.item(1); 
-			  Element yAxis = (Element) rootChildren.item(2);
-			  
-			  graph.getXAxisSettings().load(xAxis);
-			  graph.getYAxisSettings().load(yAxis);
-			  
-			  //Read the headings and widths for each series 
-			  for (int i = 3; i < rootChildren.getLength(); i++) 
-			  { 
-				  Element series = (Element)rootChildren.item(i);
-				  SeriesKey key = graph.addSeries(series.getAttribute("seriesHeading"));
-				  
-				  synchronized (graph.getSeriesLock())
-				  {
-					  SeriesSettings seriesSettings = graph.getGraphSeries(key);
-					  seriesSettings.load(series);
-					  
-					  NodeList graphChildren = series.getChildNodes();
-					  
-					  //Read each series out of the file and add its points to the graph
-					  for (int j = 0; j < graphChildren.getLength(); j++) 
-					  { 
-						  Element point = (Element) graphChildren.item(j);
-						  graph.addPointToSeries(key, new PrismXYDataItem(parseDouble(point.getAttribute("x")), parseDouble(point.getAttribute("y"))));
-					  }
-				  }
-			  }		  
-			 
-			  
-			  
-			  //Return the model of the graph 
-			  return graph; 
-		  } 
-		  catch (Exception e) 
-		  {
-			  throw new GraphException("Error in loading chart: " + e); 
-		  }
+
+		Graph graph = new Graph();
+
+		try 
+		{ 
+			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+
+			factory.setValidating(true);
+			factory.setIgnoringElementContentWhitespace(true); DocumentBuilder
+			builder = factory.newDocumentBuilder();
+			builder.setEntityResolver(graph); Document doc = builder.parse(file);
+			Element chartFormat = doc.getDocumentElement();
+
+			graph.setTitle(chartFormat.getAttribute("graphTitle"));
+
+			String titleFontName = chartFormat.getAttribute("titleFontName");
+			String titleFontSize = chartFormat.getAttribute("titleFontSize");
+			String titleFontStyle = chartFormat.getAttribute("titleFontStyle");
+
+			Font titleFont = parseFont( titleFontName, titleFontStyle, titleFontSize ); 
+
+			String titleFontColourR = chartFormat.getAttribute("titleFontColourR"); 
+			String titleFontColourG = chartFormat.getAttribute("titleFontColourG"); 
+			String titleFontColourB = chartFormat.getAttribute("titleFontColourB"); 
+			Color titleFontColour = parseColor(titleFontColourR, titleFontColourG, titleFontColourB);
+
+			graph.setTitleFont(new FontColorPair(titleFont, titleFontColour));
+			graph.setLegendVisible(parseBoolean(chartFormat.getAttribute("legendVisible")));
+
+			String legendPosition = chartFormat.getAttribute("legendPosition");
+
+			// Facilitate for bugs export in previous prism versions.
+			if (chartFormat.getAttribute("versionString").equals(""))
+				graph.setLegendPosition(RIGHT);
+			else
+			{
+				if (legendPosition.equals("left"))
+					graph.setLegendPosition(LEFT);
+				else if (legendPosition.equals("right"))
+					graph.setLegendPosition(RIGHT);
+				else if (legendPosition.equals("bottom"))
+					graph.setLegendPosition(BOTTOM);
+				else if (legendPosition.equals("top"))
+					graph.setLegendPosition(TOP);
+				else // Probably was manual, now depricated
+					graph.setLegendPosition(RIGHT);
+			}
+
+			//Get the nodes used to describe the various parts of the graph
+			NodeList rootChildren = chartFormat.getChildNodes(); 
+
+			// Element layout is depricated for now. 
+			Element layout = (Element) rootChildren.item(0); 
+			Element xAxis = (Element) rootChildren.item(1); 
+			Element yAxis = (Element) rootChildren.item(2);
+
+			graph.getXAxisSettings().load(xAxis);
+			graph.getYAxisSettings().load(yAxis);
+
+			//Read the headings and widths for each series 
+			for (int i = 3; i < rootChildren.getLength(); i++) 
+			{ 
+				Element series = (Element)rootChildren.item(i);
+				SeriesKey key = graph.addSeries(series.getAttribute("seriesHeading"));
+
+				synchronized (graph.getSeriesLock())
+				{
+					SeriesSettings seriesSettings = graph.getGraphSeries(key);
+					seriesSettings.load(series);
+
+					NodeList graphChildren = series.getChildNodes();
+
+					//Read each series out of the file and add its points to the graph
+					for (int j = 0; j < graphChildren.getLength(); j++) 
+					{ 
+						Element point = (Element) graphChildren.item(j);
+						graph.addPointToSeries(key, new PrismXYDataItem(parseDouble(point.getAttribute("x")), parseDouble(point.getAttribute("y"))));
+					}
+				}
+			}		  
+
+
+
+			//Return the model of the graph 
+			return graph; 
+		} 
+		catch (Exception e) 
+		{
+			throw new GraphException("Error in loading chart: " + e); 
+		}
 	}
 
 	/**
@@ -1238,92 +1307,92 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 		try 
 		{ 
 			JFreeChart chart = getChart(); 
-		 	DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance(); 
-		 	DocumentBuilder builder = factory.newDocumentBuilder(); 
-		 	Document doc = builder.newDocument();
-		  
-		 	Element chartFormat = doc.createElement("chartFormat");
-		  
-		 	chartFormat.setAttribute("versionString", prism.Prism.getVersion());
-		 	chartFormat.setAttribute("graphTitle", getTitle()); 
-		 	
-		 	Font titleFont = getTitleFont().f;
-		 	chartFormat.setAttribute("titleFontName", titleFont.getName());
-		 	chartFormat.setAttribute("titleFontSize", "" + titleFont.getSize()); 
-		 	chartFormat.setAttribute("titleFontStyle", "" + titleFont.getStyle()); 
-		 	
-		 	Color titleFontColor = (Color) getTitleFont().c;
-		 	chartFormat.setAttribute("titleFontColourR", "" + titleFontColor.getRed());
-		 	chartFormat.setAttribute("titleFontColourG", "" + titleFontColor.getGreen());
-		 	chartFormat.setAttribute("titleFontColourB", "" + titleFontColor.getBlue());
-		  
-		 	chartFormat.setAttribute("legendVisible", isLegendVisible() ? "true" : "false");
-		 	
-		 	Font legendFont = getLegendFont().f;		    
-		 	chartFormat.setAttribute("legendFontName", "" + legendFont.getName()); 
-		 	chartFormat.setAttribute("legendFontSize", "" + legendFont.getSize()); 
-		 	chartFormat.setAttribute("legendFontStyle", "" + legendFont.getStyle()); 
-		 	
-		 	Color legendFontColor = getLegendFont().c;
-		 	
-		 	chartFormat.setAttribute("legendFontColourR", "" + legendFontColor.getRed());
+			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance(); 
+			DocumentBuilder builder = factory.newDocumentBuilder(); 
+			Document doc = builder.newDocument();
+
+			Element chartFormat = doc.createElement("chartFormat");
+
+			chartFormat.setAttribute("versionString", prism.Prism.getVersion());
+			chartFormat.setAttribute("graphTitle", getTitle()); 
+
+			Font titleFont = getTitleFont().f;
+			chartFormat.setAttribute("titleFontName", titleFont.getName());
+			chartFormat.setAttribute("titleFontSize", "" + titleFont.getSize()); 
+			chartFormat.setAttribute("titleFontStyle", "" + titleFont.getStyle()); 
+
+			Color titleFontColor = (Color) getTitleFont().c;
+			chartFormat.setAttribute("titleFontColourR", "" + titleFontColor.getRed());
+			chartFormat.setAttribute("titleFontColourG", "" + titleFontColor.getGreen());
+			chartFormat.setAttribute("titleFontColourB", "" + titleFontColor.getBlue());
+
+			chartFormat.setAttribute("legendVisible", isLegendVisible() ? "true" : "false");
+
+			Font legendFont = getLegendFont().f;		    
+			chartFormat.setAttribute("legendFontName", "" + legendFont.getName()); 
+			chartFormat.setAttribute("legendFontSize", "" + legendFont.getSize()); 
+			chartFormat.setAttribute("legendFontStyle", "" + legendFont.getStyle()); 
+
+			Color legendFontColor = getLegendFont().c;
+
+			chartFormat.setAttribute("legendFontColourR", "" + legendFontColor.getRed());
 			chartFormat.setAttribute("legendFontColourG", "" + legendFontColor.getGreen());
 			chartFormat.setAttribute("legendFontColourB", "" + legendFontColor.getBlue());
-			
-			
+
+
 			switch (getLegendPosition()) 
 			{ 
-		  		case LEFT:
-		  			chartFormat.setAttribute("legendPosition", "left"); 
-		  		break; 
-		  		case BOTTOM:
-		  			chartFormat.setAttribute("legendPosition", "bottom");
-		  		break; 
-			  	case TOP:
-		  			chartFormat.setAttribute("legendPosition", "top"); 
-		  		break; 
-		  		default:
-		  			chartFormat.setAttribute("legendPosition", "right"); 
+			case LEFT:
+				chartFormat.setAttribute("legendPosition", "left"); 
+				break; 
+			case BOTTOM:
+				chartFormat.setAttribute("legendPosition", "bottom");
+				break; 
+			case TOP:
+				chartFormat.setAttribute("legendPosition", "top"); 
+				break; 
+			default:
+				chartFormat.setAttribute("legendPosition", "right"); 
 			}
-			
+
 			Element layout = doc.createElement("layout");
 			chartFormat.appendChild(layout);
-			
+
 			Element xAxis = doc.createElement("axis");
 			getXAxisSettings().save(xAxis);
 			chartFormat.appendChild(xAxis);
-			
+
 			Element yAxis = doc.createElement("axis");
 			getYAxisSettings().save(yAxis);
 			chartFormat.appendChild(yAxis);
-			
+
 			synchronized (getSeriesLock()) 
 			{
 				/* Make sure we preserve ordering. */
 				for (int i = 0; i < seriesList.getSize(); i++)
 				{
 					SeriesKey key = seriesList.getKeyAt(i);
-					
+
 					Element series = doc.createElement("graph");
 					SeriesSettings seriesSettings = getGraphSeries(key);
 					seriesSettings.save(series);
-					
+
 					XYSeries seriesData = getXYSeries(key);
-					
+
 					for (int j = 0; j < seriesData.getItemCount(); j++)
 					{ 
 						Element point = doc.createElement("point");
-						 
+
 						point.setAttribute("x", "" + seriesData.getX(j));
 						point.setAttribute("y", "" + seriesData.getY(j));
-						
+
 						series.appendChild(point);
 					}
-					
+
 					chartFormat.appendChild(series);
 				}
 			}
-			
+
 			doc.appendChild(chartFormat);
 
 			// File writing 
@@ -1365,12 +1434,12 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	public void exportToMatlab(File f) throws IOException
 	{
 		PrintWriter out = new PrintWriter(new FileWriter(f));
-		
+
 		out.println("%=========================================");
 		out.println("%Generated by PRISM Chart Package");
 		out.println("%=========================================");
 		out.println();
-		
+
 		//Seriesdata
 		synchronized (getSeriesLock()) 
 		{
@@ -1379,35 +1448,35 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 			{
 				StringBuffer x = new StringBuffer("x"+i+" = [");
 				StringBuffer y = new StringBuffer("y"+i+" = [");
-					
+
 				SeriesKey key = seriesList.getKeyAt(i);
-				
+
 				XYSeries seriesData = getXYSeries(key);
-				
+
 				for (int j = 0; j < seriesData.getItemCount(); j++)
 				{ 
 					x.append(seriesData.getX(j) + " ");
 					y.append(seriesData.getY(j) + " ");
 				}
-				
+
 				x.append("];");
 				y.append("];");
-				
+
 				out.println(x.toString());
 				out.println(y.toString());
 			}
-		
-		
+
+
 			//Create a figure
 			out.println();
 			out.println("figure1 = figure('Color', [1 1 1], 'PaperPosition',[0.6345 6.345 20.3 15.23],'PaperSize',[20.98 29.68]);");
-			
+
 			//Create axes
 			boolean xLog = getXAxisSettings().isLogarithmic();
 			boolean yLog = getYAxisSettings().isLogarithmic();
-			
+
 			out.println();
-			
+
 			if(xLog && yLog)
 				out.println("axes1 = axes('Parent', figure1, 'FontSize', 16, 'XScale', 'log', 'YScale', 'log');");
 			else if(xLog)
@@ -1416,19 +1485,19 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 				out.println("axes1 = axes('Parent', figure1, 'FontSize', 16, 'YScale', 'log');");
 			else
 				out.println("axes1 = axes('Parent', figure1, 'FontSize', 16);");
-			
+
 			out.println("xlabel(axes1, '" + getXAxisSettings().getHeading() + "');");
 			out.println("ylabel(axes1, '" + getYAxisSettings().getHeading() + "');");
-			
+
 			out.println("box(axes1, 'on');");
 			out.println("hold(axes1, 'all');");
-			
+
 			//Graph title
 			out.println();
-			
+
 			String title = "";
 			StringTokenizer st = new StringTokenizer(getTitle(), "\n");
-			
+
 			int num = st.countTokens();
 			for(int i = 0; i < num; i++)
 			{
@@ -1436,9 +1505,9 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 				if(i < num - 1) 
 					title += ", char(10),";
 			}
-			
+
 			out.println("title(axes1,["+title+"])");
-				
+
 			//Sort out logarithmic scales
 			String scaleType = "plot";
 			if(seriesList.getSize() > 0)
@@ -1450,85 +1519,85 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 				else if(yLog)
 					scaleType = "semilogy";
 			}
-		
+
 			//Create plots
 			for(int i = 0; i < seriesList.getSize(); i++)
 			{
 				SeriesKey key = seriesList.getKeyAt(i);
 				SeriesSettings seriesSettings = getGraphSeries(key);
-				
+
 				String marker = "'";
 				if(seriesSettings.showPoints() && seriesSettings.getSeriesShape() != SeriesSettings.NONE)
 				{
 					switch(seriesSettings.getSeriesShape())
 					{
-						case SeriesSettings.CIRCLE: 
-							marker += "o";
-							break;
-						case SeriesSettings.SQUARE: 
-							marker += "s";
-							break;
-						case SeriesSettings.TRIANGLE: 
-							marker += "^";
-							break;
-						case SeriesSettings.RECTANGLE_H: 
-							marker += "d"; 
-							break;
-						case SeriesSettings.RECTANGLE_V: 
-							marker += "x"; 
-							break;
+					case SeriesSettings.CIRCLE: 
+						marker += "o";
+						break;
+					case SeriesSettings.SQUARE: 
+						marker += "s";
+						break;
+					case SeriesSettings.TRIANGLE: 
+						marker += "^";
+						break;
+					case SeriesSettings.RECTANGLE_H: 
+						marker += "d"; 
+						break;
+					case SeriesSettings.RECTANGLE_V: 
+						marker += "x"; 
+						break;
 					}
 				}
-				
+
 				if(seriesSettings.showLines())
 				{
 					switch(seriesSettings.getLineStyle())
 					{
-						case SeriesSettings.SOLID: 
-							marker += "-";
-							break;
-						case SeriesSettings.DASHED: 
-							marker += "--";
-							break;
-						case SeriesSettings.DOT_DASHED: 
-							marker += "-.";
-							break;
+					case SeriesSettings.SOLID: 
+						marker += "-";
+						break;
+					case SeriesSettings.DASHED: 
+						marker += "--";
+						break;
+					case SeriesSettings.DOT_DASHED: 
+						marker += "-.";
+						break;
 					}
 				}
 				marker+="'";
 				out.println("plot"+i+" = "+scaleType+"(x"+i+", y"+i+", "+marker+", 'Parent', axes1, 'LineWidth', 2);");
 			}
-			
+
 			//			Create legend
 			String seriesNames = "";
 			for(int i = 0; i < seriesList.getSize(); i++)
 			{
 				SeriesKey key = seriesList.getKeyAt(i);
 				SeriesSettings seriesSettings = getGraphSeries(key);
-				
+
 				seriesNames+="'" + seriesSettings.getSeriesHeading() + "'";
 				if(i < seriesList.getSize() - 1) seriesNames+=", ";
 			}
-			
+
 			//Determine location
-			
+
 			String loc = "";
 			switch(legendPosition.getCurrentIndex())
 			{
-				case LEFT: loc = "'WestOutside'";break;
-				case RIGHT: loc = "'EastOutside'";break;
-				case BOTTOM: loc = "'SouthOutside'";break;
-				case TOP: loc = "'NorthOutside'";break;
+			case LEFT: loc = "'WestOutside'";break;
+			case RIGHT: loc = "'EastOutside'";break;
+			case BOTTOM: loc = "'SouthOutside'";break;
+			case TOP: loc = "'NorthOutside'";break;
 			}
-			
+
 			if(isLegendVisible())
 				out.println("legend1 = legend(axes1,{"+seriesNames+"},'Location', "+loc+");");
-			
+
 			out.flush();
 			out.close();
 		}
 	}
-	
+
 	/**
 	 * Renders the current graph to a JPEG file.
 	 * 
@@ -1541,22 +1610,22 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	{	
 		ChartUtilities.saveChartAsJPEG(file, 1.0f, this.chart, width, height);
 	}
-	
+
 	public void exportToEPS(File file, int width, int height) throws GraphException, IOException
 	{
 		FileOutputStream fileOutputStream = new FileOutputStream(file);
-		
+
 		EpsGraphics g2d = new EpsGraphics(this.getTitle(), fileOutputStream, 0, 0, width, height, ColorMode.COLOR_RGB);
-		
+
 		// Don't export fonts as vectors, no hope of getting same font as publication.
 		// g2d.setAccurateTextMode(false); // Does not rotate y-axis label.
-		
-        chart.draw(g2d, new Rectangle(width, height));
-        
-        g2d.close();
-        g2d.dispose();
+
+		chart.draw(g2d, new Rectangle(width, height));
+
+		g2d.close();
+		g2d.dispose();
 	}
-		
+
 	/**
 	 * Renders the current graph to a JPEG file.
 	 * 
@@ -1567,34 +1636,34 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	 */
 	public void exportToPNG(File file, int width, int height, boolean alpha) throws GraphException, IOException
 	{	
-		
+
 		FileOutputStream fileOutputStream = new FileOutputStream(file);
-		
+
 		KeypointPNGEncoderAdapter encoder = new KeypointPNGEncoderAdapter();
 		encoder.setEncodingAlpha(alpha);
-		
+
 		Paint bgPaint = chart.getBackgroundPaint();
-		
+
 		if (alpha)
 		{
 			chart.setBackgroundPaint(null);			
 		}
-		
+
 		BufferedImage bufferedImage = chart.createBufferedImage(width, height, alpha ? BufferedImage.TYPE_INT_ARGB : BufferedImage.TYPE_INT_RGB, null);
-		
+
 		if (alpha)
 		{
 			chart.setBackgroundPaint(bgPaint);			
 		}
-		
+
 		encoder.encode(bufferedImage, fileOutputStream);
-		
+
 		fileOutputStream.flush();
 		fileOutputStream.close();
-		
+
 		//ChartUtilities.saveChartAsPNG(file, this.chart, width, height, null, alpha, 9);
 	}
-	
+
 	/**
 	 * Exports the current data sets to a comma seperated value file.
 	 * 
@@ -1608,17 +1677,17 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 		/*try 
 		{ 
 			PrintWriter out = new PrintWriter(new FileWriter(file)); 
-			
+
 			// Create the header, this is a comma seperate list of the titles 
 			// of the series followed by an x or y String header = ""; 
-			  
+
 			synchronize(this.getSeriesLock())
 			{
-				
+
 			}
-			
+
 			int largestGraph = 0;
-			 
+
 			// Consider every series in this model 
 			for (int i = 0; i < getNumSeries(); i++) 
 			{ 
@@ -1627,37 +1696,37 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 				{ 
 					largestGraph = getGraphPoints(i).getItemCount(); 
 				}
-			   
+
 				// Add the series titles 
 				header += "[" + getGraphPoints(i).getKey() + "].x,"; 
 				header += "[" + getGraphPoints(i).getKey() + "].y";
-			 
+
 				// If this isnt the last series add the comma 
 				if (i < getNumSeries() - * 1) 
 					header += ", "; 
 			}
-			
+
 			// Print the header to the file
 		    out.println(header);
-		 
+
 		    // Format of the file has the data in columns, so iterate through 
 		    // the points in all the graphs adding the next point from each graph 
 		    // on the same line 
-		    
+
 		    String line = ""; 
-		  
+
 		    for (int i = 0; i < largestGraph; i++) 
 		    { 
 		    	line = "";
-		  
+
 		    	// For each point, iterate through all the graphs 
 		    	for (int j = 0; j < getNumSeries(); j++) 
 		    	{ 
 		    		XYSeries gs = getGraphPoints(j);
-		    		  
+
 		    		// If the current graph doesnt have this point, ie its smaller 
 		    		// than the largest supply "","" for the data 
-		  
+
 					if (i >= gs.getItemCount()) 
 					{ 
 						line += "\"\",\"\""; 
@@ -1667,14 +1736,14 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 						// Otherwise add the next data point 
 						line += gs.getX(i) + ","; line += gs.getY(i); 
 					}
-		  
+
 					if (j < getNumSeries() - 1) 
 						line += ", "; 
 		    	}
-		 
+
 		    	out.println(line); 
 		    }
-		    
+
 		    out.flush(); 
 		    out.close();
 		} 
@@ -1682,7 +1751,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 		{ 
 			throw new ChartException(e); 
 		}	
-		*/  
+		 */  
 	}
 
 	/**
@@ -1702,7 +1771,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 			synchronized (seriesCollection) {
 				for (Map.Entry<SeriesKey, LinkedList<PrismXYDataItem>> entry : graphCache
 						.entrySet()) {
-					
+
 					/* The series key should map to a series. */
 					if (keyToSeries.containsKey(entry.getKey())) {
 						PrismXYSeries series = (PrismXYSeries)keyToSeries.get(entry.getKey());

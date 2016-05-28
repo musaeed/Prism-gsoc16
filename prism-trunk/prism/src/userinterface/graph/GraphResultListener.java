@@ -129,7 +129,7 @@ public class GraphResultListener implements ResultListener
 				dataItem.setError(error);
 				
 				graph.addPointToSeries(seriesKey, dataItem);
-				graph.showErrorBars(true);
+				graph.showErrorInformation(true);
 			}
 		}
 	}

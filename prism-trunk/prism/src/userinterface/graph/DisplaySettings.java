@@ -79,7 +79,7 @@ public class DisplaySettings extends Observable implements SettingOwner
 		//	defaultColor = ((Color)chart.getBackgroundPaint());
 		
 		backgroundColor = new ColorSetting("background colour", defaultColor, "The background colour of the graph panel", this, false);
-		errorBarColor = new ColorSetting("error bar color", Color.RED, "The color of the error bars", this, false);
+		errorBarColor = new ColorSetting("error renderer color", Color.RED, "The color of the error bars", this, false);
 		
 		updateDisplay();
 		setChanged();
@@ -203,6 +203,10 @@ public class DisplaySettings extends Observable implements SettingOwner
 	
 	public Color getErrorBarColor(){
 		return errorBarColor.getColorValue();
+	}
+	
+	public ColorSetting getErrorColorSetting(){
+		return errorBarColor;
 	}
 	
 	public void setErrorBarColor(Color errorbar){

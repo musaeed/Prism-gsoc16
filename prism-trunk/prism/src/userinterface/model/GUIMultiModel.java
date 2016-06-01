@@ -976,7 +976,7 @@ public class GUIMultiModel extends GUIPlugin implements PrismSettingsListener
 	// if return value is true, event should not be passed on to any more listeners
 
 	public boolean processGUIEvent(GUIEvent e)
-	{
+	{	
 		if (e instanceof userinterface.properties.GUIPropertiesEvent) {
 			if (e.getID() == userinterface.properties.GUIPropertiesEvent.REQUEST_MODEL_PARSE) {
 				handler.requestParse(false);

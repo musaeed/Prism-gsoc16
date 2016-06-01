@@ -150,7 +150,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		// (only necessary for symbolically stored vectors)
 		if (res instanceof StateValuesMTBDD)
 			res.filter(reach);
-
+		
 		return res;
 	}
 
@@ -187,6 +187,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		// Print out probabilities
 		if (prism.getVerbose()) {
 			mainLog.print("\nProbabilities (non-zero only) for all states:\n");
+			//@Muhammad have to do it here
 			probs.print(mainLog);
 		}
 

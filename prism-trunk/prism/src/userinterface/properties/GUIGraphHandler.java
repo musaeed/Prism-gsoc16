@@ -48,6 +48,8 @@ import javax.swing.JTabbedPane;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import org.jfree.chart.ChartPanel;
+
 import prism.PrismException;
 import userinterface.GUIPlugin;
 import userinterface.GUIPrism;
@@ -64,7 +66,7 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 	private JTabbedPane theTabs;
 	private JPopupMenu backMenu, graphMenu;
 
-	private java.util.List<Graph> models;
+	private java.util.List<ChartPanel> models;
 	private java.util.List<GraphOptions> options;
 
 	private GUIPlugin plug;
@@ -95,7 +97,7 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		graFilter = new FileNameExtensionFilter("PRISM graph files (*.gra, *.xml)", "gra", "xml");
 		matlabFilter = new FileNameExtensionFilter("Matlab files (*.m)", "m");
 
-		models = new ArrayList<Graph>();
+		models = new ArrayList<ChartPanel>();
 		options = new ArrayList<GraphOptions>();
 	}
 
@@ -125,7 +127,8 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				Graph mgm = models.get(theTabs.getSelectedIndex());
+				//Graph mgm = models.get(theTabs.getSelectedIndex());
+				ChartPanel mgm = models.get(theTabs.getSelectedIndex());
 				mgm.zoomInBoth(-1, -1);
 			}
 		};
@@ -139,7 +142,8 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				Graph mgm = models.get(theTabs.getSelectedIndex());
+				//Graph mgm = models.get(theTabs.getSelectedIndex());
+				ChartPanel mgm = models.get(theTabs.getSelectedIndex());
 				mgm.zoomOutBoth(-1, -1);
 			}
 		};
@@ -153,7 +157,8 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				Graph mgm = models.get(theTabs.getSelectedIndex());
+				//Graph mgm = models.get(theTabs.getSelectedIndex());
+				ChartPanel mgm = models.get(theTabs.getSelectedIndex());
 				mgm.restoreAutoBounds();
 			}
 		};
@@ -188,7 +193,8 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 			{
 				if (plug.showSaveFileDialog(graFilter) != JFileChooser.APPROVE_OPTION)
 					return;
-				Graph mgm = models.get(theTabs.getSelectedIndex());
+				//Graph mgm = models.get(theTabs.getSelectedIndex());
+				Graph mgm = (Graph)models.get(theTabs.getSelectedIndex());
 				try {
 					mgm.save(plug.getChooserFile());
 				} catch (PrismException ex) {
@@ -249,7 +255,8 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 			{
 				if (plug.showSaveFileDialog(matlabFilter) != JFileChooser.APPROVE_OPTION)
 					return;
-				Graph mgm = models.get(theTabs.getSelectedIndex());
+				//Graph mgm = models.get(theTabs.getSelectedIndex());
+				Graph mgm = (Graph)models.get(theTabs.getSelectedIndex());
 
 				try {
 					mgm.exportToMatlab(plug.getChooserFile());
@@ -267,7 +274,8 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				Graph graph = models.get(theTabs.getSelectedIndex());
+				//Graph graph = models.get(theTabs.getSelectedIndex());
+				Graph graph = (Graph)models.get(theTabs.getSelectedIndex());
 
 				if (!graph.getDisplaySettings().getBackgroundColor().equals(Color.white)) {
 					if (plug.questionYesNo("Your graph has a coloured background, this background will show up on the \n"
@@ -288,7 +296,8 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				Graph graph = models.get(theTabs.getSelectedIndex());
+				//Graph graph = models.get(theTabs.getSelectedIndex());
+				ChartPanel graph = models.get(theTabs.getSelectedIndex());
 
 				models.remove(theTabs.getSelectedIndex());
 				options.remove(theTabs.getSelectedIndex());
@@ -395,7 +404,7 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		return null;
 	}
 
-	public int addGraph(Graph m)
+	public int addGraph(ChartPanel m)
 	{
 		String name = "";
 
@@ -418,14 +427,18 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		}
 	}
 
-	public int addGraph(Graph m, String tabName)
+	//@Muhammad
+	public int addGraph(ChartPanel m, String tabName)
 	{
 		// add the model to the list of models
 		models.add(m);
 
 		// make the graph appear as a tab
 		theTabs.add(m);
-		options.add(new GraphOptions(plug, m, plug.getGUI(), "Options for graph " + tabName));
+		
+		//@Muhammad
+		if(m instanceof Graph)
+			options.add(new GraphOptions(plug, (Graph)m, plug.getGUI(), "Options for graph " + tabName));
 
 		// anything that happens to the graph should propagate
 		m.addMouseListener(this);
@@ -443,7 +456,8 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		return index;
 	}
 
-	public void jumpToGraph(Graph m)
+	//@Muhammad
+	public void jumpToGraph(ChartPanel m)
 	{
 		for (int i = 0; i < models.size(); i++) {
 			if (m == models.get(i)) {
@@ -454,8 +468,8 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 	}
 
 	public Graph getModel(int i)
-	{
-		return models.get(i);
+	{	// this is also changed
+		return (Graph)models.get(i);
 	}
 
 	public Graph getModel(String tabHeader)

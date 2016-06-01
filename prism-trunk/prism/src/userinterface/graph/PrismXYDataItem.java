@@ -32,4 +32,15 @@ public class PrismXYDataItem extends XYDataItem{
 	public void setError(double error){
 		this.error = error;
 	}
+	
+	@Override
+	public String toString(){
+		
+		String res = "\nPrismXYDataItem: \n";
+		res += "X: " + this.getXValue() + "\n";
+		res += "Y: " + this.getYValue() + "\n";
+		res += "Error: " + this.getError() + "\n";
+		
+		return res;
+	}
 }

@@ -28,6 +28,7 @@ package prism;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.List;
 
 import mtbdd.PrismMTBDD;
@@ -225,10 +226,18 @@ public class StateModelChecker extends PrismComponent implements ModelChecker
 			resultString += " (" + expr.getResultName().toLowerCase() + ")";
 		resultString += ": " + result.getResultString();
 		mainLog.print("\n" + resultString + "\n");
-
+		
+		/**
+		 * This is needed for plotting the histogram of probabilities
+		 */
+		if(vals instanceof StateValuesMTBDD){
+			
+			ArrayList<Double> val = ((StateValuesMTBDD)vals).getHistProbs();
+			result.setHistProbs(val);
+			
+		}
 		// Clean up
 		vals.clear();
-
 		// Return result
 		return result;
 	}
@@ -1052,6 +1061,7 @@ public class StateModelChecker extends PrismComponent implements ModelChecker
 		try {
 			// Check operand recursively
 			vals = checkExpression(expr.getOperand());
+			
 		} catch (PrismException e) {
 			JDD.Deref(ddFilter);
 			throw e;
@@ -1070,6 +1080,7 @@ public class StateModelChecker extends PrismComponent implements ModelChecker
 		boolean b = false;
 		String resultExpl = null;
 		Object resObj = null;
+		
 		switch (op) {
 		case PRINT:
 		case PRINTALL:
@@ -1316,6 +1327,9 @@ public class StateModelChecker extends PrismComponent implements ModelChecker
 					throw new PrismException("Don't know how to handle result of type " + expr.getType());
 				}
 				resVals = new StateValuesMTBDD(JDD.Constant(d), model);
+				((StateValuesMTBDD)resVals).setHistProbs(vals);
+				//@Muhammad
+
 			}
 			// Create explanation of result and print some details to log
 			resultExpl = "Value in ";

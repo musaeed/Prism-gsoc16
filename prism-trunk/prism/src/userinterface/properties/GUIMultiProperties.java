@@ -76,6 +76,7 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JToolBar;
 import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
@@ -97,6 +98,7 @@ import prism.Prism;
 import prism.PrismException;
 import prism.PrismSettings;
 import prism.PrismSettingsListener;
+import prism.Result;
 import prism.TileList;
 import prism.UndefinedConstants;
 import userinterface.GUIClipboardEvent;
@@ -108,6 +110,7 @@ import userinterface.OptionsPanel;
 import userinterface.SimulationInformation;
 import userinterface.graph.Graph;
 import userinterface.graph.Graph.SeriesKey;
+import userinterface.graph.Histogram;
 import userinterface.graph.PrismXYDataItem;
 import userinterface.model.GUIModelEvent;
 import userinterface.model.GUIMultiModelHandler;
@@ -896,6 +899,29 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			if (!gp.isBeingEdited()) {
 				gp.setBeingEdited(true);
 				// Force repaint because we modified the GUIProperty directly
+				
+				if(gp.getResult().getHistProbs() != null){
+					
+					GUIGraphHandler h = this.getGraphHandler();
+					
+					SwingUtilities.invokeLater(new Runnable() {
+						
+						@Override
+						public void run() {
+							
+							ArrayList<Double> probs = gp.getResult().getHistProbs();
+							Histogram hist = new Histogram();
+							userinterface.graph.Histogram.SeriesKey key = hist.addSeries(gp.getPropString());
+							hist.addDataToCache(probs);
+							hist.plotSeries(key);
+							h.addGraph(hist);
+						}
+					});
+
+					//@Muhammad 
+					
+				}
+				
 				repaintList();
 				new GUIPropertyResultDialog(getGUI(), this, gp).display();
 			}

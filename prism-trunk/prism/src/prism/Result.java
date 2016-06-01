@@ -28,6 +28,8 @@
 
 package prism;
 
+import java.util.ArrayList;
+
 import strat.Strategy;
 
 /**
@@ -48,6 +50,8 @@ public class Result
 	// Solution vector (optional)
 	private StateVector vect;
 	
+	// needed for plotting the histogram (optional)
+	private ArrayList<Double> histProbs;
 	/**
 	 * Construct an empty Result object.
 	 */
@@ -58,6 +62,7 @@ public class Result
 		this.cex = null;
 		this.strat = null;
 		this.vect = null;
+		this.histProbs = null;
 	}
 	
 	/**
@@ -158,6 +163,14 @@ public class Result
 		if (explanation != null)
 			s += " (" + explanation +")";
 		return s;
+	}
+	
+	public void setHistProbs(ArrayList<Double> histProbs){
+		this.histProbs = histProbs;
+	}
+	
+	public ArrayList<Double> getHistProbs(){
+		return histProbs;
 	}
 	
 	/**

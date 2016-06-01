@@ -30,6 +30,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 
 import jdd.*;
 import odd.*;
@@ -68,6 +69,9 @@ public class StateValuesMTBDD implements StateValues
 	
 	/** log for output from print method */
 	PrismLog outputLog;
+	
+	//store the probs for building histogram
+	private ArrayList<Double> histProbs;
 
 	// CONSTRUCTOR
 	
@@ -93,12 +97,28 @@ public class StateValuesMTBDD implements StateValues
 		odd = model.getODD();
 		varList = model.getVarList();
 		
+		//@Muhammad
+		histProbs = new ArrayList<Double>();
+		
 		// initialise arrays
 		varSizes = new int[varList.getNumVars()];
 		for (i = 0; i < varList.getNumVars(); i++) {
 			varSizes[i] = varList.getRangeLogTwo(i);
 		}
 		varValues = new int[varList.getNumVars()];
+	}
+	
+	public void setHistProbs(StateValues values){
+		
+		for(int i = 0 ; i < values.getSize() ; i++){
+			if((double)values.getValue(i) == 0.0)
+				continue;
+			histProbs.add((double)values.getValue(i));
+		}
+	}
+	
+	public ArrayList<Double> getHistProbs(){
+		return histProbs;
 	}
 
 	// CONVERSION METHODS

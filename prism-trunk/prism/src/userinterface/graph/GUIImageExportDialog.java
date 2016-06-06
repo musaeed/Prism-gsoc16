@@ -31,6 +31,9 @@ import javax.swing.*;
 import java.awt.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+
+import org.jfree.chart.ChartPanel;
+
 import userinterface.*;
 
 public class GUIImageExportDialog extends JDialog implements DocumentListener
@@ -71,7 +74,7 @@ public class GUIImageExportDialog extends JDialog implements DocumentListener
     // End of variables declaration//GEN-END:variables
     
 	/** Creates new form GUIConstantsPicker */
-	public GUIImageExportDialog(GUIPrism parent, Graph graph, int defaultImageType)
+	public GUIImageExportDialog(GUIPrism parent, ChartPanel graph, int defaultImageType)
 	{
 		super(parent, "Provide rendering information", true);
 		

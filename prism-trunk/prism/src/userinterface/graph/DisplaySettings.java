@@ -28,6 +28,7 @@ package userinterface.graph;
 
 import java.util.Observable;
 
+import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.XYPlot;
 
@@ -52,7 +53,7 @@ public class DisplaySettings extends Observable implements SettingOwner
 	private SettingDisplay display;
 	
 	/** Our graph object. */
-	private Graph graph;
+	private ChartPanel graph;
 	
 	/** JFreeChart representation of graphs. */
 	private JFreeChart chart;
@@ -64,7 +65,7 @@ public class DisplaySettings extends Observable implements SettingOwner
 	private ColorSetting backgroundColor;	
 	private ColorSetting errorBarColor;
 	
-	public DisplaySettings(Graph graph)
+	public DisplaySettings(ChartPanel graph)
 	{
 		this.graph = graph;
 		this.chart = graph.getChart();
@@ -93,7 +94,10 @@ public class DisplaySettings extends Observable implements SettingOwner
 
 	public int getNumSettings() 
 	{
-		return 3;
+		if(graph instanceof Graph)
+			return 3;
+		else 
+			return 2;
 	}
 
 	public Setting getSetting(int index) 
@@ -102,7 +106,11 @@ public class DisplaySettings extends Observable implements SettingOwner
 		{
 			case 0: return antiAlias;
 			case 1: return backgroundColor;
-			case 2: return errorBarColor;
+			case 2: 
+				if(graph instanceof Graph)
+					return errorBarColor;
+				else
+					return null;
 			default: return null;			
 		}
 	}
@@ -237,11 +245,16 @@ public class DisplaySettings extends Observable implements SettingOwner
 			this.chart.setBackgroundPaint(backgroundColor.getColorValue());
 		}
 		
-		/*Error bar color changed?*/
-		if(!(this.graph.getErrorRenderer().getErrorColor() instanceof Color) || !errorBarColor.getColorValue().equals(this.graph.getErrorRenderer().getErrorColor())){
+		if(graph instanceof Graph){
 			
-			this.graph.getErrorRenderer().setErrorPaint(errorBarColor.getColorValue());
-			this.chart.fireChartChanged();
+			/*Error bar color changed?*/
+			if(!(((Graph)this.graph).getErrorRenderer().getErrorColor() instanceof Color) || !errorBarColor.getColorValue().equals(((Graph)this.graph).getErrorRenderer().getErrorColor())){
+				
+				((Graph)this.graph).getErrorRenderer().setErrorPaint(errorBarColor.getColorValue());
+				this.chart.fireChartChanged();
+			}
+			
 		}
+
 	}
 }

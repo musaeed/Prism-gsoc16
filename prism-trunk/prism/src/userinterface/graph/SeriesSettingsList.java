@@ -30,6 +30,8 @@ import java.util.*;
 
 import javax.swing.*;
 
+import org.jfree.chart.ChartPanel;
+
 /**
  * Representation of an axis of a Graph.
  * The settings are propagated to the JFreeChart library.
@@ -37,7 +39,7 @@ import javax.swing.*;
 @SuppressWarnings("serial")
 public class SeriesSettingsList extends AbstractListModel implements Observer
 {
-	private Graph graph;
+	private ChartPanel graph;
 	
 	private HashMap<Integer, Graph.SeriesKey> seriesKeys;
 	
@@ -49,18 +51,45 @@ public class SeriesSettingsList extends AbstractListModel implements Observer
 
 	public Object getElementAt(int index) 
 	{
-		synchronized (graph.getSeriesLock())
-		{
-			return graph.getGraphSeries(seriesKeys.get(index));
-		}		
+		
+		if(graph instanceof Graph){
+			
+			Graph temp = (Graph) graph;
+			
+			synchronized (temp.getSeriesLock())
+			{
+				return temp.getGraphSeries(seriesKeys.get(index));
+			}
+			
+		}
+		else{
+			
+			return null;
+		}
+		
 	}
 	
 	public Graph.SeriesKey getKeyAt(int index)
 	{
-		synchronized (graph.getSeriesLock())
-		{
-			return seriesKeys.get(index);
+		if(graph instanceof Graph){
+			
+			Graph temp = (Graph) graph;
+			
+			synchronized (temp.getSeriesLock())
+			{
+				return seriesKeys.get(index);
+			}
+			
 		}
+		else {
+			
+			Histogram temp = (Histogram)graph;
+			synchronized (temp.getSeriesLock())
+			{
+				return seriesKeys.get(index);
+			}
+		}
+
 	}
 
 	public int getSize() 
@@ -70,25 +99,32 @@ public class SeriesSettingsList extends AbstractListModel implements Observer
 	
 	public void updateSeriesList()
 	{
-		synchronized (graph.getSeriesLock())
-		{
-			for (Map.Entry<Integer, Graph.SeriesKey> entry : seriesKeys.entrySet())
-			{			
-				SeriesSettings series = graph.getGraphSeries(entry.getValue());
-				if (series != null)
-					series.deleteObserver(this);
-			}
-			
-			seriesKeys.clear();
-			
-			for (Graph.SeriesKey key: graph.getAllSeriesKeys())
-			{
-				seriesKeys.put(graph.getJFreeChartIndex(key), key);
-				graph.getGraphSeries(key).updateSeries();
-				graph.getGraphSeries(key).addObserver(this);				
-			}
-		}
 		
+		if(graph instanceof Graph){
+			
+			Graph temp = (Graph) graph;
+			
+			synchronized (temp.getSeriesLock())
+			{
+				for (Map.Entry<Integer, Graph.SeriesKey> entry : seriesKeys.entrySet())
+				{			
+					SeriesSettings series = temp.getGraphSeries(entry.getValue());
+					if (series != null)
+						series.deleteObserver(this);
+				}
+				
+				seriesKeys.clear();
+				
+				for (Graph.SeriesKey key: temp.getAllSeriesKeys())
+				{
+					seriesKeys.put(temp.getJFreeChartIndex(key), key);
+					temp.getGraphSeries(key).updateSeries();
+					temp.getGraphSeries(key).addObserver(this);				
+				}
+			}
+			
+		}
+
 		fireContentsChanged(this, 0, this.getSize());		
 	}
 	

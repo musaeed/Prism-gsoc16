@@ -1,25 +1,60 @@
 package userinterface.graph;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.Font;
 import java.awt.Paint;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Observable;
+import java.util.Observer;
+
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JColorChooser;
+import javax.swing.JComboBox;
+import javax.swing.JDialog;
+import javax.swing.JPanel;
+import javax.swing.JRadioButton;
+import javax.swing.JSpinner;
+import javax.swing.JTextField;
+import javax.swing.SpinnerNumberModel;
+import javax.swing.border.EtchedBorder;
 
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.labels.XYToolTipGenerator;
+import org.jfree.chart.plot.DefaultDrawingSupplier;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYBarRenderer;
+import org.jfree.chart.title.LegendTitle;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYIntervalDataItem;
 import org.jfree.data.xy.XYIntervalSeries;
 import org.jfree.data.xy.XYIntervalSeriesCollection;
+import org.jfree.ui.RectangleEdge;
 
-public class Histogram extends ChartPanel{
+import settings.BooleanSetting;
+import settings.ChoiceSetting;
+import settings.FontColorPair;
+import settings.FontColorSetting;
+import settings.MultipleLineStringSetting;
+import settings.Setting;
+import settings.SettingDisplay;
+import settings.SettingException;
+import settings.SettingOwner;
+import userinterface.GUIPrism;
+import userinterface.properties.GUIGraphHandler;
+
+public class Histogram extends ChartPanel implements SettingOwner, Observer{
 
 	
 	private static final long serialVersionUID = 1L;
@@ -34,13 +69,9 @@ public class Histogram extends ChartPanel{
 	 * Maps SeriesKeys to a XYSeries. (Make sure to synchronize on
 	 * seriesCollection)
 	 */
-	private HashMap<SeriesKey, XYIntervalSeries> keyToSeries;
+	private LinkedHashMap<SeriesKey, XYIntervalSeries> keyToSeries;
 	
-	/**
-	 * Allows us to batch graph points (JFreeChart is not realtime). (Make sure
-	 * to synchronize on seriesCollection)
-	 */
-	private HashMap<SeriesKey, LinkedList<PrismXYDataItem>> graphCache;
+	private HashMap<SeriesKey, Color> barColors;
 	
 	private ArrayList<Double> dataCache;
 	
@@ -52,6 +83,30 @@ public class Histogram extends ChartPanel{
 	private double maxProb;
 	private double minProb;
 	private int numOfBuckets;
+	private String title;
+	
+	
+	/** Display for settings. Required to implement SettingsOwner */
+	private SettingDisplay display;
+	
+	/** Settings of the axis. */
+	private AxisSettingsHistogram xAxisSettings;
+
+	private AxisSettingsHistogram yAxisSettings;
+	
+	/** Display settings */
+	private DisplaySettings displaySettings;
+	
+	/** GraphSeriesList */
+	private SeriesSettingsList seriesList;
+	
+	/**Settings for histogram*/
+	
+	private MultipleLineStringSetting graphTitle;
+	private FontColorSetting titleFont;
+	private BooleanSetting legendVisible;
+	private ChoiceSetting legendPosition;
+	private FontColorSetting legendFont;
 	
 	/**
 	 * 
@@ -69,7 +124,9 @@ public class Histogram extends ChartPanel{
 		super(ChartFactory.createXYBarChart(title, "Probability", false, "No. of states", 
 				new XYIntervalSeriesCollection(), PlotOrientation.VERTICAL, true, true, false));
 		
+		this.title = title;
 		init();
+		initSettings();
 	}
 	
 	/**
@@ -77,24 +134,54 @@ public class Histogram extends ChartPanel{
 	 */
 	public void init(){
 		
-		keyToSeries = new HashMap<SeriesKey, XYIntervalSeries>();
-		graphCache = new HashMap<SeriesKey, LinkedList<PrismXYDataItem>>();
+		keyToSeries = new LinkedHashMap<SeriesKey, XYIntervalSeries>();
+		barColors = new HashMap<SeriesKey, Color>();
 		chart = this.getChart();
 		plot = chart.getXYPlot();
+		plot.setBackgroundPaint((Paint)Color.white);
+		
+		plot.setDrawingSupplier(new DefaultDrawingSupplier(
+				SeriesSettings.DEFAULT_PAINTS,
+				DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
+				DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
+				DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
+				SeriesSettings.DEFAULT_SHAPES
+				));	
+		
 		seriesCollection = (XYIntervalSeriesCollection)plot.getDataset();
 		maxProb = 0.0;
 		minProb = 1.0;
 		numOfBuckets = 10; // default value, can be altered
 		addToolTip();
+	}
+	
+	public void initSettings(){
 		
-		/*final IntervalMarker target = new IntervalMarker(400.0, 700.0);
-        target.setLabel("Target Range");
-        target.setLabelFont(new Font("SansSerif", Font.ITALIC, 11));
-        target.setLabelAnchor(RectangleAnchor.LEFT);
-        target.setLabelTextAnchor(TextAnchor.CENTER_LEFT);
-        target.setPaint(new Color(222, 222, 255, 128));
-        plot.addRangeMarker(target, Layer.BACKGROUND);*/
+		xAxisSettings = new AxisSettingsHistogram("Probability", true, this);
+		yAxisSettings = new AxisSettingsHistogram("No. of states", false, this);
+		xAxisSettings.addObserver(this);
+		yAxisSettings.addObserver(this);
+		displaySettings = new DisplaySettings(this);
 		
+		graphTitle = new MultipleLineStringSetting("title", title,
+				"The main title heading for the chart.", this, false);
+		titleFont = new FontColorSetting("title font", new FontColorPair(
+				new Font("SansSerif", Font.PLAIN, 14), Color.black),
+				"The font for the chart's title", this, false);
+		legendVisible = new BooleanSetting(
+				"legend visible?",
+				new Boolean(true),
+				"Should the legend, which displays all of the series headings, be displayed?",
+				this, false);
+
+		String[] choices = { "Left", "Right", "Bottom", "Top" };
+		legendPosition = new ChoiceSetting("legend position", choices,
+				choices[Graph.RIGHT], "The position of the legend", this, false);
+		legendFont = new FontColorSetting("legend font", new FontColorPair(
+				new Font("SansSerif", Font.PLAIN, 11), Color.black),
+				"The font for the legend", this, false);
+		
+		updateGraph();
 	}
 	
 	
@@ -130,8 +217,8 @@ public class Histogram extends ChartPanel{
 			key = new SeriesKey();
 
 			this.keyToSeries.put(key, newSeries);
-			this.graphCache.put(key, new LinkedList<PrismXYDataItem>());
-
+			int pos = new ArrayList<SeriesKey>(keyToSeries.keySet()).indexOf(key);
+			((XYBarRenderer)plot.getRenderer()).setSeriesPaint(pos, Color.RED);
 //			SeriesSettings graphSeries = new SeriesSettings(this, key);
 //			this.keyToGraphSeries.put(key, graphSeries);
 //			graphSeries.addObserver(this);
@@ -192,11 +279,6 @@ public class Histogram extends ChartPanel{
 				keyToSeries.remove(seriesKey);
 			}
 
-			// Remove any cache.
-			if (graphCache.containsKey(seriesKey)) {
-				graphCache.remove(seriesKey);
-			}
-
 			/*if (keyToGraphSeries.containsKey(seriesKey))
 			{
 				keyToGraphSeries.get(seriesKey).deleteObservers();				
@@ -208,6 +290,7 @@ public class Histogram extends ChartPanel{
 
 	//	seriesList.updateSeriesList();
 	}
+	
 
 	/**
 	 * Add a point to the specified graph series.
@@ -217,15 +300,11 @@ public class Histogram extends ChartPanel{
 	public void addPointToSeries(SeriesKey seriesKey, XYIntervalDataItem dataItem) {
 
 		synchronized (seriesCollection) {
-			if (graphCache.containsKey(seriesKey)) {
-					//LinkedList<PrismXYDataItem> seriesCache = graphCache
-						//	.get(seriesKey);
-					//seriesCache.add(dataItem);
-					
-				//	PrismXYSeries series = (PrismXYSeries)keyToSeries.get(seriesKey);
-				XYIntervalSeries series = keyToSeries.get(seriesKey);
-					series.add(dataItem.getX(), dataItem.getXLowValue(), dataItem.getXHighValue(), dataItem.getYValue(), dataItem.getYLowValue(), dataItem.getYHighValue());
-			}
+			
+			XYIntervalSeries series = keyToSeries.get(seriesKey);
+			series.add(dataItem.getX(), dataItem.getXLowValue(), dataItem.getXHighValue(),
+					dataItem.getYValue(), dataItem.getYLowValue(), dataItem.getYHighValue());
+
 		}
 	}
 	
@@ -259,6 +338,9 @@ public class Histogram extends ChartPanel{
 			double x = (minRange + maxRange) / 2.0;
 			addPointToSeries(seriesKey, new XYIntervalDataItem(x, minRange, maxRange, height, height, height));
 		}
+		
+		int pos = new ArrayList<SeriesKey>(keyToSeries.keySet()).indexOf(seriesKey);
+		((XYBarRenderer)plot.getRenderer()).setSeriesPaint(pos,barColors.get(seriesKey),true);
 		
 		dataCache.clear();
 	}
@@ -317,10 +399,374 @@ public class Histogram extends ChartPanel{
 		});
 	}
 	
+	public void showPropertiesDialog(SeriesKey key, String defaultSeriesName, GUIGraphHandler handler){
+		
+		JDialog dialog = new JDialog(GUIPrism.getGUI(), "Histogram properties", true);
+		dialog.setLayout(new BorderLayout());
+		JPanel p1 = new JPanel(new FlowLayout());
+		p1.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Number of buckets"));
+		JPanel p2 = new JPanel(new FlowLayout());
+		p2.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Series name"));
+		JPanel p3 = new JPanel(new FlowLayout());
+		p3.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Bar Color"));
+		JSpinner buckets = new JSpinner(new SpinnerNumberModel(10, 5, Integer.MAX_VALUE, 1));
+		JTextField seriesName = new JTextField(defaultSeriesName);
+		JButton barColor = new JButton("Select");
+		JRadioButton newSeries = new JRadioButton("New Histogram");
+		JRadioButton existing = new JRadioButton("Existing Histogram");
+		newSeries.setSelected(true);
+		JPanel seriesSelectPanel = new JPanel();
+		seriesSelectPanel.setLayout(new BoxLayout(seriesSelectPanel, BoxLayout.Y_AXIS));
+		JPanel seriesTypeSelect = new JPanel(new FlowLayout());
+		JPanel seriesOptionsPanel = new JPanel(new FlowLayout());
+		seriesTypeSelect.add(newSeries);
+		seriesTypeSelect.add(existing);
+		JComboBox<String> seriesOptions = new JComboBox<>();
+		seriesOptionsPanel.add(seriesOptions);
+		seriesSelectPanel.add(seriesTypeSelect);
+		seriesSelectPanel.add(seriesOptionsPanel);
+		seriesSelectPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Add series to"));
+		
+		
+		boolean found = false;
+		
+		for(int i = 0 ; i < handler.getNumModels() ; i++){
+			
+			if(handler.getModel(i) instanceof Histogram){
+				
+				seriesOptions.addItem(handler.getGraphName(i));
+				found = true;
+			}
+			
+		}
+		
+		existing.setEnabled(found);
+		seriesOptions.setEnabled(false);
+		
+		barColor.setOpaque(true);
+		barColor.setBackground(Color.RED);
+		
+		JPanel options = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+		JButton ok = new JButton("Plot");
+		
+		newSeries.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if(newSeries.isSelected()){
+					
+					existing.setSelected(false);
+					seriesOptions.setEnabled(false);
+					buckets.setEnabled(true);
+				}
+			}
+		});
+		
+		existing.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				
+				if(existing.isSelected()){
+					
+					newSeries.setSelected(false);
+					seriesOptions.setEnabled(true);
+					buckets.setEnabled(false);
+				}
+				
+			}
+		});
+		
+		ok.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				
+				dialog.dispose();
+				numOfBuckets = (int)buckets.getValue();
+				barColors.put(key, barColor.getBackground());
+				XYIntervalSeries series = keyToSeries.get(key);
+				series.setKey(seriesName.getText());
+				
+			}
+		});
+		
+		barColor.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				
+				Color ch = JColorChooser.showDialog(dialog, "Choose the bar color", barColor.getBackground());
+				barColor.setBackground(ch);
+				
+			}
+		});
+		
+		p1.add(buckets, BorderLayout.CENTER);
+		
+		p2.add(seriesName, BorderLayout.CENTER);
+		
+		p3.add(barColor, BorderLayout.CENTER);
+		
+		options.add(ok);
+		
+		JPanel mainPanel = new JPanel();
+		mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+		mainPanel.add(seriesSelectPanel);
+		mainPanel.add(p1);
+		mainPanel.add(p2);
+		mainPanel.add(p3);
+		
+		dialog.add(mainPanel, BorderLayout.CENTER);
+		dialog.add(options, BorderLayout.SOUTH);
+		
+		dialog.setSize(300, 350);
+		dialog.setLocationRelativeTo(GUIPrism.getGUI());
+		dialog.setVisible(true);
+		
+	}
 	
+	
+	
+	
+	public AxisSettingsHistogram getXAxisSettings() {
+		return xAxisSettings;
+	}
+
+	public AxisSettingsHistogram getYAxisSettings() {
+		return yAxisSettings;
+	}
+
+	public DisplaySettings getDisplaySettings() {
+		return displaySettings;
+	}
+
+	public SeriesSettingsList getGraphSeriesList(){
+		return seriesList;
+	}
+	
+	public XYIntervalSeriesCollection getSeriesLock(){
+		return seriesCollection;
+	}
 	public class SeriesKey 
 	{
 		public SeriesKey next = null;
+	}
+
+
+	@Override
+	public int compareTo(Object o) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public int getSettingOwnerID() {
+		return prism.PropertyConstants.MODEL;
+	}
+
+	@Override
+	public String getSettingOwnerName() {
+		return graphTitle.getStringValue();
+	}
+
+	@Override
+	public String getSettingOwnerClassName() {
+		return "Model";
+	}
+
+	@Override
+	public int getNumSettings() {
+		return 5;
+	}
+
+	@Override
+	public Setting getSetting(int index) {
+		switch (index) {
+		case 0:
+			return graphTitle;
+		case 1:
+			return titleFont;
+		case 2:
+			return legendVisible;
+		case 3:
+			return legendPosition;
+		case 4:
+			return legendFont;
+		default:
+			return null;
+		}
+	}
+
+	@Override
+	public void notifySettingChanged(Setting setting) {
+		updateGraph();
+	}
+
+	@Override
+	public SettingDisplay getDisplay() {
+		return display;
+	}
+
+	@Override
+	public void setDisplay(SettingDisplay display) {
+		this.display = display;
+		
+	}
+
+	@Override
+	public void update(Observable o, Object arg) {
+		if (o == xAxisSettings) {
+			/* X axis changed */
+			super.repaint();
+		} else if (o == yAxisSettings) {
+			/* Y axis changed */
+			super.repaint();
+		} else if (o == displaySettings) {
+			/* Display settings changed */
+			super.repaint();
+		} else {
+			/*for (Map.Entry<SeriesKey, SeriesSettings> entry : keyToGraphSeries.entrySet())
+			{
+				/* Graph series settings changed */
+				//if (entry.getValue().equals(o))
+					//repaint();
+			//}*/
+		}
+	}
+	
+	/**
+	 * Getter for property graphTitle.
+	 * @return Value of property graphTitle.
+	 */
+	public String getTitle()
+	{
+		return graphTitle.getStringValue();
+	}
+
+	/**
+	 * Setter for property graphTitle.
+	 * @param value Value of property graphTitle.
+	 */
+	public void setTitle(String value)
+	{
+		try
+		{
+			graphTitle.setValue(value);
+			doEnables();
+			updateGraph();
+		}
+		catch (SettingException e)
+		{
+			// Shouldn't happen.
+		}
+	}
+	
+	/**
+	 * Getter for property logarithmic.
+	 * @return the legend's position index:
+	 * <ul>
+	 *	<li>0: LEFT
+	 *	<li>1: RIGHT
+	 *	<li>2: BOTTOM
+	 *  <li>3: TOP
+	 * </ul>
+	 */
+	public int getLegendPosition()
+	{
+		return legendPosition.getCurrentIndex();
+	}
+
+	/**
+	 * Setter for property logarithmic.
+	 * @param value Represents legend position
+	 * <ul>
+	 *	<li>0: LEFT
+	 *	<li>1: RIGHT
+	 *	<li>2: BOTTOM
+	 *	<li>4: TOP
+	 * </ul>
+	 */
+	public void setLegendPosition(int value) throws SettingException
+	{		
+		legendPosition.setSelectedIndex(value);
+		doEnables();
+		updateGraph();
+	}
+	
+	public void updateGraph(){
+	
+		/* Update title if necessary. */
+		if (!this.chart.getTitle().equals(graphTitle)) {
+			this.chart.setTitle(graphTitle.getStringValue());
+		}
+		
+		/* Update title font if necessary. */
+		if (!titleFont.getFontColorValue().f.equals(this.chart.getTitle()
+				.getFont())) {
+			this.chart.getTitle().setFont(titleFont.getFontColorValue().f);
+		}
+
+		/* Update title colour if necessary. */
+		if (!titleFont.getFontColorValue().c.equals(this.chart.getTitle()
+				.getPaint())) {
+			this.chart.getTitle().setPaint(titleFont.getFontColorValue().c);
+		}
+
+		if (legendVisible.getBooleanValue() != (this.chart.getLegend() != null)) {
+			if (!legendVisible.getBooleanValue()) {
+				this.chart.removeLegend();
+			} else {
+				LegendTitle legend = new LegendTitle(plot.getRenderer());
+				legend.setBackgroundPaint(Color.white);
+				legend.setBorder(1, 1, 1, 1);
+
+				this.chart.addLegend(legend);
+			}
+		}
+		
+		if (this.chart.getLegend() != null) {
+			LegendTitle legend = this.chart.getLegend();
+
+			/* Put legend on the left if appropriate. */
+			if ((legendPosition.getCurrentIndex() == Graph.LEFT)
+					&& !legend.getPosition().equals(RectangleEdge.LEFT)) {
+				legend.setPosition(RectangleEdge.LEFT);
+			}
+			/* Put legend on the right if appropriate. */
+			if ((legendPosition.getCurrentIndex() == Graph.RIGHT)
+					&& !legend.getPosition().equals(RectangleEdge.RIGHT)) {
+				legend.setPosition(RectangleEdge.RIGHT);
+			}
+			/* Put legend on the top if appropriate. */
+			if ((legendPosition.getCurrentIndex() == Graph.TOP)
+					&& !legend.getPosition().equals(RectangleEdge.TOP)) {
+				legend.setPosition(RectangleEdge.TOP);
+			}
+			/* Put legend on the bottom if appropriate. */
+			if ((legendPosition.getCurrentIndex() == Graph.BOTTOM)
+					&& !legend.getPosition().equals(RectangleEdge.BOTTOM)) {
+				legend.setPosition(RectangleEdge.BOTTOM);
+			}
+
+			/* Set legend font. */
+			if (!legend.getItemFont().equals(legendFont.getFontColorValue().f)) {
+				legend.setItemFont(legendFont.getFontColorValue().f);
+			}
+			/* Set legend font colour. */
+			if (!legend.getItemPaint().equals(legendFont.getFontColorValue().c)) {
+				legend.setItemPaint(legendFont.getFontColorValue().c);
+			}
+		}
+
+		super.repaint();
+		doEnables();
+	}
+	
+	public void doEnables() {
+		legendPosition.setEnabled(legendVisible.getBooleanValue());
+		legendFont.setEnabled(legendVisible.getBooleanValue());
+
 	}
 
 }

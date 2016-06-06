@@ -57,6 +57,7 @@ import userinterface.graph.GUIImageExportDialog;
 import userinterface.graph.Graph;
 import userinterface.graph.GraphException;
 import userinterface.graph.GraphOptions;
+import userinterface.graph.Histogram;
 
 @SuppressWarnings("serial")
 public class GUIGraphHandler extends JPanel implements MouseListener
@@ -275,14 +276,30 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 			public void actionPerformed(ActionEvent e)
 			{
 				//Graph graph = models.get(theTabs.getSelectedIndex());
-				Graph graph = (Graph)models.get(theTabs.getSelectedIndex());
-
-				if (!graph.getDisplaySettings().getBackgroundColor().equals(Color.white)) {
-					if (plug.questionYesNo("Your graph has a coloured background, this background will show up on the \n"
-							+ "printout. Would you like to make the current background colour white?") == 0) {
-						graph.getDisplaySettings().setBackgroundColor(Color.white);
+				ChartPanel graph = models.get(theTabs.getSelectedIndex());
+				
+				if(graph instanceof Graph){
+					
+					if (!((Graph)graph).getDisplaySettings().getBackgroundColor().equals(Color.white)) {
+						if (plug.questionYesNo("Your graph has a coloured background, this background will show up on the \n"
+								+ "printout. Would you like to make the current background colour white?") == 0) {
+							((Graph)graph).getDisplaySettings().setBackgroundColor(Color.white);
+						}
 					}
+					
 				}
+				else if(graph instanceof Histogram){
+					
+					if (!((Histogram)graph).getDisplaySettings().getBackgroundColor().equals(Color.white)) {
+						if (plug.questionYesNo("Your graph has a coloured background, this background will show up on the \n"
+								+ "printout. Would you like to make the current background colour white?") == 0) {
+							((Histogram)graph).getDisplaySettings().setBackgroundColor(Color.white);
+						}
+					}
+					
+				}
+
+
 
 				graph.createChartPrintJob();
 			}
@@ -347,22 +364,36 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 	public void saveImage(GUIImageExportDialog imageDialog)
 	{
 		if (!imageDialog.isCancelled()) {
-			Graph graph = getModel(theTabs.getSelectedIndex());
+			ChartPanel graph = getModel(theTabs.getSelectedIndex());
 
-			/* If background is not white, and it will show up, then lets warn everyone. */
-			if (!graph.getDisplaySettings().getBackgroundColor().equals(Color.white)
-					&& (imageDialog.getImageType() != GUIImageExportDialog.PNG || !imageDialog.getAlpha())) {
-				if (plug.questionYesNo("Your graph has a coloured background, this background will show up on the \n"
-						+ "exported image. Would you like to make the current background colour white?") == 0) {
-					graph.getDisplaySettings().setBackgroundColor(Color.white);
+			if(graph instanceof Graph){
+				/* If background is not white, and it will show up, then lets warn everyone. */
+				if (!((Graph)graph).getDisplaySettings().getBackgroundColor().equals(Color.white)
+						&& (imageDialog.getImageType() != GUIImageExportDialog.PNG || !imageDialog.getAlpha())) {
+					if (plug.questionYesNo("Your graph has a coloured background, this background will show up on the \n"
+							+ "exported image. Would you like to make the current background colour white?") == 0) {
+						((Graph)graph).getDisplaySettings().setBackgroundColor(Color.white);
+					}
 				}
+			}
+			else if(graph instanceof Histogram){
+				
+				/* If background is not white, and it will show up, then lets warn everyone. */
+				if (!((Histogram)graph).getDisplaySettings().getBackgroundColor().equals(Color.white)
+						&& (imageDialog.getImageType() != GUIImageExportDialog.PNG || !imageDialog.getAlpha())) {
+					if (plug.questionYesNo("Your graph has a coloured background, this background will show up on the \n"
+							+ "exported image. Would you like to make the current background colour white?") == 0) {
+						((Histogram)graph).getDisplaySettings().setBackgroundColor(Color.white);
+					}
+				}
+				
 			}
 
 			if (imageDialog.getImageType() == GUIImageExportDialog.JPEG) {
 				if (plug.showSaveFileDialog(jpgFilter) != JFileChooser.APPROVE_OPTION)
 					return;
 				try {
-					graph.exportToJPEG(plug.getChooserFile(), imageDialog.getExportWidth(), imageDialog.getExportHeight());
+					Graph.exportToJPEG(plug.getChooserFile(), graph.getChart(), imageDialog.getExportWidth(), imageDialog.getExportHeight());
 				} catch (GraphException ex) {
 					plug.error("Could not export JPEG file:\n" + ex.getMessage());
 				} catch (IOException ex) {
@@ -372,7 +403,8 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 				if (plug.showSaveFileDialog(pngFilter) != JFileChooser.APPROVE_OPTION)
 					return;
 				try {
-					graph.exportToPNG(plug.getChooserFile(), imageDialog.getExportWidth(), imageDialog.getExportHeight(), imageDialog.getAlpha());
+					
+					Graph.exportToPNG(plug.getChooserFile(), graph.getChart(), imageDialog.getExportWidth(), imageDialog.getExportHeight(), imageDialog.getAlpha());
 				} catch (GraphException ex) {
 					plug.error("Could not export PNG file:\n" + ex.getMessage());
 				} catch (IOException ex) {
@@ -382,7 +414,7 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 				if (plug.showSaveFileDialog(epsFilter) != JFileChooser.APPROVE_OPTION)
 					return;
 				try {
-					graph.exportToEPS(plug.getChooserFile(), imageDialog.getExportWidth(), imageDialog.getExportHeight());
+					Graph.exportToEPS(plug.getChooserFile(), imageDialog.getExportWidth(), imageDialog.getExportHeight(), graph.getChart());
 				} catch (GraphException ex) {
 					plug.error("Could not export EPS file:\n" + ex.getMessage());
 				} catch (IOException ex) {
@@ -436,9 +468,7 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		// make the graph appear as a tab
 		theTabs.add(m);
 		
-		//@Muhammad
-		if(m instanceof Graph)
-			options.add(new GraphOptions(plug, (Graph)m, plug.getGUI(), "Options for graph " + tabName));
+		options.add(new GraphOptions(plug, m, plug.getGUI(), "Options for graph " + tabName));
 
 		// anything that happens to the graph should propagate
 		m.addMouseListener(this);
@@ -456,7 +486,6 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		return index;
 	}
 
-	//@Muhammad
 	public void jumpToGraph(ChartPanel m)
 	{
 		for (int i = 0; i < models.size(); i++) {
@@ -467,12 +496,12 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		}
 	}
 
-	public Graph getModel(int i)
-	{	// this is also changed
-		return (Graph)models.get(i);
+	public ChartPanel getModel(int i)
+	{	
+		return models.get(i);
 	}
 
-	public Graph getModel(String tabHeader)
+	public ChartPanel getModel(String tabHeader)
 	{
 		for (int i = 0; i < theTabs.getComponentCount(); i++) {
 			if (theTabs.getTitleAt(i).equals(tabHeader)) {
@@ -560,6 +589,9 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 
 				printGraph.setEnabled(true);
 				deleteGraph.setEnabled(true);
+				
+				exportMatlab.setEnabled(getModel(i) instanceof Graph);
+				exportXML.setEnabled(getModel(i) instanceof Graph);
 
 				theTabs.setSelectedIndex(i);
 				this.graphMenu.show(models.get(i), e.getX(), e.getY());

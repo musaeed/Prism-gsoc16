@@ -641,7 +641,8 @@ public class GUIGraphPicker extends javax.swing.JDialog
 			graphModel.getXAxisSettings().setHeading(ranger);
 		} else {
 			/* Add to an existing graph. */
-			graphModel = graphHandler.getModel(existingGraphCombo.getSelectedItem().toString());
+			//@Muhammad
+			//graphModel = graphHandler.getModel(existingGraphCombo.getSelectedItem().toString());
 			if (!ranger.equals(graphModel.getXAxisSettings().getHeading())) //FIXME: must do this better in future
 				if (!roughExists(ranger, graphModel.getXAxisSettings().getHeading()))
 					graphModel.getXAxisSettings().setHeading(graphModel.getXAxisSettings().getHeading() + ", " + ranger);

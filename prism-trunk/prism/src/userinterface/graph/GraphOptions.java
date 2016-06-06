@@ -28,6 +28,9 @@
 package userinterface.graph;
 
 import javax.swing.*;
+
+import org.jfree.chart.ChartPanel;
+
 import java.awt.*;
 import java.awt.event.*;
 
@@ -40,7 +43,7 @@ public class GraphOptions extends JDialog
 {
 	private GraphOptionsPanel gop;
 	/** Creates a new instance of MultiGraphOptions */
-	public GraphOptions(GUIPlugin plugin, Graph theModel, JFrame gui, String title)
+	public GraphOptions(GUIPlugin plugin, ChartPanel theModel, JFrame gui, String title)
 	{
 		super(gui, title);
 		

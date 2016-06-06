@@ -168,10 +168,13 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	private GUIGraphHandler graphHandler;
 	private JScrollPane expScroller;
 	private JTextField fileTextField;
-	private Action newProps, openProps, saveProps, savePropsAs, insertProps, verifySelected, newProperty, editProperty, newConstant, removeConstant, newLabel,
+	private Action newProps, openProps, saveProps, savePropsAs, insertProps, verifySelected, verifyAndPlot, newProperty, editProperty, newConstant, removeConstant, newLabel,
 			removeLabel, newExperiment, deleteExperiment, stopExperiment, parametric, viewResults, plotResults, exportResultsListText, exportResultsListCSV,
 			exportResultsMatrixText, exportResultsMatrixCSV, simulate, details, exportLabelsPlain, exportLabelsMatlab;;
 
+	
+	private boolean plotHist;
+			
 	// Current properties
 	private GUIPropertiesList propList;
 	private GUIPropConstantList consTable;
@@ -197,6 +200,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		setParsedModel(null);
 		doEnables();
 		//options = new GUIPropertiesOptions(this);
+		plotHist = false;
 	}
 
 	public void takeCLArgs(String args[])
@@ -632,6 +636,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		savePropsAs.setEnabled(!computing);
 		simulate.setEnabled(!computing && parsedModel != null && propList.existsValidSimulatableSelectedProperties());
 		verifySelected.setEnabled(!computing && parsedModel != null && propList.existsValidSelectedProperties());
+		verifyAndPlot.setEnabled(!computing && parsedModel != null && propList.existsValidSelectedProperties());
 		exportLabelsPlain.setEnabled(!computing && parsedModel != null);
 		exportLabelsMatlab.setEnabled(!computing && parsedModel != null);
 		details.setEnabled(!computing && parsedModel != null && propList.existsValidSelectedProperties());
@@ -899,8 +904,10 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			if (!gp.isBeingEdited()) {
 				gp.setBeingEdited(true);
 				// Force repaint because we modified the GUIProperty directly
+				repaintList();
+				new GUIPropertyResultDialog(getGUI(), this, gp).display();
 				
-				if(gp.getResult().getHistProbs() != null){
+				if(gp.getResult().getHistProbs() != null && plotHist){
 					
 					GUIGraphHandler h = this.getGraphHandler();
 					
@@ -913,17 +920,15 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 							Histogram hist = new Histogram();
 							userinterface.graph.Histogram.SeriesKey key = hist.addSeries(gp.getPropString());
 							hist.addDataToCache(probs);
+							hist.showPropertiesDialog(key,gp.getPropString(), h);
 							hist.plotSeries(key);
 							h.addGraph(hist);
 						}
 					});
 
-					//@Muhammad 
-					
+					plotHist = false;
 				}
 				
-				repaintList();
-				new GUIPropertyResultDialog(getGUI(), this, gp).display();
 			}
 		}
 
@@ -1475,6 +1480,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 				}
 
 				verifySelected.setEnabled(propList.existsValidSelectedProperties());
+				verifyAndPlot.setEnabled(propList.existsValidSelectedProperties());
 				simulate.setEnabled(propList.existsValidSimulatableSelectedProperties());
 				details.setEnabled(propList.existsValidSelectedProperties());
 				editProperty.setEnabled(propList.getSelectedProperties().size() > 0);
@@ -1485,6 +1491,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 				if (showDeleters == false) {
 					simulate.setEnabled(false);
 					verifySelected.setEnabled(false);
+					verifyAndPlot.setEnabled(false);
 					details.setEnabled(false);
 					editProperty.setEnabled(false);
 					newExperiment.setEnabled(false);
@@ -1571,6 +1578,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 					}
 				}
 				verifySelected.setEnabled(propList.existsValidSelectedProperties());
+				verifyAndPlot.setEnabled(propList.existsValidSelectedProperties());
 				simulate.setEnabled(propList.existsValidSimulatableSelectedProperties());
 				details.setEnabled(propList.existsValidSelectedProperties());
 				editProperty.setEnabled(propList.getSelectedProperties().size() > 0);
@@ -1580,6 +1588,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 				if (showDeleters == false) {
 					simulate.setEnabled(false);
 					verifySelected.setEnabled(false);
+					verifyAndPlot.setEnabled(false);
 					details.setEnabled(false);
 					editProperty.setEnabled(false);
 					newExperiment.setEnabled(false);
@@ -1626,6 +1635,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		}
 
 		verifySelected.setEnabled(propList.existsValidSelectedProperties());
+		verifyAndPlot.setEnabled(propList.existsValidSelectedProperties());
 		simulate.setEnabled(propList.existsValidSimulatableSelectedProperties());
 		details.setEnabled(propList.existsValidSelectedProperties());
 		editProperty.setEnabled(propList.getSelectedProperties().size() > 0);
@@ -1633,6 +1643,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		if (showDeleters == false) {
 			simulate.setEnabled(false);
 			verifySelected.setEnabled(false);
+			verifyAndPlot.setEnabled(false);
 			details.setEnabled(false);
 			editProperty.setEnabled(false);
 		}
@@ -1810,6 +1821,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			propMenu.add(savePropsAs);
 			propMenu.add(new JSeparator());
 			propMenu.add(verifySelected);
+			propMenu.add(verifyAndPlot);
 			propMenu.add(simulate);
 			propMenu.add(newExperiment);
 			//propMenu.add(parametric);
@@ -1840,6 +1852,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		propertiesPopup.add(newProperty);
 		propertiesPopup.add(new JSeparator());
 		propertiesPopup.add(verifySelected);
+		propertiesPopup.add(verifyAndPlot);
 		propertiesPopup.add(simulate);
 		propertiesPopup.add(newExperiment);
 		//propertiesPopup.add(parametric);
@@ -1998,6 +2011,26 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		verifySelected.putValue(Action.NAME, "Verify");
 		verifySelected.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallTick.png"));
 		verifySelected.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0));
+		
+		verifyAndPlot = new AbstractAction() 
+		{
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				
+				plotHist = true;
+				a_verifySelected();
+				
+			}
+		};
+		verifyAndPlot.putValue(Action.LONG_DESCRIPTION, "Plots a histogram and model checks the selected properties against the model"
+				+ " that is built.  If there is no built model, the parsed model is automatically built.  If the "
+				+ "parsed model has changed since the last build, the user is prompted as to whether they wish to "
+				+ "re-build the model.  If the model text has been modified since the last build, the user is asked"
+				+ " whether they want to re-parse and re-build.");
+		verifyAndPlot.putValue(Action.NAME, "Verify and plot");
+		verifyAndPlot.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallhist.png"));
+		
 
 		newProperty = new AbstractAction()
 		{

@@ -1606,16 +1606,16 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	 * @throws GraphException, IOException
 	 *             If file cannot be written to.
 	 */
-	public void exportToJPEG(File file, int width, int height) throws GraphException, IOException
+	public static void exportToJPEG(File file, JFreeChart chart, int width, int height) throws GraphException, IOException
 	{	
-		ChartUtilities.saveChartAsJPEG(file, 1.0f, this.chart, width, height);
+		ChartUtilities.saveChartAsJPEG(file, 1.0f, chart, width, height);
 	}
 
-	public void exportToEPS(File file, int width, int height) throws GraphException, IOException
+	public static void exportToEPS(File file, int width, int height, JFreeChart chart) throws GraphException, IOException
 	{
 		FileOutputStream fileOutputStream = new FileOutputStream(file);
 
-		EpsGraphics g2d = new EpsGraphics(this.getTitle(), fileOutputStream, 0, 0, width, height, ColorMode.COLOR_RGB);
+		EpsGraphics g2d = new EpsGraphics(chart.getTitle().getText(), fileOutputStream, 0, 0, width, height, ColorMode.COLOR_RGB);
 
 		// Don't export fonts as vectors, no hope of getting same font as publication.
 		// g2d.setAccurateTextMode(false); // Does not rotate y-axis label.
@@ -1634,7 +1634,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	 * @throws GraphException, IOException
 	 *             If file cannot be written to.
 	 */
-	public void exportToPNG(File file, int width, int height, boolean alpha) throws GraphException, IOException
+	public static void exportToPNG(File file, JFreeChart chart, int width, int height, boolean alpha) throws GraphException, IOException
 	{	
 
 		FileOutputStream fileOutputStream = new FileOutputStream(file);
@@ -1661,7 +1661,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 		fileOutputStream.flush();
 		fileOutputStream.close();
 
-		//ChartUtilities.saveChartAsPNG(file, this.chart, width, height, null, alpha, 9);
+		//ChartUtilities.saveChartAsPNG(file, chart, width, height, null, alpha, 9);
 	}
 
 	/**

@@ -27,14 +27,27 @@
 
 package userinterface.graph;
 
-import java.awt.*;
-import java.util.*;
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.FlowLayout;
+import java.util.ArrayList;
+import java.util.Observable;
+import java.util.Vector;
 
-import javax.swing.*;
-import javax.swing.event.*;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.ListCellRenderer;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 
-import settings.*;
-import userinterface.*;
+import org.jfree.chart.ChartPanel;
+
+import settings.SettingTable;
+import userinterface.GUIPlugin;
+import userinterface.GUIPrism;
 
 public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 {
@@ -42,16 +55,16 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 	
 	private JList seriesList, axesList;
 	
-	private Graph theModel;
-	private AxisSettings xAxisSettings;
-	private AxisSettings yAxisSettings;
+	private ChartPanel theModel;
+	private Observable xAxisSettings;
+	private Observable yAxisSettings;
 	private DisplaySettings displaySettings;
 	
 	private JFrame parent;
 	private GUIPlugin plugin;
 	
 	/** Creates new form GraphOptionsPanel */
-	public GraphOptionsPanel(GUIPlugin plugin, JFrame parent, Graph theModel)
+	public GraphOptionsPanel(GUIPlugin plugin, JFrame parent, ChartPanel theModel)
 	{
 		this.plugin = plugin;
 		this.parent = parent;
@@ -63,11 +76,25 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 		
 		graphPropertiesTable = new SettingTable(parent);
 		graphPropertiesTable.setOwners(own);
-		theModel.setDisplay(graphPropertiesTable);
 		
-		xAxisSettings = theModel.getXAxisSettings();
-		yAxisSettings = theModel.getYAxisSettings();
-		displaySettings = theModel.getDisplaySettings();
+		if(theModel instanceof Graph){
+			
+			((Graph)theModel).setDisplay(graphPropertiesTable);
+			xAxisSettings = ((Graph)theModel).getXAxisSettings();
+			yAxisSettings = ((Graph)theModel).getYAxisSettings();
+			displaySettings = ((Graph)theModel).getDisplaySettings();
+			
+		}
+		else if(theModel instanceof Histogram){
+			
+			((Histogram)theModel).setDisplay(graphPropertiesTable);
+			xAxisSettings = ((Histogram)theModel).getXAxisSettings();
+			yAxisSettings = ((Histogram)theModel).getYAxisSettings();
+			displaySettings = ((Histogram)theModel).getDisplaySettings();
+		}
+
+		
+		
 		
 		String[] axes = {"x-Axis", "y-Axis"};
 		axesList = new JList(axes);
@@ -79,17 +106,37 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 		own.add(xAxisSettings);		
 		axisPropertiesTable = new SettingTable(parent);
 		axisPropertiesTable.setOwners(own);
-		xAxisSettings.setDisplay(axisPropertiesTable);
-		yAxisSettings.setDisplay(axisPropertiesTable);
+		
+		if(theModel instanceof Graph){
+			
+			((AxisSettings)xAxisSettings).setDisplay(axisPropertiesTable);
+			((AxisSettings)yAxisSettings).setDisplay(axisPropertiesTable);
+			
+		}
+		else if(theModel instanceof Histogram){
+			
+			((AxisSettingsHistogram)xAxisSettings).setDisplay(axisPropertiesTable);
+			((AxisSettingsHistogram)yAxisSettings).setDisplay(axisPropertiesTable);
+		}
+		
 		
 		own = new ArrayList();		
 		own.add(displaySettings);
 		displayPropertiesTable = new SettingTable(parent);
-		displayPropertiesTable.setOwners(own);		
+		displayPropertiesTable.setOwners(own);	
 		displaySettings.setDisplay(displayPropertiesTable);
 		
-		seriesList = new JList(theModel.getGraphSeriesList());		
-		seriesList.addListSelectionListener(this);
+		
+		if(theModel instanceof Graph){
+			seriesList = new JList(((Graph)theModel).getGraphSeriesList());
+		}
+		else if(theModel instanceof Histogram){
+			
+			//seriesList = new JList(((Histogram)theModel).getGraphSeriesList());
+		}
+
+		
+		/*seriesList.addListSelectionListener(this);
 		seriesList.setCellRenderer(new ListCellRenderer() {
 					
 			public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean cellHasFocus) 
@@ -120,7 +167,7 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 								
 				return panel;
 			}
-		});
+		});*/
 			
 		seriesPropertiesTable = new SettingTable(parent);
 		
@@ -397,7 +444,17 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 	
     private void viewDataActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_viewDataActionPerformed
 		
-    	synchronized (theModel.getSeriesLock())
+    	Object lock = null;
+    	
+    	if(theModel instanceof Graph){
+    		lock = ((Graph)theModel).getSeriesLock();
+    	}
+    	else if(theModel instanceof Histogram){
+    		lock = ((Histogram)theModel).getSeriesLock();
+    	}
+    	
+    	
+    	synchronized (lock)
 		{
 			int[] sel = seriesList.getSelectedIndices();
 			
@@ -405,13 +462,14 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 		
 			for (int i = 0; i < sel.length; i++)
 			{
-				selected.add(((SeriesSettings)theModel.getGraphSeriesList().getElementAt(sel[i])).getSeriesKey());
+				if(theModel instanceof Graph)
+					selected.add(((SeriesSettings)((Graph)theModel).getGraphSeriesList().getElementAt(sel[i])).getSeriesKey());
 			}
-			
-			SeriesEditorDialog.makeSeriesEditor(plugin, parent, theModel, selected);
+			if(theModel instanceof Graph)
+				SeriesEditorDialog.makeSeriesEditor(plugin, parent, (Graph)theModel, selected);
 		}
     	
-		/*ArrayList ss = seriesList.getSelectedSeries();
+	/*	ArrayList ss = seriesList.getSelectedSeries();
 		if(ss.size() > 1)
 		{
 			GraphListEditor.showEditors(parent, seriesList.getEditors());
@@ -428,11 +486,31 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 	
 	private void moveDownActionPerformed(java.awt.event.ActionEvent evt)                                         
 	{		
-		synchronized (theModel.getSeriesLock())
+		Object lock = null;
+    	
+    	if(theModel instanceof Graph){
+    		lock = ((Graph)theModel).getSeriesLock();
+    	}
+    	else if(theModel instanceof Histogram){
+    		lock = ((Histogram)theModel).getSeriesLock();
+    	}
+    	
+		synchronized (lock)
 		{
 			int[] sel = seriesList.getSelectedIndices();
 			
-			SeriesSettingsList listModel = theModel.getGraphSeriesList();
+			SeriesSettingsList listModel = null;
+			
+			if(theModel instanceof Graph){
+				
+				listModel = ((Graph)theModel).getGraphSeriesList();
+				
+			}
+			else if(theModel instanceof Histogram){
+				
+				listModel = ((Histogram)theModel).getGraphSeriesList();
+			}
+
 			
 			Vector<Graph.SeriesKey> toMove = new Vector<Graph.SeriesKey>();
 			
@@ -442,7 +520,9 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 				toMove.add(series.getSeriesKey());
 			}
 			
-			theModel.moveDown(toMove);
+			//@Muhammad
+			if(theModel instanceof Graph)
+				((Graph)theModel).moveDown(toMove);
 			
 			int[] newSel = new int[sel.length];
 			                       
@@ -458,11 +538,30 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 	
 	private void moveUpActionPerformed(java.awt.event.ActionEvent evt)                                       
 	{
-		synchronized (theModel.getSeriesLock())
+		Object lock = null;
+    	
+    	if(theModel instanceof Graph){
+    		lock = ((Graph)theModel).getSeriesLock();
+    	}
+    	else if(theModel instanceof Histogram){
+    		lock = ((Histogram)theModel).getSeriesLock();
+    	}
+    	
+		synchronized (lock)
 		{
 			int[] sel = seriesList.getSelectedIndices();
 			
-			SeriesSettingsList listModel = theModel.getGraphSeriesList();
+			SeriesSettingsList listModel = null;
+			
+			if(theModel instanceof Graph){
+				
+				listModel = ((Graph)theModel).getGraphSeriesList();
+				
+			}
+			else if(theModel instanceof Histogram){
+				
+				listModel = ((Histogram)theModel).getGraphSeriesList();
+			}
 			
 			Vector<Graph.SeriesKey> toMove = new Vector<Graph.SeriesKey>();
 			
@@ -472,7 +571,8 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 				toMove.add(series.getSeriesKey());
 			}
 			
-			theModel.moveUp(toMove);
+			if(theModel instanceof Graph)
+				((Graph)theModel).moveUp(toMove);
 			
 			int[] newSel = new int[sel.length];
 			                       
@@ -487,11 +587,31 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 	
 	private void removeSeriesActionPerformed(java.awt.event.ActionEvent evt)                                             
 	{
-		synchronized (theModel.getSeriesLock())
+		
+		Object lock = null;
+    	
+    	if(theModel instanceof Graph){
+    		lock = ((Graph)theModel).getSeriesLock();
+    	}
+    	else if(theModel instanceof Histogram){
+    		lock = ((Histogram)theModel).getSeriesLock();
+    	}
+    	
+		synchronized (lock)
 		{
 			int[] sel = seriesList.getSelectedIndices();
 			
-			SeriesSettingsList listModel = theModel.getGraphSeriesList();
+			SeriesSettingsList listModel = null;
+			
+			if(theModel instanceof Graph){
+				
+				listModel = ((Graph)theModel).getGraphSeriesList();
+				
+			}
+			else if(theModel instanceof Histogram){
+				
+				listModel = ((Histogram)theModel).getGraphSeriesList();
+			}
 			
 			Vector<Graph.SeriesKey> toRemove = new Vector<Graph.SeriesKey>();
 			
@@ -503,7 +623,18 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 			
 			for (Graph.SeriesKey key : toRemove)
 			{
-				theModel.removeSeries(key);
+				if(theModel instanceof Graph)
+				{
+					((Graph)theModel).removeSeries(key);
+					
+				}
+				else if(theModel instanceof Histogram)
+				{
+					//@Muhammad
+					//((Histogram)theModel).removeSeries(key);
+					
+				}
+
 			}
 			
 			listModel.updateSeriesList();
@@ -514,7 +645,8 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 	
 	private void addSeriesActionPerformed(java.awt.event.ActionEvent evt)                                          
 	{
-		theModel.addSeries("New Series");
+		if(theModel instanceof Graph)
+			((Graph)theModel).addSeries("New Series");
 	}
 	
 	public void doEnables()
@@ -526,7 +658,7 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 		{
 			if (seriesList.getSelectedIndices()[i] == 0)
 				hasFirst = true;
-			if (seriesList.getSelectedIndices()[i] == theModel.getGraphSeriesList().getSize() - 1)
+			if (seriesList.getSelectedIndices()[i] == ((Graph)theModel).getGraphSeriesList().getSize() - 1 && (theModel instanceof Graph))
 				hasLast = true;
 		}
 		
@@ -541,7 +673,7 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 	public void valueChanged(ListSelectionEvent e)
 	{	
 		stopEditors();
-		doEnables();
+		//doEnables();
 		
 		if (e.getSource() == axesList)
 		{
@@ -560,7 +692,16 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 		}
 		else if (e.getSource() == seriesList)
 		{
-			synchronized (theModel.getSeriesLock())
+			Object lock = null;
+	    	
+	    	if(theModel instanceof Graph){
+	    		lock = ((Graph)theModel).getSeriesLock();
+	    	}
+	    	else if(theModel instanceof Histogram){
+	    		lock = ((Histogram)theModel).getSeriesLock();
+	    	}
+	    	
+			synchronized (lock)
 			{
 				int[] sel = seriesList.getSelectedIndices();
 				
@@ -569,11 +710,12 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 				
 				for (int i = 0; i < sel.length; i++)
 				{
-					own.add(theModel.getGraphSeriesList().getElementAt(sel[i]));
+					if(theModel instanceof Graph)
+						own.add(((Graph)theModel).getGraphSeriesList().getElementAt(sel[i]));
 				}
 				
 				//seriesPropertiesTable = new SettingTable(parent);
-				seriesPropertiesTable.setOwners(own);
+				//seriesPropertiesTable.setOwners(own);
 			}
 		}
 	}

@@ -68,7 +68,7 @@ public class SeriesEditorDialog extends JDialog
     
     private GUIPlugin plugin;
     
-    public static void makeSeriesEditor(GUIPlugin plugin, JFrame parent, Graph graph, java.util.List<Graph.SeriesKey> series)
+    public static void makeSeriesEditor(GUIPlugin plugin, JFrame parent, Graph graph, java.util.List<SeriesKey> series)
     {
     	if (graph.getXAxisSettings().isLogarithmic() || graph.getYAxisSettings().isLogarithmic())
     	{
@@ -89,7 +89,7 @@ public class SeriesEditorDialog extends JDialog
     }
     
 	/** Creates new form GUIConstantsPicker */
-	private SeriesEditorDialog(GUIPlugin plugin, JFrame parent, Graph graph, java.util.List<Graph.SeriesKey> series)
+	private SeriesEditorDialog(GUIPlugin plugin, JFrame parent, Graph graph, java.util.List<SeriesKey> series)
 	{
 		super(parent, "Graph Series Editor", true);
      
@@ -150,7 +150,7 @@ public class SeriesEditorDialog extends JDialog
 		delete.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallDelete.png"));
 		
 		
-		for (Graph.SeriesKey key : series)
+		for (SeriesKey key : series)
 		{
 
 			SeriesSettings settings = graph.getGraphSeries(key);

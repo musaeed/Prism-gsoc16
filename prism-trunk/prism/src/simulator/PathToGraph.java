@@ -30,15 +30,13 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 
-import org.jfree.data.xy.XYDataItem;
-
 import parser.State;
 import parser.ast.ModulesFile;
 import parser.type.TypeDouble;
 import prism.PrismException;
 import userinterface.graph.Graph;
-import userinterface.graph.Graph.SeriesKey;
 import userinterface.graph.PrismXYDataItem;
+import userinterface.graph.SeriesKey;
 
 /**
  * Class to display a simulation path in text form, sending to a PrismLog.
@@ -88,7 +86,7 @@ public class PathToGraph extends PathDisplayer
 		graphModel.getYAxisSettings().setHeading("Value");
 
 		// Create series
-		varSeriesKeys = new ArrayList<Graph.SeriesKey>();
+		varSeriesKeys = new ArrayList<SeriesKey>();
 		if (varsToShow == null) {
 			for (int j = 0; j < numVars; j++) {
 				varSeriesKeys.add(graphModel.addSeries(modulesFile.getVarName(j)));
@@ -102,7 +100,7 @@ public class PathToGraph extends PathDisplayer
 			}
 		}
 		if (showRewards) {
-			rewardSeriesKeys = new ArrayList<Graph.SeriesKey>();
+			rewardSeriesKeys = new ArrayList<SeriesKey>();
 			for (int j = 0; j < numRewardStructs; j++) {
 				rewardSeriesKeys.add(graphModel.addSeries(modulesFile.getRewardStruct(j).getName()));
 			}

@@ -693,7 +693,7 @@ public class AxisSettings extends Observable implements SettingOwner
 			/* TODO: Do this in a more elegant way. */
 			synchronized (graph.getSeriesLock())
 			{
-				for (Graph.SeriesKey key : graph.getAllSeriesKeys())
+				for (SeriesKey key : graph.getAllSeriesKeys())
 				{	
 					
 					XYSeries series = graph.getXYSeries(key);
@@ -740,7 +740,7 @@ public class AxisSettings extends Observable implements SettingOwner
 			/** It could be we discarded some negative and zero values, lets bring them back. */
 			synchronized (graph.getSeriesLock())
 			{
-				for (Graph.SeriesKey key : graph.getAllSeriesKeys())
+				for (SeriesKey key : graph.getAllSeriesKeys())
 				{					
 					XYSeries series = graph.getXYSeries(key);
 					

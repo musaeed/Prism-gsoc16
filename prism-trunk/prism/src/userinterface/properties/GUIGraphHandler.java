@@ -146,7 +146,6 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				//Graph mgm = models.get(theTabs.getSelectedIndex());
 				ChartPanel mgm = models.get(theTabs.getSelectedIndex());
 				mgm.zoomInBoth(-1, -1);
 			}
@@ -161,7 +160,6 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				//Graph mgm = models.get(theTabs.getSelectedIndex());
 				ChartPanel mgm = models.get(theTabs.getSelectedIndex());
 				mgm.zoomOutBoth(-1, -1);
 			}
@@ -176,7 +174,6 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				//Graph mgm = models.get(theTabs.getSelectedIndex());
 				ChartPanel mgm = models.get(theTabs.getSelectedIndex());
 				mgm.restoreAutoBounds();
 			}
@@ -212,7 +209,6 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 			{
 				if (plug.showSaveFileDialog(graFilter) != JFileChooser.APPROVE_OPTION)
 					return;
-				//Graph mgm = models.get(theTabs.getSelectedIndex());
 				Graph mgm = (Graph)models.get(theTabs.getSelectedIndex());
 				try {
 					mgm.save(plug.getChooserFile());
@@ -274,7 +270,7 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 			{
 				if (plug.showSaveFileDialog(matlabFilter) != JFileChooser.APPROVE_OPTION)
 					return;
-				//Graph mgm = models.get(theTabs.getSelectedIndex());
+				
 				Graph mgm = (Graph)models.get(theTabs.getSelectedIndex());
 
 				try {
@@ -293,7 +289,6 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				//Graph graph = models.get(theTabs.getSelectedIndex());
 				ChartPanel graph = models.get(theTabs.getSelectedIndex());
 				
 				if(graph instanceof Graph){
@@ -331,7 +326,6 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				//Graph graph = models.get(theTabs.getSelectedIndex());
 				ChartPanel graph = models.get(theTabs.getSelectedIndex());
 
 				models.remove(theTabs.getSelectedIndex());
@@ -477,7 +471,6 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		}
 	}
 
-	//@Muhammad
 	public int addGraph(ChartPanel m, String tabName)
 	{
 		// add the model to the list of models

@@ -41,12 +41,12 @@ public class SeriesSettingsList extends AbstractListModel implements Observer
 {
 	private ChartPanel graph;
 	
-	private HashMap<Integer, Graph.SeriesKey> seriesKeys;
+	private HashMap<Integer, SeriesKey> seriesKeys;
 	
 	public SeriesSettingsList(Graph graph)
 	{
 		this.graph = graph;
-		this.seriesKeys = new HashMap<Integer, Graph.SeriesKey>();
+		this.seriesKeys = new HashMap<Integer, SeriesKey>();
 	}	
 
 	public Object getElementAt(int index) 
@@ -69,7 +69,7 @@ public class SeriesSettingsList extends AbstractListModel implements Observer
 		
 	}
 	
-	public Graph.SeriesKey getKeyAt(int index)
+	public SeriesKey getKeyAt(int index)
 	{
 		if(graph instanceof Graph){
 			
@@ -106,7 +106,7 @@ public class SeriesSettingsList extends AbstractListModel implements Observer
 			
 			synchronized (temp.getSeriesLock())
 			{
-				for (Map.Entry<Integer, Graph.SeriesKey> entry : seriesKeys.entrySet())
+				for (Map.Entry<Integer, SeriesKey> entry : seriesKeys.entrySet())
 				{			
 					SeriesSettings series = temp.getGraphSeries(entry.getValue());
 					if (series != null)
@@ -115,7 +115,7 @@ public class SeriesSettingsList extends AbstractListModel implements Observer
 				
 				seriesKeys.clear();
 				
-				for (Graph.SeriesKey key: temp.getAllSeriesKeys())
+				for (SeriesKey key: temp.getAllSeriesKeys())
 				{
 					seriesKeys.put(temp.getJFreeChartIndex(key), key);
 					temp.getGraphSeries(key).updateSeries();

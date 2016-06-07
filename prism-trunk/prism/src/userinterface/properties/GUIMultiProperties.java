@@ -83,8 +83,6 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
-import org.jfree.data.xy.XYDataItem;
-
 import parser.Values;
 import parser.ast.Expression;
 import parser.ast.ModulesFile;
@@ -94,11 +92,11 @@ import parser.type.Type;
 import parser.type.TypeDouble;
 import parser.type.TypeInt;
 import parser.type.TypeInterval;
+import prism.Pair;
 import prism.Prism;
 import prism.PrismException;
 import prism.PrismSettings;
 import prism.PrismSettingsListener;
-import prism.Result;
 import prism.TileList;
 import prism.UndefinedConstants;
 import userinterface.GUIClipboardEvent;
@@ -109,9 +107,9 @@ import userinterface.GUISimulationPicker;
 import userinterface.OptionsPanel;
 import userinterface.SimulationInformation;
 import userinterface.graph.Graph;
-import userinterface.graph.Graph.SeriesKey;
 import userinterface.graph.Histogram;
 import userinterface.graph.PrismXYDataItem;
+import userinterface.graph.SeriesKey;
 import userinterface.model.GUIModelEvent;
 import userinterface.model.GUIMultiModelHandler;
 import userinterface.model.computation.ExportBuiltModelThread;
@@ -917,12 +915,15 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 						public void run() {
 							
 							ArrayList<Double> probs = gp.getResult().getHistProbs();
-							Histogram hist = new Histogram();
-							userinterface.graph.Histogram.SeriesKey key = hist.addSeries(gp.getPropString());
+							Pair<Histogram, SeriesKey> pair = Histogram.showPropertiesDialog(gp.getPropString(), h);
+							
+							Histogram hist = pair.first;
+							SeriesKey key = pair.second;
 							hist.addDataToCache(probs);
-							hist.showPropertiesDialog(key,gp.getPropString(), h);
 							hist.plotSeries(key);
-							h.addGraph(hist);
+						
+							if(hist.isNew())
+							 h.addGraph(hist);
 						}
 					});
 

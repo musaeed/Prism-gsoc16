@@ -29,19 +29,39 @@
 
 package userinterface.graph;
 
-import java.util.*;
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Paint;
+import java.awt.Polygon;
+import java.awt.RenderingHints;
+import java.awt.Shape;
+import java.awt.Stroke;
+import java.awt.geom.Ellipse2D;
+import java.awt.geom.Rectangle2D;
+import java.util.Observable;
 
-import java.awt.*;
-import java.awt.geom.*;
+import javax.swing.JComponent;
 
-import javax.swing.*;
-import org.jfree.chart.*;
-import org.jfree.chart.plot.*;
-import org.jfree.chart.renderer.xy.*;
-import org.jfree.util.*;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.plot.DefaultDrawingSupplier;
+import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
+import org.jfree.util.ShapeUtilities;
 import org.w3c.dom.Element;
 
-import settings.*;
+import settings.BooleanSetting;
+import settings.ChoiceSetting;
+import settings.ColorSetting;
+import settings.DoubleSetting;
+import settings.RangeConstraint;
+import settings.Setting;
+import settings.SettingDisplay;
+import settings.SettingException;
+import settings.SettingOwner;
+import settings.SingleLineStringSetting;
 
 /** 
  * A class representing a series of a Graph. This class should not be used to
@@ -120,7 +140,7 @@ public class SeriesSettings extends Observable implements SettingOwner
 	private XYPlot plot;
 	
 	/** Key of this series. */
-	private Graph.SeriesKey key;
+	private SeriesKey key;
 	
 	/** The XYItemRenderer for this series. */
 	private XYLineAndShapeRenderer renderer;
@@ -140,7 +160,7 @@ public class SeriesSettings extends Observable implements SettingOwner
     
     private GraphSeriesIcon icon;
 	
-	public SeriesSettings(Graph graph, Graph.SeriesKey key)
+	public SeriesSettings(Graph graph, SeriesKey key)
 	{
 		this.graph = graph;
 		this.key = key;
@@ -556,7 +576,7 @@ public class SeriesSettings extends Observable implements SettingOwner
 		}
 	}
 	
-	public Graph.SeriesKey getSeriesKey()
+	public SeriesKey getSeriesKey()
 	{
 		return key;
 	}

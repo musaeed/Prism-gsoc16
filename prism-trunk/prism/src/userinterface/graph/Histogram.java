@@ -42,6 +42,7 @@ import org.jfree.data.xy.XYIntervalSeries;
 import org.jfree.data.xy.XYIntervalSeriesCollection;
 import org.jfree.ui.RectangleEdge;
 
+import prism.Pair;
 import settings.BooleanSetting;
 import settings.ChoiceSetting;
 import settings.FontColorPair;
@@ -107,7 +108,10 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 	private BooleanSetting legendVisible;
 	private ChoiceSetting legendPosition;
 	private FontColorSetting legendFont;
+	private boolean isNew;
 	
+	private static Histogram hist;
+	private static SeriesKey key;
 	/**
 	 * 
 	 */
@@ -176,7 +180,7 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 
 		String[] choices = { "Left", "Right", "Bottom", "Top" };
 		legendPosition = new ChoiceSetting("legend position", choices,
-				choices[Graph.RIGHT], "The position of the legend", this, false);
+				choices[Graph.BOTTOM], "The position of the legend", this, false);
 		legendFont = new FontColorSetting("legend font", new FontColorPair(
 				new Font("SansSerif", Font.PLAIN, 11), Color.black),
 				"The font for the legend", this, false);
@@ -209,7 +213,6 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 			seriesName = getUniqueSeriesName(seriesName);
 
 			// create a new XYSeries without sorting, disallowing duplicates
-			//PrismXYSeries newSeries = new PrismXYSeries(seriesName);
 			XYIntervalSeries newSeries = new XYIntervalSeries(seriesName);
 			this.seriesCollection.addSeries(newSeries);
 			// allocate a new cache for this series
@@ -217,8 +220,6 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 			key = new SeriesKey();
 
 			this.keyToSeries.put(key, newSeries);
-			int pos = new ArrayList<SeriesKey>(keyToSeries.keySet()).indexOf(key);
-			((XYBarRenderer)plot.getRenderer()).setSeriesPaint(pos, Color.RED);
 //			SeriesSettings graphSeries = new SeriesSettings(this, key);
 //			this.keyToGraphSeries.put(key, graphSeries);
 //			graphSeries.addObserver(this);
@@ -278,12 +279,6 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 				seriesCollection.removeSeries(series);
 				keyToSeries.remove(seriesKey);
 			}
-
-			/*if (keyToGraphSeries.containsKey(seriesKey))
-			{
-				keyToGraphSeries.get(seriesKey).deleteObservers();				
-				keyToGraphSeries.remove(seriesKey);
-			}*/
 
 		//	this.seriesList.updateSeriesList();	
 		}
@@ -399,7 +394,21 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 		});
 	}
 	
-	public void showPropertiesDialog(SeriesKey key, String defaultSeriesName, GUIGraphHandler handler){
+	public HashMap<SeriesKey, Color> getBarColors(){
+		return this.barColors;
+	}
+	
+	
+	
+	public boolean isNew() {
+		return isNew;
+	}
+
+	public void setIsNew(boolean isNew) {
+		this.isNew = isNew;
+	}
+
+	public static Pair<Histogram, SeriesKey> showPropertiesDialog(String defaultSeriesName, GUIGraphHandler handler){
 		
 		JDialog dialog = new JDialog(GUIPrism.getGUI(), "Histogram properties", true);
 		dialog.setLayout(new BorderLayout());
@@ -410,6 +419,7 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 		JPanel p3 = new JPanel(new FlowLayout());
 		p3.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Bar Color"));
 		JSpinner buckets = new JSpinner(new SpinnerNumberModel(10, 5, Integer.MAX_VALUE, 1));
+		buckets.setToolTipText("Select the number of buckets for this Histogram");
 		JTextField seriesName = new JTextField(defaultSeriesName);
 		JButton barColor = new JButton("Select");
 		JRadioButton newSeries = new JRadioButton("New Histogram");
@@ -458,6 +468,7 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 					existing.setSelected(false);
 					seriesOptions.setEnabled(false);
 					buckets.setEnabled(true);
+					buckets.setToolTipText("Select the number of buckets for this Histogram");
 				}
 			}
 		});
@@ -472,6 +483,7 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 					newSeries.setSelected(false);
 					seriesOptions.setEnabled(true);
 					buckets.setEnabled(false);
+					buckets.setToolTipText("Number of buckets can't be changed on an existing Histogram");
 				}
 				
 			}
@@ -483,11 +495,24 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 			public void actionPerformed(ActionEvent e) {
 				
 				dialog.dispose();
-				numOfBuckets = (int)buckets.getValue();
-				barColors.put(key, barColor.getBackground());
-				XYIntervalSeries series = keyToSeries.get(key);
-				series.setKey(seriesName.getText());
 				
+				if(newSeries.isSelected()){
+					
+					hist = new Histogram();
+					hist.setNumOfBuckets((int)buckets.getValue());
+					hist.setIsNew(true);
+					
+				}
+				else if(existing.isSelected()){
+					
+					String HistName = (String)seriesOptions.getSelectedItem();
+					hist = (Histogram)handler.getModel(HistName);
+					hist.setIsNew(false);
+					hist.getChart().getPlot().setForegroundAlpha(0.7f);
+				}
+				
+				key = hist.addSeries(seriesName.getText());
+				hist.getBarColors().put(key, barColor.getBackground());
 			}
 		});
 		
@@ -524,6 +549,7 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 		dialog.setLocationRelativeTo(GUIPrism.getGUI());
 		dialog.setVisible(true);
 		
+		return new Pair<Histogram, SeriesKey>(hist, key);
 	}
 	
 	
@@ -548,11 +574,6 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 	public XYIntervalSeriesCollection getSeriesLock(){
 		return seriesCollection;
 	}
-	public class SeriesKey 
-	{
-		public SeriesKey next = null;
-	}
-
 
 	@Override
 	public int compareTo(Object o) {

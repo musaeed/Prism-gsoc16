@@ -48,7 +48,7 @@ public class GraphResultListener implements ResultListener
 	// A graph.
 	private Graph graph;
 	// The name of the series.
-	private Graph.SeriesKey seriesKey;		
+	private SeriesKey seriesKey;		
 	// The constant on the x-axis.
 	private String rangeConstant;
 	// The other constants.
@@ -62,7 +62,7 @@ public class GraphResultListener implements ResultListener
 	 * @param rangeConstant The ranging constant (x-axis value) (required to identify the series from the results). 
 	 * @param otherValues Values of all other constants of this series (required to identify the series from the results). 
 	 */
-	public GraphResultListener(Graph graph, Graph.SeriesKey seriesKey, String rangeConstant, Values otherValues)
+	public GraphResultListener(Graph graph, SeriesKey seriesKey, String rangeConstant, Values otherValues)
 	{
 		this.graph = graph;
 		this.seriesKey = seriesKey;

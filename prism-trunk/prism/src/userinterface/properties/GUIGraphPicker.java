@@ -34,8 +34,6 @@ import java.util.Vector;
 import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 
-import org.jfree.data.xy.XYDataItem;
-
 import parser.Values;
 import parser.type.TypeInterval;
 import prism.DefinedConstant;
@@ -47,6 +45,7 @@ import userinterface.GUIPrism;
 import userinterface.graph.Graph;
 import userinterface.graph.GraphResultListener;
 import userinterface.graph.PrismXYDataItem;
+import userinterface.graph.SeriesKey;
 
 public class GUIGraphPicker extends javax.swing.JDialog
 {
@@ -110,7 +109,7 @@ public class GUIGraphPicker extends javax.swing.JDialog
 		/* If OK was pressed. */
 		if (!graphCancelled) {
 			/* Collect series keys. */
-			Vector<Graph.SeriesKey> seriesKeys = new Vector<Graph.SeriesKey>();
+			Vector<SeriesKey> seriesKeys = new Vector<SeriesKey>();
 
 			/* Collect series Values */
 			ArrayList<Values> seriesValues = new ArrayList<Values>();
@@ -146,7 +145,7 @@ public class GUIGraphPicker extends javax.swing.JDialog
 				// For properties that return an interval, we add a pair of series
 				// (the pair is stored as a linked list)
 				if (experiment.getPropertyType() instanceof TypeInterval) {
-					Graph.SeriesKey key = graphModel.addSeries(seriesName + " (min)");
+					SeriesKey key = graphModel.addSeries(seriesName + " (min)");
 					key.next = graphModel.addSeries(seriesName + " (max)");
 					seriesKeys.add(key);
 				} else {
@@ -159,7 +158,7 @@ public class GUIGraphPicker extends javax.swing.JDialog
 				for (int series = 0; series < seriesValues.size(); series++) //each combination of series
 				{
 					Values values = seriesValues.get(series);
-					Graph.SeriesKey seriesKey = seriesKeys.get(series);
+					SeriesKey seriesKey = seriesKeys.get(series);
 
 					/** Range over x-axis. */
 					for (int i = 0; i < rangingConstant.getNumSteps(); i++) {
@@ -217,7 +216,7 @@ public class GUIGraphPicker extends javax.swing.JDialog
 				for (int series = 0; series < seriesValues.size(); series++) //each combination of series
 				{
 					Values values = seriesValues.get(series);
-					Graph.SeriesKey seriesKey = seriesKeys.get(series);
+					SeriesKey seriesKey = seriesKeys.get(series);
 
 					GraphResultListener listener = new GraphResultListener(graphModel, seriesKey, ranger, values);
 					resultsCollection.addResultListener(listener);

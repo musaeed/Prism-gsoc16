@@ -40,6 +40,7 @@ import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYIntervalDataItem;
 import org.jfree.data.xy.XYIntervalSeries;
 import org.jfree.data.xy.XYIntervalSeriesCollection;
+import org.jfree.data.xy.XYSeries;
 import org.jfree.ui.RectangleEdge;
 
 import prism.Pair;
@@ -75,6 +76,12 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 	private HashMap<SeriesKey, Color> barColors;
 	
 	private ArrayList<Double> dataCache;
+	
+	/**
+	 * Maps SeriesKeys to a Graph Series. (Make sure to synchronize on
+	 * seriesCollection)
+	 */
+	private HashMap<SeriesKey, SeriesSettings> keyToGraphSeries;
 	
 	/**
 	 * Collection of all the histograms a single chart will hold
@@ -140,6 +147,7 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 		
 		keyToSeries = new LinkedHashMap<SeriesKey, XYIntervalSeries>();
 		barColors = new HashMap<SeriesKey, Color>();
+		keyToGraphSeries = new HashMap<SeriesKey, SeriesSettings>();
 		chart = this.getChart();
 		plot = chart.getXYPlot();
 		plot.setBackgroundPaint((Paint)Color.white);
@@ -185,6 +193,8 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 				new Font("SansSerif", Font.PLAIN, 11), Color.black),
 				"The font for the legend", this, false);
 		
+		seriesList = new SeriesSettingsList(this);
+		
 		updateGraph();
 	}
 	
@@ -220,11 +230,11 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 			key = new SeriesKey();
 
 			this.keyToSeries.put(key, newSeries);
-//			SeriesSettings graphSeries = new SeriesSettings(this, key);
-//			this.keyToGraphSeries.put(key, graphSeries);
-//			graphSeries.addObserver(this);
+			SeriesSettings graphSeries = new SeriesSettings(this, key);
+			this.keyToGraphSeries.put(key, graphSeries);
+			graphSeries.addObserver(this);
 
-//			this.seriesList.updateSeriesList();			
+			this.seriesList.updateSeriesList();			
 		}		
 
 		return key;		
@@ -279,11 +289,17 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 				seriesCollection.removeSeries(series);
 				keyToSeries.remove(seriesKey);
 			}
+			
+			if (keyToGraphSeries.containsKey(seriesKey))
+			{
+				keyToGraphSeries.get(seriesKey).deleteObservers();				
+				keyToGraphSeries.remove(seriesKey);
+			}
 
-		//	this.seriesList.updateSeriesList();	
+			this.seriesList.updateSeriesList();	
 		}
 
-	//	seriesList.updateSeriesList();
+		seriesList.updateSeriesList();
 	}
 	
 
@@ -574,6 +590,93 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 	public XYIntervalSeriesCollection getSeriesLock(){
 		return seriesCollection;
 	}
+	
+	public java.util.Vector<SeriesKey> getAllSeriesKeys()
+	{
+		synchronized (seriesCollection)
+		{
+			java.util.Vector<SeriesKey> result = new java.util.Vector<SeriesKey>();
+
+			for (Map.Entry<SeriesKey, XYIntervalSeries> entries : keyToSeries.entrySet())
+			{
+				result.add(entries.getKey());
+			}
+
+			return result;
+		}
+	}
+	
+	/**
+	 * Changes the name of a series.
+	 * 
+	 * @param key The key identifying the series.
+	 * @param seriesName New name of series.
+	 */
+	public void changeSeriesName(SeriesKey key, String seriesName) 
+	{
+		synchronized (seriesCollection) 
+		{
+			seriesName = getUniqueSeriesName(seriesName);
+
+			if (keyToSeries.containsKey(key))
+			{
+				XYIntervalSeries series = keyToSeries.get(key);
+				series.setKey(seriesName);
+			}			
+		}	
+	}
+
+	/**
+	 * Should always be synchronised on seriesCollection when called.
+	 */
+	public SeriesSettings getGraphSeries(SeriesKey key)
+	{
+		synchronized (seriesCollection)
+		{
+			if (keyToGraphSeries.containsKey(key))
+			{
+				return keyToGraphSeries.get(key);
+			}
+
+			return null;
+		}
+	}
+	
+	/**
+	 * Should always be synchronised on seriesCollection when called.
+	 * @return >0 when series found.
+	 */
+	public int getJFreeChartIndex(SeriesKey key)
+	{
+		synchronized (seriesCollection) 
+		{
+			XYIntervalSeries series = keyToSeries.get(key);
+
+			for (int i = 0; i < seriesCollection.getSeriesCount(); i++)
+			{
+				if (seriesCollection.getSeries(i).equals((series)))
+					return i;
+			}
+
+			return -1;
+		}
+	}
+	
+	/**
+	 * Should always be synchronised on seriesCollection when called.
+	 */
+	public XYIntervalSeries getXYSeries(SeriesKey key)
+	{
+		synchronized (seriesCollection)
+		{
+			if (keyToSeries.containsKey(key))
+			{
+				return keyToSeries.get(key);
+			}
+
+			return null;
+		}
+	}
 
 	@Override
 	public int compareTo(Object o) {
@@ -647,12 +750,12 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 			/* Display settings changed */
 			super.repaint();
 		} else {
-			/*for (Map.Entry<SeriesKey, SeriesSettings> entry : keyToGraphSeries.entrySet())
+			for (Map.Entry<SeriesKey, SeriesSettings> entry : keyToGraphSeries.entrySet())
 			{
 				/* Graph series settings changed */
-				//if (entry.getValue().equals(o))
-					//repaint();
-			//}*/
+				if (entry.getValue().equals(o))
+					repaint();
+			}
 		}
 	}
 	

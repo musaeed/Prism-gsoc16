@@ -31,6 +31,7 @@ import java.util.Observable;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.renderer.xy.XYBarRenderer;
 
 import settings.BooleanSetting;
 import settings.ColorSetting;
@@ -80,7 +81,9 @@ public class DisplaySettings extends Observable implements SettingOwner
 		//	defaultColor = ((Color)chart.getBackgroundPaint());
 		
 		backgroundColor = new ColorSetting("background colour", defaultColor, "The background colour of the graph panel", this, false);
-		errorBarColor = new ColorSetting("error renderer color", Color.RED, "The color of the error bars", this, false);
+		
+		if(graph instanceof Graph)
+			errorBarColor = new ColorSetting("error renderer color", Color.RED, "The color of the error bars", this, false);
 		
 		updateDisplay();
 		setChanged();

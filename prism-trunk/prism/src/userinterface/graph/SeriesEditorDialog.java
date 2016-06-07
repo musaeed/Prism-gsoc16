@@ -28,22 +28,43 @@
 
 package userinterface.graph;
 
-import javax.swing.*;
-
-import java.awt.*;
-
-import javax.swing.table.*;
-
-import java.util.*;
+import java.awt.BorderLayout;
+import java.awt.Rectangle;
+import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
-import java.awt.event.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.util.ArrayList;
+import java.util.StringTokenizer;
 
-import userinterface.*;
-import org.jfree.data.xy.*;
-import org.jfree.data.general.*;
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.ActionMap;
+import javax.swing.BorderFactory;
+import javax.swing.InputMap;
+import javax.swing.JDialog;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.KeyStroke;
+import javax.swing.ListSelectionModel;
+import javax.swing.table.AbstractTableModel;
+
+import org.jfree.chart.ChartPanel;
+import org.jfree.data.general.Series;
+import org.jfree.data.general.SeriesChangeEvent;
+import org.jfree.data.general.SeriesChangeListener;
+import org.jfree.data.xy.XYDataItem;
+import org.jfree.data.xy.XYIntervalDataItem;
+import org.jfree.data.xy.XYIntervalSeries;
+
+import userinterface.GUIPlugin;
+import userinterface.GUIPrism;
 
 public class SeriesEditorDialog extends JDialog
 {         
@@ -68,18 +89,26 @@ public class SeriesEditorDialog extends JDialog
     
     private GUIPlugin plugin;
     
-    public static void makeSeriesEditor(GUIPlugin plugin, JFrame parent, Graph graph, java.util.List<SeriesKey> series)
+    public static void makeSeriesEditor(GUIPlugin plugin, JFrame parent, ChartPanel graph, java.util.List<SeriesKey> series)
     {
-    	if (graph.getXAxisSettings().isLogarithmic() || graph.getYAxisSettings().isLogarithmic())
-    	{
-    		plugin.message(
-    			"One of your axes has a logarithmic scale. When a logarithmic scale is active we temporarily \n" +
-    			"hide negative and zero values. For this reason it is not safe to edit values when either of \n" +
-    			"your axes is logarithmic. Please select numerical axes and switch back later.");
-    		return;
+    	if(graph instanceof Graph){
+    		if (((Graph)graph).getXAxisSettings().isLogarithmic() || ((Graph)graph).getYAxisSettings().isLogarithmic())
+    		{
+    			plugin.message(
+    					"One of your axes has a logarithmic scale. When a logarithmic scale is active we temporarily \n" +
+    							"hide negative and zero values. For this reason it is not safe to edit values when either of \n" +
+    					"your axes is logarithmic. Please select numerical axes and switch back later.");
+    			return;
+    		}
     	}
     	
-    	synchronized (graph.getSeriesLock())
+    	Object lock = null;
+    	if(graph instanceof Graph)
+    		lock = ((Graph)graph).getSeriesLock();
+    	if(graph instanceof Histogram)
+    		lock = ((Histogram)graph).getSeriesLock();
+    	
+    	synchronized (lock)
     	{
     		SeriesEditorDialog editor = new SeriesEditorDialog(plugin, parent, graph, series);
     		editor.setVisible(true);
@@ -89,10 +118,9 @@ public class SeriesEditorDialog extends JDialog
     }
     
 	/** Creates new form GUIConstantsPicker */
-	private SeriesEditorDialog(GUIPlugin plugin, JFrame parent, Graph graph, java.util.List<SeriesKey> series)
+	private SeriesEditorDialog(GUIPlugin plugin, JFrame parent, ChartPanel graph, java.util.List<SeriesKey> series)
 	{
 		super(parent, "Graph Series Editor", true);
-     
 		this.plugin = plugin;
 		this.editors = new ArrayList<SeriesEditor>();
 		
@@ -149,13 +177,20 @@ public class SeriesEditorDialog extends JDialog
 		delete.putValue(Action.NAME, "Delete");
 		delete.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallDelete.png"));
 		
-		
 		for (SeriesKey key : series)
 		{
-
-			SeriesSettings settings = graph.getGraphSeries(key);
-			PrismXYSeries xySeries = (PrismXYSeries)graph.getXYSeries(key);
+			SeriesSettings settings = null;
+			if(graph instanceof Graph)
+				settings = ((Graph)graph).getGraphSeries(key);
+			if(graph instanceof Histogram)
+				settings = ((Histogram)graph).getGraphSeries(key);
 			
+			Series xySeries = null;
+			if(graph instanceof Graph)
+				xySeries = (PrismXYSeries)((Graph)graph).getXYSeries(key);
+			if(graph instanceof Histogram)
+				xySeries = ((Histogram)graph).getXYSeries(key);
+				
 			SeriesEditor editor = new SeriesEditor(graph, xySeries, settings, cut, copy, paste, delete);
 			editor.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 			
@@ -283,17 +318,16 @@ public class SeriesEditorDialog extends JDialog
 		private java.util.List<Double> xAxisBuffer;
 		private java.util.List<Double> yAxisBuffer;
 		
-		private Graph graph;
+		private ChartPanel graph;
 		private SeriesSettings settings;
-		private PrismXYSeries xySeries;
+		private Series xySeries;
 		
 		private AbstractTableModel tableModel;
 		private JTable table;
 		
-		private SeriesEditor(Graph graph, PrismXYSeries xySeries, SeriesSettings settings, Action cut, Action copy, Action paste, Action delete)
+		private SeriesEditor(ChartPanel graph, Series xySeries, SeriesSettings settings, Action cut, Action copy, Action paste, Action delete)
 		{
 			super.setLayout(new BorderLayout());
-			
 			this.graph = graph;
 			this.settings = settings;
 			this.xySeries = xySeries;
@@ -317,12 +351,22 @@ public class SeriesEditorDialog extends JDialog
 			
 			this.tableModel = new AbstractTableModel()
 			{
-				public int getColumnCount() { return 2; }
+				public int getColumnCount() { 
+					
+					if(graph instanceof Graph)
+						return 2; 
+					else
+						return 4;
+				}
+				
 				public int getRowCount() { return SeriesEditor.this.xySeries.getItemCount() + bufferSize; }
-				public boolean isCellEditable(int rowIndex, int columnIndex) { return true; }
+				
+				public boolean isCellEditable(int rowIndex, int columnIndex) { 
+					return graph instanceof Graph;
+				}
 				
 				public Object getValueAt(int rowIndex, int columnIndex) 
-				{
+				{	
 					if (rowIndex >= SeriesEditor.this.xySeries.getItemCount())
 					{
 						int bufferIndex = rowIndex - SeriesEditor.this.xySeries.getItemCount();
@@ -332,20 +376,52 @@ public class SeriesEditorDialog extends JDialog
 						return (bufferValue == null) ? "" : bufferValue;
 					}
 										
-					XYDataItem dataItem = SeriesEditor.this.xySeries.getDataItem(rowIndex);
+					if(graph instanceof Graph){
 					
-					if (columnIndex == 0)
-						return dataItem.getX();
-					else
-						return dataItem.getY();
+						XYDataItem dataItem = ((PrismXYSeries)SeriesEditor.this.xySeries).getDataItem(rowIndex);
+
+						if (columnIndex == 0)
+							return dataItem.getX();
+						else
+							return dataItem.getY();
+						
+					}
+					else{
+						
+						XYIntervalDataItem dataItem = (XYIntervalDataItem)((XYIntervalSeries)SeriesEditor.this.xySeries).getDataItem(rowIndex);
+						
+						if(columnIndex == 0)
+							return dataItem.getXHighValue();
+						else if(columnIndex == 1)
+							return dataItem.getXLowValue();
+						else if(columnIndex == 2)
+							return dataItem.getXHighValue();
+						else
+							return dataItem.getYValue();
+					}
 				}			
 				
 				public String getColumnName(int column) 
 				{
-					if (column == 0)
-						return SeriesEditor.this.graph.getXAxisSettings().getHeading();
-					else
-						return SeriesEditor.this.graph.getYAxisSettings().getHeading();
+					if(graph instanceof Graph){
+						
+						if (column == 0)
+							return ((Graph)SeriesEditor.this.graph).getXAxisSettings().getHeading();
+						else
+							return ((Graph)SeriesEditor.this.graph).getYAxisSettings().getHeading();
+						
+					}
+					else{
+						
+						if(column == 0)
+							return "Mean probability";
+						else if(column == 1)
+							return "Min probability";
+						else if(column == 2)
+							return "Max probability";
+						else
+							return "Number of states";
+					}
 
 				}
 				
@@ -389,17 +465,21 @@ public class SeriesEditorDialog extends JDialog
 							{
 								clearBufferRow(bufferIndex);
 								
-								if (columnIndex == 0)
-									SeriesEditor.this.xySeries.addOrUpdate(new Double(value), otherBufferValue);
-								else
-									SeriesEditor.this.xySeries.addOrUpdate(otherBufferValue, new Double(value));
+								if(graph instanceof Graph){
+								
+									if (columnIndex == 0)
+										((PrismXYSeries)SeriesEditor.this.xySeries).addOrUpdate(new Double(value), otherBufferValue);
+									else
+										((PrismXYSeries)SeriesEditor.this.xySeries).addOrUpdate(otherBufferValue, new Double(value));
+									
+								}
 							}
 						}
 					}
 					// Updating graph points...
 					else
 					{				
-						XYDataItem dataItem = SeriesEditor.this.xySeries.getDataItem(rowIndex);
+						XYDataItem dataItem = ((PrismXYSeries)SeriesEditor.this.xySeries).getDataItem(rowIndex);
 						
 						// Null values are for in the buffer only. 
 						if (value == null)
@@ -417,15 +497,20 @@ public class SeriesEditorDialog extends JDialog
 									return;
 							}
 							
-							Double yValue = SeriesEditor.this.xySeries.getY(rowIndex).doubleValue();
-							SeriesEditor.this.xySeries.remove(rowIndex);
-							SeriesEditor.this.xySeries.addOrUpdate(new Double(value), yValue);							
+							if(graph instanceof Graph){
+							
+								Double yValue = ((PrismXYSeries)SeriesEditor.this.xySeries).getY(rowIndex).doubleValue();
+								((PrismXYSeries)SeriesEditor.this.xySeries).remove(rowIndex);
+								((PrismXYSeries)SeriesEditor.this.xySeries).addOrUpdate(new Double(value), yValue);
+								
+							}
 						}
 											
 						else
 						{
 							//	Updating point on y-axis
-							SeriesEditor.this.xySeries.updateByIndex(rowIndex, value);						
+							if(graph instanceof Graph)
+								((PrismXYSeries)SeriesEditor.this.xySeries).updateByIndex(rowIndex, value);						
 						}
 						
 						//super.setValueAt(aValue, rowIndex, columnIndex);
@@ -526,8 +611,10 @@ public class SeriesEditorDialog extends JDialog
 		    	
 		    	if (row < xySeries.getItemCount())
 		    	{
-		    		XYDataItem item = xySeries.getDataItem(row);
-		    		clippy.append(item.getX()+"\t"+item.getY()+"\n");
+		    		if(graph instanceof Graph){
+		    			XYDataItem item = ((PrismXYSeries)xySeries).getDataItem(row);
+		    			clippy.append(item.getX()+"\t"+item.getY()+"\n");
+		    		}
 		    	}
 		    	else
 		    	{
@@ -613,7 +700,10 @@ public class SeriesEditorDialog extends JDialog
 				}
 				else
 				{
-					xySeries.remove(rowIndex);
+					if(graph instanceof Graph)
+						((PrismXYSeries)xySeries).remove(rowIndex);
+					else if(graph instanceof Histogram)
+						((XYIntervalSeries)xySeries).remove(rowIndex);
 				}
 			}
 		}
@@ -628,7 +718,7 @@ public class SeriesEditorDialog extends JDialog
 			this.settings = settings;
 		}
 
-		public PrismXYSeries getXySeries() 
+		public Series getXySeries() 
 		{
 			return xySeries;
 		}

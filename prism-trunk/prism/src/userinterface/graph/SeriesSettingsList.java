@@ -43,7 +43,7 @@ public class SeriesSettingsList extends AbstractListModel implements Observer
 	
 	private HashMap<Integer, SeriesKey> seriesKeys;
 	
-	public SeriesSettingsList(Graph graph)
+	public SeriesSettingsList(ChartPanel graph)
 	{
 		this.graph = graph;
 		this.seriesKeys = new HashMap<Integer, SeriesKey>();
@@ -64,7 +64,12 @@ public class SeriesSettingsList extends AbstractListModel implements Observer
 		}
 		else{
 			
-			return null;
+			Histogram temp = (Histogram) graph;
+			
+			synchronized (temp.getSeriesLock())
+			{
+				return temp.getGraphSeries(seriesKeys.get(index));
+			}
 		}
 		
 	}
@@ -103,6 +108,31 @@ public class SeriesSettingsList extends AbstractListModel implements Observer
 		if(graph instanceof Graph){
 			
 			Graph temp = (Graph) graph;
+			
+			synchronized (temp.getSeriesLock())
+			{
+				for (Map.Entry<Integer, SeriesKey> entry : seriesKeys.entrySet())
+				{			
+					SeriesSettings series = temp.getGraphSeries(entry.getValue());
+					if (series != null)
+						series.deleteObserver(this);
+				}
+				
+				seriesKeys.clear();
+				
+				for (SeriesKey key: temp.getAllSeriesKeys())
+				{
+					seriesKeys.put(temp.getJFreeChartIndex(key), key);
+					temp.getGraphSeries(key).updateSeries();
+					temp.getGraphSeries(key).addObserver(this);				
+				}
+			}
+			
+		}
+		
+		else if(graph instanceof Histogram){
+			
+			Histogram temp = (Histogram) graph;
 			
 			synchronized (temp.getSeriesLock())
 			{

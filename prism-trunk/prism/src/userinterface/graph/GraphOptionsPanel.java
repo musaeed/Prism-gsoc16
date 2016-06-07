@@ -132,11 +132,12 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 		}
 		else if(theModel instanceof Histogram){
 			
-			//seriesList = new JList(((Histogram)theModel).getGraphSeriesList());
+			seriesList = new JList(((Histogram)theModel).getGraphSeriesList());
 		}
 
 		
-		/*seriesList.addListSelectionListener(this);
+		seriesList.addListSelectionListener(this);
+		
 		seriesList.setCellRenderer(new ListCellRenderer() {
 					
 			public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean cellHasFocus) 
@@ -167,7 +168,7 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 								
 				return panel;
 			}
-		});*/
+		});
 			
 		seriesPropertiesTable = new SettingTable(parent);
 		
@@ -391,8 +392,12 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
         });
 
         seriesButtonPanel.add(moveDown);
-
-        viewData.setText("Edit Data");
+        
+        if(theModel instanceof Graph)
+        	viewData.setText("Edit Data");
+        else if(theModel instanceof Histogram)
+        	viewData.setText("View Data");
+        
         viewData.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
         viewData.setIcon(GUIPrism.getIconFromImage("smallEditData.png"));
         viewData.addActionListener(new java.awt.event.ActionListener() {
@@ -464,9 +469,11 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 			{
 				if(theModel instanceof Graph)
 					selected.add(((SeriesSettings)((Graph)theModel).getGraphSeriesList().getElementAt(sel[i])).getSeriesKey());
+				else if(theModel instanceof Histogram)
+					selected.add(((SeriesSettings)((Histogram)theModel).getGraphSeriesList().getElementAt(sel[i])).getSeriesKey());
 			}
-			if(theModel instanceof Graph)
-				SeriesEditorDialog.makeSeriesEditor(plugin, parent, (Graph)theModel, selected);
+			
+			SeriesEditorDialog.makeSeriesEditor(plugin, parent, theModel, selected);
 		}
     	
 	/*	ArrayList ss = seriesList.getSelectedSeries();
@@ -630,8 +637,8 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 				}
 				else if(theModel instanceof Histogram)
 				{
-					//@Muhammad
-					//((Histogram)theModel).removeSeries(key);
+					
+					((Histogram)theModel).removeSeries(key);
 					
 				}
 
@@ -647,6 +654,8 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 	{
 		if(theModel instanceof Graph)
 			((Graph)theModel).addSeries("New Series");
+		else if(theModel instanceof Histogram)
+			((Histogram)theModel).addSeries("New Series");
 	}
 	
 	public void doEnables()
@@ -658,8 +667,12 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 		{
 			if (seriesList.getSelectedIndices()[i] == 0)
 				hasFirst = true;
-			if (seriesList.getSelectedIndices()[i] == ((Graph)theModel).getGraphSeriesList().getSize() - 1 && (theModel instanceof Graph))
-				hasLast = true;
+			if(theModel instanceof Graph)
+				if (seriesList.getSelectedIndices()[i] == ((Graph)theModel).getGraphSeriesList().getSize() - 1)
+					hasLast = true;
+			if(theModel instanceof Histogram)
+				if (seriesList.getSelectedIndices()[i] == ((Histogram)theModel).getGraphSeriesList().getSize() - 1)
+					hasLast = true;
 		}
 		
 		removeSeries.setEnabled(seriesList.getSelectedIndices().length >= 1);
@@ -673,7 +686,7 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 	public void valueChanged(ListSelectionEvent e)
 	{	
 		stopEditors();
-		//doEnables();
+		doEnables();
 		
 		if (e.getSource() == axesList)
 		{

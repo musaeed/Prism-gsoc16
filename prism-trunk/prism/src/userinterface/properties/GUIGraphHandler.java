@@ -34,6 +34,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.event.MouseWheelEvent;
+import java.awt.event.MouseWheelListener;
 import java.io.IOException;
 import java.util.ArrayList;
 
@@ -106,6 +108,22 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 	{
 		theTabs = new JTabbedPane();
 		theTabs.addMouseListener(this);
+		theTabs.addMouseWheelListener(new MouseWheelListener() {
+			
+			@Override
+			public void mouseWheelMoved(MouseWheelEvent e) {
+				if(e.getPreciseWheelRotation() > 0.0){
+					
+					if(theTabs.getSelectedIndex() != (theTabs.getTabCount() - 1))
+						theTabs.setSelectedIndex(theTabs.getSelectedIndex() + 1);
+				}
+				else{
+					
+					if(theTabs.getSelectedIndex() != 0)
+						theTabs.setSelectedIndex(theTabs.getSelectedIndex() - 1);
+				}
+			}
+		});
 
 		setLayout(new BorderLayout());
 		add(theTabs, BorderLayout.CENTER);

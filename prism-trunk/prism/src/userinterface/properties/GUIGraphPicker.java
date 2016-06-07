@@ -275,7 +275,10 @@ public class GUIGraphPicker extends javax.swing.JDialog
 
 		// add existing graphs to choose from
 		for (int i = 0; i < graphHandler.getNumModels(); i++) {
-			existingGraphCombo.addItem(graphHandler.getGraphName(i));
+			
+			if(graphHandler.getModel(i) instanceof Graph)
+				existingGraphCombo.addItem(graphHandler.getGraphName(i));
+			
 		}
 		// default to latest one
 		if (existingGraphCombo.getItemCount() > 0) {
@@ -641,8 +644,8 @@ public class GUIGraphPicker extends javax.swing.JDialog
 			graphModel.getXAxisSettings().setHeading(ranger);
 		} else {
 			/* Add to an existing graph. */
-			//@Muhammad
-			//graphModel = graphHandler.getModel(existingGraphCombo.getSelectedItem().toString());
+			
+			graphModel = (Graph)graphHandler.getModel(existingGraphCombo.getSelectedItem().toString());
 			if (!ranger.equals(graphModel.getXAxisSettings().getHeading())) //FIXME: must do this better in future
 				if (!roughExists(ranger, graphModel.getXAxisSettings().getHeading()))
 					graphModel.getXAxisSettings().setHeading(graphModel.getXAxisSettings().getHeading() + ", " + ranger);

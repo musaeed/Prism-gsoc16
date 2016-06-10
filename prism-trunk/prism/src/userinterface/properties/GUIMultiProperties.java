@@ -915,7 +915,14 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 						public void run() {
 							
 							ArrayList<Double> probs = gp.getResult().getHistProbs();
-							Pair<Histogram, SeriesKey> pair = Histogram.showPropertiesDialog(gp.getPropString(), h);
+							
+							if(probs == null || probs.size() == 0){
+								JOptionPane.showMessageDialog(GUIPrism.getGUI(), "Not enough data to plot!", "Error", JOptionPane.ERROR_MESSAGE);
+								plotHist = false;
+								return;
+							}
+							
+							Pair<Histogram, SeriesKey> pair = Histogram.showPropertiesDialog(gp.getPropString(), h, Collections.min(probs),Collections.max(probs));
 							
 							Histogram hist = pair.first;
 							SeriesKey key = pair.second;
@@ -923,7 +930,9 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 							hist.plotSeries(key);
 						
 							if(hist.isNew())
-							 h.addGraph(hist);
+								h.addGraph(hist);
+							else
+								h.jumpToGraph(hist);
 						}
 					});
 

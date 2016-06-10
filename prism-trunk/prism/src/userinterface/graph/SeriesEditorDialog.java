@@ -356,7 +356,7 @@ public class SeriesEditorDialog extends JDialog
 					if(graph instanceof Graph)
 						return 2; 
 					else
-						return 4;
+						return 3;
 				}
 				
 				public int getRowCount() { return SeriesEditor.this.xySeries.getItemCount() + bufferSize; }
@@ -394,8 +394,6 @@ public class SeriesEditorDialog extends JDialog
 							return dataItem.getXHighValue();
 						else if(columnIndex == 1)
 							return dataItem.getXLowValue();
-						else if(columnIndex == 2)
-							return dataItem.getXHighValue();
 						else
 							return dataItem.getYValue();
 					}
@@ -414,11 +412,9 @@ public class SeriesEditorDialog extends JDialog
 					else{
 						
 						if(column == 0)
-							return "Mean probability";
+							return "Min range";
 						else if(column == 1)
-							return "Min probability";
-						else if(column == 2)
-							return "Max probability";
+							return "Max range";
 						else
 							return "Number of states";
 					}

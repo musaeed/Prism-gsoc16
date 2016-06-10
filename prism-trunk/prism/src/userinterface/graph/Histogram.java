@@ -9,7 +9,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
@@ -17,9 +16,9 @@ import java.util.Observer;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
-import javax.swing.JColorChooser;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JSpinner;
@@ -34,13 +33,12 @@ import org.jfree.chart.labels.XYToolTipGenerator;
 import org.jfree.chart.plot.DefaultDrawingSupplier;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
-import org.jfree.chart.renderer.xy.XYBarRenderer;
+import org.jfree.chart.renderer.xy.ClusteredXYBarRenderer;
 import org.jfree.chart.title.LegendTitle;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYIntervalDataItem;
 import org.jfree.data.xy.XYIntervalSeries;
 import org.jfree.data.xy.XYIntervalSeriesCollection;
-import org.jfree.data.xy.XYSeries;
 import org.jfree.ui.RectangleEdge;
 
 import prism.Pair;
@@ -71,9 +69,7 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 	 * Maps SeriesKeys to a XYSeries. (Make sure to synchronize on
 	 * seriesCollection)
 	 */
-	private LinkedHashMap<SeriesKey, XYIntervalSeries> keyToSeries;
-	
-	private HashMap<SeriesKey, Color> barColors;
+	private HashMap<SeriesKey, XYIntervalSeries> keyToSeries;
 	
 	private ArrayList<Double> dataCache;
 	
@@ -145,8 +141,7 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 	 */
 	public void init(){
 		
-		keyToSeries = new LinkedHashMap<SeriesKey, XYIntervalSeries>();
-		barColors = new HashMap<SeriesKey, Color>();
+		keyToSeries = new HashMap<SeriesKey, XYIntervalSeries>();
 		keyToGraphSeries = new HashMap<SeriesKey, SeriesSettings>();
 		chart = this.getChart();
 		plot = chart.getXYPlot();
@@ -161,9 +156,10 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 				));	
 		
 		seriesCollection = (XYIntervalSeriesCollection)plot.getDataset();
-		maxProb = 0.0;
-		minProb = 1.0;
+		maxProb = 1.0;
+		minProb = 0.0;
 		numOfBuckets = 10; // default value, can be altered
+		plot.setRenderer(new ClusteredXYBarRenderer());
 		addToolTip();
 	}
 	
@@ -206,6 +202,24 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 
 	public void setNumOfBuckets(int numOfBuckets) {
 		this.numOfBuckets = numOfBuckets;
+	}
+	
+	
+
+	public double getMaxProb() {
+		return maxProb;
+	}
+
+	public void setMaxProb(double maxProb) {
+		this.maxProb = maxProb;
+	}
+
+	public double getMinProb() {
+		return minProb;
+	}
+
+	public void setMinProb(double minProb) {
+		this.minProb = minProb;
 	}
 
 	/**
@@ -320,18 +334,7 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 	}
 	
 	public void plotSeries(SeriesKey seriesKey){
-		
-		for(double item : dataCache){
-			
-			if(item > maxProb)
-				maxProb = item;
-			
-			if(item < minProb)
-				minProb = item;
-		}
-		
-
-		
+				
 		double range = (maxProb - minProb) / (double)numOfBuckets;
 		
 		for(int i = 0 ; i < numOfBuckets ; i++){
@@ -349,9 +352,6 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 			double x = (minRange + maxRange) / 2.0;
 			addPointToSeries(seriesKey, new XYIntervalDataItem(x, minRange, maxRange, height, height, height));
 		}
-		
-		int pos = new ArrayList<SeriesKey>(keyToSeries.keySet()).indexOf(seriesKey);
-		((XYBarRenderer)plot.getRenderer()).setSeriesPaint(pos,barColors.get(seriesKey),true);
 		
 		dataCache.clear();
 	}
@@ -383,7 +383,7 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 	}
 	
 	public void addToolTip(){
-		((XYBarRenderer)plot.getRenderer()).setBaseToolTipGenerator(new XYToolTipGenerator() {
+		((ClusteredXYBarRenderer)plot.getRenderer()).setBaseToolTipGenerator(new XYToolTipGenerator() {
 			
 			@Override
 			public String generateToolTip(XYDataset dataset, int seriesIndex, int item) {
@@ -392,16 +392,14 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 				XYIntervalSeries series = collection.getSeries(seriesIndex);
 				
 				double minX = series.getXLowValue(item);
-				double meanX = series.getX(item).doubleValue();
 				double maxX = series.getXHighValue(item);
 				double height = series.getYValue(item);
 				
 				StringBuilder stringBuilder = new StringBuilder();
 				stringBuilder.append(String.format("<html><p style='color:#0000ff;'>Prop: '%s'</p>", dataset.getSeriesKey(seriesIndex)));
 				stringBuilder.append("<table style=\"width:100%\">");
-				stringBuilder.append("<tr><td> Min probability: </td><td>" + (Math.round( minX * 10000.0 ) / 10000.0)  + "</td></tr>");
-				stringBuilder.append("<tr><td> Mean probability: </td><td>" + (Math.round( meanX * 10000.0 ) / 10000.0)  + "</td></tr>");
-				stringBuilder.append("<tr><td> Max  probability: </td><td>" + (Math.round( maxX * 10000.0 ) / 10000.0) +  "</td></tr>");
+				stringBuilder.append("<tr><td> Min range: </td><td>" + (Math.round( minX * 10000.0 ) / 10000.0)  + "</td></tr>");
+				stringBuilder.append("<tr><td> Max range: </td><td>" + (Math.round( maxX * 10000.0 ) / 10000.0) +  "</td></tr>");
 				stringBuilder.append("<tr><td> Number of states: </td><td>" + height +  "</td></tr></table>");
 				stringBuilder.append("</html>");
 				
@@ -409,11 +407,6 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 			}
 		});
 	}
-	
-	public HashMap<SeriesKey, Color> getBarColors(){
-		return this.barColors;
-	}
-	
 	
 	
 	public boolean isNew() {
@@ -424,7 +417,12 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 		this.isNew = isNew;
 	}
 
-	public static Pair<Histogram, SeriesKey> showPropertiesDialog(String defaultSeriesName, GUIGraphHandler handler){
+	public static Pair<Histogram, SeriesKey> showPropertiesDialog(String defaultSeriesName, GUIGraphHandler handler, double minVal, double maxVal){
+		
+		if(maxVal > 1.0)
+			maxVal = 1.0;
+		if(minVal < 0.0)
+			minVal = 0.0;
 		
 		JDialog dialog = new JDialog(GUIPrism.getGUI(), "Histogram properties", true);
 		dialog.setLayout(new BorderLayout());
@@ -432,12 +430,9 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 		p1.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Number of buckets"));
 		JPanel p2 = new JPanel(new FlowLayout());
 		p2.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Series name"));
-		JPanel p3 = new JPanel(new FlowLayout());
-		p3.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Bar Color"));
 		JSpinner buckets = new JSpinner(new SpinnerNumberModel(10, 5, Integer.MAX_VALUE, 1));
 		buckets.setToolTipText("Select the number of buckets for this Histogram");
 		JTextField seriesName = new JTextField(defaultSeriesName);
-		JButton barColor = new JButton("Select");
 		JRadioButton newSeries = new JRadioButton("New Histogram");
 		JRadioButton existing = new JRadioButton("Existing Histogram");
 		newSeries.setSelected(true);
@@ -453,6 +448,25 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 		seriesSelectPanel.add(seriesOptionsPanel);
 		seriesSelectPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Add series to"));
 		
+		JLabel minValsLabel = new JLabel("Min range:");
+		JSpinner minVals = new JSpinner(new SpinnerNumberModel(0.0, 0.0, minVal, 0.01));
+		minVals.setToolTipText("Does not allow value more than the min value in the probabilities");
+		JLabel maxValsLabel = new JLabel("Max range:");
+		JSpinner maxVals = new JSpinner(new SpinnerNumberModel(1.0, maxVal, 1.0, 0.01));
+		maxVals.setToolTipText("Does not allow value less than the max value in the probabilities");
+		JPanel minMaxPanel = new JPanel();
+		minMaxPanel.setLayout(new BoxLayout(minMaxPanel, BoxLayout.X_AXIS));
+		
+		JPanel leftValsPanel = new JPanel(new BorderLayout());
+		JPanel rightValsPanel = new JPanel(new BorderLayout());
+		
+		minMaxPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Range"));
+		leftValsPanel.add(minValsLabel, BorderLayout.WEST);
+		leftValsPanel.add(minVals, BorderLayout.CENTER);
+		rightValsPanel.add(maxValsLabel, BorderLayout.WEST);
+		rightValsPanel.add(maxVals, BorderLayout.CENTER);
+		minMaxPanel.add(leftValsPanel);
+		minMaxPanel.add(rightValsPanel);
 		
 		boolean found = false;
 		
@@ -469,9 +483,6 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 		existing.setEnabled(found);
 		seriesOptions.setEnabled(false);
 		
-		barColor.setOpaque(true);
-		barColor.setBackground(Color.RED);
-		
 		JPanel options = new JPanel(new FlowLayout(FlowLayout.RIGHT));
 		JButton ok = new JButton("Plot");
 		
@@ -485,6 +496,8 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 					seriesOptions.setEnabled(false);
 					buckets.setEnabled(true);
 					buckets.setToolTipText("Select the number of buckets for this Histogram");
+					minVals.setEnabled(true);
+					maxVals.setEnabled(true);
 				}
 			}
 		});
@@ -499,6 +512,8 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 					newSeries.setSelected(false);
 					seriesOptions.setEnabled(true);
 					buckets.setEnabled(false);
+					minVals.setEnabled(false);
+					maxVals.setEnabled(false);
 					buckets.setToolTipText("Number of buckets can't be changed on an existing Histogram");
 				}
 				
@@ -524,30 +539,25 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 					String HistName = (String)seriesOptions.getSelectedItem();
 					hist = (Histogram)handler.getModel(HistName);
 					hist.setIsNew(false);
-					hist.getChart().getPlot().setForegroundAlpha(0.7f);
+					
 				}
 				
 				key = hist.addSeries(seriesName.getText());
-				hist.getBarColors().put(key, barColor.getBackground());
+				
+				if(minVals.isEnabled() && maxVals.isEnabled()){
+					
+					hist.setMinProb((double)minVals.getValue());
+					hist.setMaxProb((double) maxVals.getValue());
+					
+				}
 			}
 		});
-		
-		barColor.addActionListener(new ActionListener() {
-			
-			@Override
-			public void actionPerformed(ActionEvent e) {
 				
-				Color ch = JColorChooser.showDialog(dialog, "Choose the bar color", barColor.getBackground());
-				barColor.setBackground(ch);
-				
-			}
-		});
-		
 		p1.add(buckets, BorderLayout.CENTER);
 		
 		p2.add(seriesName, BorderLayout.CENTER);
 		
-		p3.add(barColor, BorderLayout.CENTER);
+	
 		
 		options.add(ok);
 		
@@ -556,12 +566,13 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 		mainPanel.add(seriesSelectPanel);
 		mainPanel.add(p1);
 		mainPanel.add(p2);
-		mainPanel.add(p3);
+		mainPanel.add(minMaxPanel);
+		
 		
 		dialog.add(mainPanel, BorderLayout.CENTER);
 		dialog.add(options, BorderLayout.SOUTH);
 		
-		dialog.setSize(300, 350);
+		dialog.setSize(320, 290);
 		dialog.setLocationRelativeTo(GUIPrism.getGUI());
 		dialog.setVisible(true);
 		

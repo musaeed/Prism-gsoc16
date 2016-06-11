@@ -4,11 +4,16 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.Graphics2D;
 import java.awt.Paint;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
@@ -29,6 +34,9 @@ import javax.swing.border.EtchedBorder;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.AxisState;
+import org.jfree.chart.axis.NumberAxis;
+import org.jfree.chart.axis.NumberTick;
 import org.jfree.chart.labels.XYToolTipGenerator;
 import org.jfree.chart.plot.DefaultDrawingSupplier;
 import org.jfree.chart.plot.PlotOrientation;
@@ -40,6 +48,7 @@ import org.jfree.data.xy.XYIntervalDataItem;
 import org.jfree.data.xy.XYIntervalSeries;
 import org.jfree.data.xy.XYIntervalSeriesCollection;
 import org.jfree.ui.RectangleEdge;
+import org.jfree.ui.TextAnchor;
 
 import prism.Pair;
 import settings.BooleanSetting;
@@ -112,6 +121,7 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 	private ChoiceSetting legendPosition;
 	private FontColorSetting legendFont;
 	private boolean isNew;
+	private ArrayList<Double> ticks;
 	
 	private static Histogram hist;
 	private static SeriesKey key;
@@ -128,7 +138,7 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 	 */
 	public Histogram(String title){
 		
-		super(ChartFactory.createXYBarChart(title, "Probability", false, "No. of states", 
+		super(ChartFactory.createXYBarChart(title, "", false, "No. of states", 
 				new XYIntervalSeriesCollection(), PlotOrientation.VERTICAL, true, true, false));
 		
 		this.title = title;
@@ -161,6 +171,33 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 		numOfBuckets = 10; // default value, can be altered
 		plot.setRenderer(new ClusteredXYBarRenderer());
 		addToolTip();
+		ticks = new ArrayList<Double>();
+		
+		plot.setDomainAxis(new NumberAxis("Probability"){
+
+			private static final long serialVersionUID = 1L;
+
+			@SuppressWarnings({ "rawtypes", "unchecked" })
+			@Override
+			public List refreshTicks(Graphics2D g2, AxisState state, Rectangle2D dataArea, RectangleEdge edge) {
+				
+				List list = new ArrayList<>();
+				
+				for(Double d : ticks){
+					
+
+				    double rounded = Math.round(d * 1000);
+
+					rounded = rounded/1000;
+					
+					list.add(new NumberTick(rounded, rounded+"", TextAnchor.TOP_CENTER, TextAnchor.TOP_CENTER, 0.0));
+					
+				}
+				
+				return list;
+			}
+			
+		});
 	}
 	
 	public void initSettings(){
@@ -350,9 +387,21 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 				height = countProbabilities(minRange, maxRange, false);
 				
 			double x = (minRange + maxRange) / 2.0;
+			
 			addPointToSeries(seriesKey, new XYIntervalDataItem(x, minRange, maxRange, height, height, height));
+			
+			
+			if(isNew){
+			
+				if(i == 0)
+					ticks.add(minRange);
+
+				ticks.add(maxRange);
+			}
+			
 		}
 		
+		plot.getDomainAxis().setRange(minProb-0.02, maxProb+0.02);
 		dataCache.clear();
 	}
 	
@@ -485,6 +534,7 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 		
 		JPanel options = new JPanel(new FlowLayout(FlowLayout.RIGHT));
 		JButton ok = new JButton("Plot");
+		JButton cancel = new JButton("Cancel");
 		
 		newSeries.addActionListener(new ActionListener() {
 			
@@ -552,6 +602,23 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 				}
 			}
 		});
+		
+		cancel.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				dialog.dispose();
+				hist = null;
+			}
+		});
+		
+		dialog.addWindowListener(new WindowAdapter() {
+		    @Override
+		    public void windowClosed(WindowEvent e) {
+		        
+		    	hist = null;
+		    }
+		});
 				
 		p1.add(buckets, BorderLayout.CENTER);
 		
@@ -560,6 +627,7 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 	
 		
 		options.add(ok);
+		options.add(cancel);
 		
 		JPanel mainPanel = new JPanel();
 		mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
@@ -691,7 +759,7 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 
 	@Override
 	public int compareTo(Object o) {
-		// TODO Auto-generated method stub
+		//TODO Still have to complete this
 		return 0;
 	}
 

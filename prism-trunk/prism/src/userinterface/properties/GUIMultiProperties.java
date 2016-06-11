@@ -903,7 +903,10 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 				gp.setBeingEdited(true);
 				// Force repaint because we modified the GUIProperty directly
 				repaintList();
-				new GUIPropertyResultDialog(getGUI(), this, gp).display();
+				if(!plotHist)
+					new GUIPropertyResultDialog(getGUI(), this, gp).display();
+				else
+					gp.setBeingEdited(false);
 				
 				if(gp.getResult().getHistProbs() != null && plotHist){
 					
@@ -925,6 +928,13 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 							Pair<Histogram, SeriesKey> pair = Histogram.showPropertiesDialog(gp.getPropString(), h, Collections.min(probs),Collections.max(probs));
 							
 							Histogram hist = pair.first;
+							
+							if(hist == null){
+								
+								return;
+								
+							}
+							
 							SeriesKey key = pair.second;
 							hist.addDataToCache(probs);
 							hist.plotSeries(key);

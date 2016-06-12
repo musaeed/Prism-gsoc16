@@ -265,6 +265,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 		XYItemRenderer r = plot.getRenderer();
 		// if possible, try to match the old grapher
 		if (r instanceof XYLineAndShapeRenderer) {
+			
 			XYLineAndShapeRenderer renderer = (XYLineAndShapeRenderer) r;
 			renderer.setBaseShapesVisible(true);
 			renderer.setBaseShapesFilled(true);
@@ -343,10 +344,11 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 				Number x = series.getX(item);
 				Number y = series.getY(item);
 				double error = ((PrismXYDataItem)series.getDataItem(item)).getError();
+				
 				StringBuilder stringBuilder = new StringBuilder();
 				stringBuilder.append(String.format("<html><p style='color:#0000ff;'>Series: '%s'</p>", dataset.getSeriesKey(seriesIndex)));
-				stringBuilder.append("X: " + x.doubleValue() + "<br>");
-				stringBuilder.append("Y: " + y.doubleValue() + " +/- " + (error) + "<br>");
+				stringBuilder.append("X: " + (Math.round( x.doubleValue() * 10000.0 ) / 10000.0) + "<br>");
+				stringBuilder.append("Y: " + (Math.round( y.doubleValue() * 10000.0 ) / 10000.0) + " +/- " + (Math.round( error * 10000.0 ) / 10000.0) + "<br>");
 				stringBuilder.append("</html>");
 				return stringBuilder.toString();
 			}
@@ -461,7 +463,6 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 			chart.fireChartChanged();
 
 			currentErrorMethod.setEnabled(true);
-			displaySettings.getErrorColorSetting().setEnabled(true);
 
 			if(currentErrorMethod.getStringValue() == "Error bars")
 				errorBarCapLength.setEnabled(true);
@@ -476,7 +477,6 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 			currentErrorMethod.setEnabled(false);
 			errorBarCapLength.setEnabled(false);
 			errorAlpha.setEnabled(false);
-			displaySettings.getErrorColorSetting().setEnabled(false);
 		}
 
 		/**Update the current error rendering method*/
@@ -820,6 +820,12 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 		return displaySettings;
 	}
 
+	/**
+	 * Creates a unique name of the series to avoid conflict with any existing series name
+	 * @param seriesName the series name that has to be made unique
+	 * @return the unique series name
+	 */
+	
 	private String getUniqueSeriesName(String seriesName)
 	{
 		synchronized (seriesCollection) 

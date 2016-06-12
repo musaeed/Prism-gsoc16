@@ -86,7 +86,6 @@ public class PrismErrorRenderer extends XYLineAndShapeRenderer{
 	private int currentMethod;
 
 	/**The current paint (color information) of the error bars*/
-	private transient Paint errorPaint;
 	private transient Stroke errorStroke;
 
 	/**
@@ -200,32 +199,6 @@ public class PrismErrorRenderer extends XYLineAndShapeRenderer{
 	 */
 	public void setCapLength(double capLength) {
 		this.capLength = capLength;
-	}
-
-	/**
-	 * Get the current Paint of the error bars / deviation plot
-	 * @return errorPaint the color of the error bars / deviation plot
-	 */
-	public Paint getErrorPaint() {
-		return errorPaint;
-	}
-
-	/**
-	 * Set the Paint of the error bars / deviation plot
-	 * 
-	 * @param errorPaint the value to be set
-	 */
-	
-	public void setErrorPaint(Paint errorPaint) {
-		this.errorPaint = errorPaint;
-	}
-	
-	/**
-	 * Get the current color of the error bars / deviation plot
-	 * @return errorPaint the color of the current error bars / deviation plot
-	 */
-	public Color getErrorColor(){
-		return (Color)errorPaint;
 	}
 
 	/**
@@ -364,53 +337,54 @@ public class PrismErrorRenderer extends XYLineAndShapeRenderer{
 
 			if (pass == 0 && dataset instanceof XYSeriesCollection && getItemVisible(series, item)) {
 
-				XYSeriesCollection collection = (XYSeriesCollection) dataset;
+				synchronized (dataset) {
+				
+					XYSeriesCollection collection = (XYSeriesCollection) dataset;
 
-				PlotOrientation orientation = plot.getOrientation();
-				// draw the error bar for the y-interval
-				XYSeries s = collection.getSeries(series);
-				PrismXYDataItem it = (PrismXYDataItem)s.getDataItem(item);
-
-
-				double y0 = it.getYValue() + it.getError();
-				double y1 = it.getYValue() - it.getError();
-				double x = collection.getXValue(series, item);
+					PlotOrientation orientation = plot.getOrientation();
+					// draw the error bar for the y-interval
+					XYSeries s = collection.getSeries(series);
+					PrismXYDataItem it = (PrismXYDataItem)s.getDataItem(item);
 
 
-				RectangleEdge edge = plot.getRangeAxisEdge();
-				double yy0 = rangeAxis.valueToJava2D(y0, dataArea, edge);
-				double yy1 = rangeAxis.valueToJava2D(y1, dataArea, edge);
-				double xx = domainAxis.valueToJava2D(x, dataArea,
-						plot.getDomainAxisEdge());
-				Line2D line;
-				Line2D cap1;
-				Line2D cap2;
-				double adj = this.capLength / 2.0;
-				if (orientation == PlotOrientation.VERTICAL) {
-					line = new Line2D.Double(xx, yy0, xx, yy1);
-					cap1 = new Line2D.Double(xx - adj, yy0, xx + adj, yy0);
-					cap2 = new Line2D.Double(xx - adj, yy1, xx + adj, yy1);
+					double y0 = it.getYValue() + it.getError();
+					double y1 = it.getYValue() - it.getError();
+					double x = collection.getXValue(series, item);
+
+
+					RectangleEdge edge = plot.getRangeAxisEdge();
+					double yy0 = rangeAxis.valueToJava2D(y0, dataArea, edge);
+					double yy1 = rangeAxis.valueToJava2D(y1, dataArea, edge);
+					double xx = domainAxis.valueToJava2D(x, dataArea,
+							plot.getDomainAxisEdge());
+					Line2D line;
+					Line2D cap1;
+					Line2D cap2;
+					double adj = this.capLength / 2.0;
+					if (orientation == PlotOrientation.VERTICAL) {
+						line = new Line2D.Double(xx, yy0, xx, yy1);
+						cap1 = new Line2D.Double(xx - adj, yy0, xx + adj, yy0);
+						cap2 = new Line2D.Double(xx - adj, yy1, xx + adj, yy1);
+					}
+					else {  // PlotOrientation.HORIZONTAL
+						line = new Line2D.Double(yy0, xx, yy1, xx);
+						cap1 = new Line2D.Double(yy0, xx - adj, yy0, xx + adj);
+						cap2 = new Line2D.Double(yy1, xx - adj, yy1, xx + adj);
+					}
+
+						g2.setPaint(getItemPaint(series, item));
+					
+					if (this.errorStroke != null) {
+						g2.setStroke(this.errorStroke);
+					}
+					else {
+						g2.setStroke(getItemStroke(series, item));
+					}
+					g2.draw(line);
+					g2.draw(cap1);
+					g2.draw(cap2);
 				}
-				else {  // PlotOrientation.HORIZONTAL
-					line = new Line2D.Double(yy0, xx, yy1, xx);
-					cap1 = new Line2D.Double(yy0, xx - adj, yy0, xx + adj);
-					cap2 = new Line2D.Double(yy1, xx - adj, yy1, xx + adj);
-				}
-				if (this.errorPaint != null) {
-					g2.setPaint(this.errorPaint);
-				}
-				else {
-					g2.setPaint(getItemPaint(series, item));
-				}
-				if (this.errorStroke != null) {
-					g2.setStroke(this.errorStroke);
-				}
-				else {
-					g2.setStroke(getItemStroke(series, item));
-				}
-				g2.draw(line);
-				g2.draw(cap1);
-				g2.draw(cap2);
+
 			}
 			
 			super.drawItem(g2, state, dataArea, info, plot, domainAxis, rangeAxis,
@@ -420,101 +394,104 @@ public class PrismErrorRenderer extends XYLineAndShapeRenderer{
 
 		case PrismErrorRenderer.ERRORDEVIATION:
 			
-			// do nothing if item is not visible
-			if (!getItemVisible(series, item)) {
-				return;
-			}
+			synchronized (dataset) {
+				// do nothing if item is not visible
+				if (!getItemVisible(series, item)) {
+					return;
+				}
 
-			// first pass draws the shading
-			if (pass == 0) {
+				// first pass draws the shading
+				if (pass == 0) {
 
-				XYSeriesCollection collection = (XYSeriesCollection) dataset;
-				XYSeries s = collection.getSeries(series);
-				PrismXYDataItem it = (PrismXYDataItem)s.getDataItem(item);
+					XYSeriesCollection collection = (XYSeriesCollection) dataset;
+					XYSeries s = collection.getSeries(series);
+					PrismXYDataItem it = (PrismXYDataItem)s.getDataItem(item);
+					
+					State drState = (State) state;
+
+					double x = collection.getXValue(series, item);
+					double yLow = it.getYValue() - it.getError();
+					double yHigh  = it.getYValue() + it.getError();
+
+					RectangleEdge xAxisLocation = plot.getDomainAxisEdge();
+					RectangleEdge yAxisLocation = plot.getRangeAxisEdge();
+
+					double xx = domainAxis.valueToJava2D(x, dataArea, xAxisLocation);
+					double yyLow = rangeAxis.valueToJava2D(yLow, dataArea,
+							yAxisLocation);
+					double yyHigh = rangeAxis.valueToJava2D(yHigh, dataArea,
+							yAxisLocation);
+
+					PlotOrientation orientation = plot.getOrientation();
+					if (orientation == PlotOrientation.HORIZONTAL) {
+						drState.lowerCoordinates.add(new double[] {yyLow, xx});
+						drState.upperCoordinates.add(new double[] {yyHigh, xx});
+					}
+					else if (orientation == PlotOrientation.VERTICAL) {
+						drState.lowerCoordinates.add(new double[] {xx, yyLow});
+						drState.upperCoordinates.add(new double[] {xx, yyHigh});
+					}
+
+					if (item == (dataset.getItemCount(series) - 1)) {
+						// last item in series, draw the lot...
+						// set up the alpha-transparency...
+						Composite originalComposite = g2.getComposite();
+						g2.setComposite(AlphaComposite.getInstance(
+								AlphaComposite.SRC_OVER, (float)this.alpha));
+						g2.setPaint(getItemPaint(series, item));
+						GeneralPath area = new GeneralPath();
+						double[] coords = (double[]) drState.lowerCoordinates.get(0);
+						area.moveTo((float) coords[0], (float) coords[1]);
+						for (int i = 1; i < drState.lowerCoordinates.size(); i++) {
+							coords = (double[]) drState.lowerCoordinates.get(i);
+							area.lineTo((float) coords[0], (float) coords[1]);
+						}
+						int count = drState.upperCoordinates.size();
+						coords = (double[]) drState.upperCoordinates.get(count - 1);
+						area.lineTo((float) coords[0], (float) coords[1]);
+						for (int i = count - 2; i >= 0; i--) {
+							coords = (double[]) drState.upperCoordinates.get(i);
+							area.lineTo((float) coords[0], (float) coords[1]);
+						}
+						area.closePath();
+						g2.fill(area);
+						g2.setComposite(originalComposite);
+
+						drState.lowerCoordinates.clear();
+						drState.upperCoordinates.clear();
+					}
+				}
+				if (isLinePass(pass)) {
+
+					// the following code handles the line for the y-values...it's
+					// all done by code in the super class
+					if (item == 0) {
+						State s = (State) state;
+						s.seriesPath.reset();
+						s.setLastPointGood(false);
+					}
+
+					if (getItemLineVisible(series, item)) {
+						drawPrimaryLineAsPath(state, g2, plot, dataset, pass,
+								series, item, domainAxis, rangeAxis, dataArea);
+					}
+				}
+
+				// second pass adds shapes where the items are ..
+				else if (isItemPass(pass)) {
+
+					// setup for collecting optional entity info...
+					EntityCollection entities = null;
+					if (info != null) {
+						entities = info.getOwner().getEntityCollection();
+					}
+
+					drawSecondaryPass(g2, plot, dataset, pass, series, item,
+							domainAxis, dataArea, rangeAxis, crosshairState, entities);
+				}
 				
-				State drState = (State) state;
-
-				double x = collection.getXValue(series, item);
-				double yLow = it.getYValue() - it.getError();
-				double yHigh  = it.getYValue() + it.getError();
-
-				RectangleEdge xAxisLocation = plot.getDomainAxisEdge();
-				RectangleEdge yAxisLocation = plot.getRangeAxisEdge();
-
-				double xx = domainAxis.valueToJava2D(x, dataArea, xAxisLocation);
-				double yyLow = rangeAxis.valueToJava2D(yLow, dataArea,
-						yAxisLocation);
-				double yyHigh = rangeAxis.valueToJava2D(yHigh, dataArea,
-						yAxisLocation);
-
-				PlotOrientation orientation = plot.getOrientation();
-				if (orientation == PlotOrientation.HORIZONTAL) {
-					drState.lowerCoordinates.add(new double[] {yyLow, xx});
-					drState.upperCoordinates.add(new double[] {yyHigh, xx});
-				}
-				else if (orientation == PlotOrientation.VERTICAL) {
-					drState.lowerCoordinates.add(new double[] {xx, yyLow});
-					drState.upperCoordinates.add(new double[] {xx, yyHigh});
-				}
-
-				if (item == (dataset.getItemCount(series) - 1)) {
-					// last item in series, draw the lot...
-					// set up the alpha-transparency...
-					Composite originalComposite = g2.getComposite();
-					g2.setComposite(AlphaComposite.getInstance(
-							AlphaComposite.SRC_OVER, (float)this.alpha));
-					//g2.setPaint(getItemFillPaint(series, item));
-					g2.setPaint(errorPaint);
-					GeneralPath area = new GeneralPath();
-					double[] coords = (double[]) drState.lowerCoordinates.get(0);
-					area.moveTo((float) coords[0], (float) coords[1]);
-					for (int i = 1; i < drState.lowerCoordinates.size(); i++) {
-						coords = (double[]) drState.lowerCoordinates.get(i);
-						area.lineTo((float) coords[0], (float) coords[1]);
-					}
-					int count = drState.upperCoordinates.size();
-					coords = (double[]) drState.upperCoordinates.get(count - 1);
-					area.lineTo((float) coords[0], (float) coords[1]);
-					for (int i = count - 2; i >= 0; i--) {
-						coords = (double[]) drState.upperCoordinates.get(i);
-						area.lineTo((float) coords[0], (float) coords[1]);
-					}
-					area.closePath();
-					g2.fill(area);
-					g2.setComposite(originalComposite);
-
-					drState.lowerCoordinates.clear();
-					drState.upperCoordinates.clear();
-				}
-			}
-			if (isLinePass(pass)) {
-
-				// the following code handles the line for the y-values...it's
-				// all done by code in the super class
-				if (item == 0) {
-					State s = (State) state;
-					s.seriesPath.reset();
-					s.setLastPointGood(false);
-				}
-
-				if (getItemLineVisible(series, item)) {
-					drawPrimaryLineAsPath(state, g2, plot, dataset, pass,
-							series, item, domainAxis, rangeAxis, dataArea);
-				}
 			}
 
-			// second pass adds shapes where the items are ..
-			else if (isItemPass(pass)) {
-
-				// setup for collecting optional entity info...
-				EntityCollection entities = null;
-				if (info != null) {
-					entities = info.getOwner().getEntityCollection();
-				}
-
-				drawSecondaryPass(g2, plot, dataset, pass, series, item,
-						domainAxis, dataArea, rangeAxis, crosshairState, entities);
-			}
 			
 			break;
 		default:
@@ -549,9 +526,6 @@ public class PrismErrorRenderer extends XYLineAndShapeRenderer{
 		if (this.capLength != that.capLength) {
 			return false;
 		}
-		if (!PaintUtilities.equal(this.errorPaint, that.errorPaint)) {
-			return false;
-		}
 		if (!ObjectUtilities.equal(this.errorStroke, that.errorStroke)) {
 			return false;
 		}
@@ -569,7 +543,6 @@ public class PrismErrorRenderer extends XYLineAndShapeRenderer{
 	private void readObject(ObjectInputStream stream)
 			throws IOException, ClassNotFoundException {
 		stream.defaultReadObject();
-		this.errorPaint = SerialUtilities.readPaint(stream);
 		this.errorStroke = SerialUtilities.readStroke(stream);
 	}
 
@@ -582,7 +555,6 @@ public class PrismErrorRenderer extends XYLineAndShapeRenderer{
 	 */
 	private void writeObject(ObjectOutputStream stream) throws IOException {
 		stream.defaultWriteObject();
-		SerialUtilities.writePaint(this.errorPaint, stream);
 		SerialUtilities.writeStroke(this.errorStroke, stream);
 	}
 

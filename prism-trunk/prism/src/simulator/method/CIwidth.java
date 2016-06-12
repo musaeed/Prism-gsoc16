@@ -86,12 +86,14 @@ public final class CIwidth extends CIMethod
 
 	@Override
 	public boolean shouldStopNow(int iters, Sampler sampler)
-	{
+	{	
 		if (iters >= numSamples) {
 			// Store final variance for confidence computation later
 			varEstimator = sampler.getVariance();
 			return true;
 		}
+		else
+			varEstimator = sampler.getVariance();
 		return false;
 	}
 

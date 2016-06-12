@@ -64,7 +64,6 @@ public class DisplaySettings extends Observable implements SettingOwner
 	
 	private BooleanSetting antiAlias;	
 	private ColorSetting backgroundColor;	
-	private ColorSetting errorBarColor;
 	
 	public DisplaySettings(ChartPanel graph)
 	{
@@ -82,9 +81,6 @@ public class DisplaySettings extends Observable implements SettingOwner
 		
 		backgroundColor = new ColorSetting("background colour", defaultColor, "The background colour of the graph panel", this, false);
 		
-		if(graph instanceof Graph)
-			errorBarColor = new ColorSetting("error renderer color", Color.RED, "The color of the error bars", this, false);
-		
 		updateDisplay();
 		setChanged();
 		notifyObservers();
@@ -97,10 +93,7 @@ public class DisplaySettings extends Observable implements SettingOwner
 
 	public int getNumSettings() 
 	{
-		if(graph instanceof Graph)
-			return 3;
-		else 
-			return 2;
+		return 2;
 	}
 
 	public Setting getSetting(int index) 
@@ -109,11 +102,6 @@ public class DisplaySettings extends Observable implements SettingOwner
 		{
 			case 0: return antiAlias;
 			case 1: return backgroundColor;
-			case 2: 
-				if(graph instanceof Graph)
-					return errorBarColor;
-				else
-					return null;
 			default: return null;			
 		}
 	}
@@ -212,28 +200,6 @@ public class DisplaySettings extends Observable implements SettingOwner
 		}
 	}
 	
-	public Color getErrorBarColor(){
-		return errorBarColor.getColorValue();
-	}
-	
-	public ColorSetting getErrorColorSetting(){
-		return errorBarColor;
-	}
-	
-	public void setErrorBarColor(Color errorbar){
-		
-		try{
-			errorBarColor.setValue(errorbar);
-			updateDisplay();
-			setChanged();
-			notifyObservers(this);
-			
-		}
-		catch(SettingException e){
-			
-		}
-	}
-	
 	private void updateDisplay()
 	{
 		/* Draw anti-aliased?. */
@@ -246,17 +212,6 @@ public class DisplaySettings extends Observable implements SettingOwner
 		if (!(this.chart.getBackgroundPaint() instanceof Color) || !backgroundColor.getColorValue().equals(this.chart.getBackgroundPaint()))
 		{
 			this.chart.setBackgroundPaint(backgroundColor.getColorValue());
-		}
-		
-		if(graph instanceof Graph){
-			
-			/*Error bar color changed?*/
-			if(!(((Graph)this.graph).getErrorRenderer().getErrorColor() instanceof Color) || !errorBarColor.getColorValue().equals(((Graph)this.graph).getErrorRenderer().getErrorColor())){
-				
-				((Graph)this.graph).getErrorRenderer().setErrorPaint(errorBarColor.getColorValue());
-				this.chart.fireChartChanged();
-			}
-			
 		}
 
 	}

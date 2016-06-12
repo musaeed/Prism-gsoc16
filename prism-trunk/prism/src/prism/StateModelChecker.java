@@ -1328,7 +1328,6 @@ public class StateModelChecker extends PrismComponent implements ModelChecker
 				}
 				resVals = new StateValuesMTBDD(JDD.Constant(d), model);
 				((StateValuesMTBDD)resVals).setHistProbs(vals);
-				//@Muhammad
 
 			}
 			// Create explanation of result and print some details to log

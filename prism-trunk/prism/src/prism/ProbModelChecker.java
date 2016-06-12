@@ -187,7 +187,6 @@ public class ProbModelChecker extends NonProbModelChecker
 		// Print out probabilities
 		if (prism.getVerbose()) {
 			mainLog.print("\nProbabilities (non-zero only) for all states:\n");
-			//@Muhammad have to do it here
 			probs.print(mainLog);
 		}
 

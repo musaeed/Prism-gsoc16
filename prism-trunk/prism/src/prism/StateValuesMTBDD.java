@@ -97,7 +97,6 @@ public class StateValuesMTBDD implements StateValues
 		odd = model.getODD();
 		varList = model.getVarList();
 		
-		//@Muhammad
 		histProbs = new ArrayList<Double>();
 		
 		// initialise arrays

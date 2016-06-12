@@ -527,7 +527,6 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 				toMove.add(series.getSeriesKey());
 			}
 			
-			//@Muhammad
 			if(theModel instanceof Graph)
 				((Graph)theModel).moveDown(toMove);
 			

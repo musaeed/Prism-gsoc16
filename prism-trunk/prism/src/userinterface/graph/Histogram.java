@@ -1,3 +1,30 @@
+//==============================================================================
+//	
+//	Copyright (c) 2016-
+//	Authors:
+//
+//  Muhammad Omer Saeed <muhammad.omar555@gmail.com / saeedm@informatik.uni-bonn.> (University of Bonn)
+//	
+//------------------------------------------------------------------------------
+//	
+//	This file is part of PRISM.
+//	
+//	PRISM is free software; you can redistribute it and/or modify
+//	it under the terms of the GNU General Public License as published by
+//	the Free Software Foundation; either version 2 of the License, or
+//	(at your option) any later version.
+//	
+//	PRISM is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//	GNU General Public License for more details.
+//	
+//	You should have received a copy of the GNU General Public License
+//	along with PRISM; if not, write to the Free Software Foundation,
+//	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//	
+//==============================================================================
+
 package userinterface.graph;
 
 import java.awt.BorderLayout;
@@ -18,16 +45,19 @@ import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
 
+import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JSpinner;
 import javax.swing.JTextField;
+import javax.swing.KeyStroke;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.border.EtchedBorder;
 
@@ -50,6 +80,8 @@ import org.jfree.data.xy.XYIntervalSeriesCollection;
 import org.jfree.ui.RectangleEdge;
 import org.jfree.ui.TextAnchor;
 
+import com.sun.glass.events.KeyEvent;
+
 import prism.Pair;
 import settings.BooleanSetting;
 import settings.ChoiceSetting;
@@ -62,6 +94,13 @@ import settings.SettingException;
 import settings.SettingOwner;
 import userinterface.GUIPrism;
 import userinterface.properties.GUIGraphHandler;
+
+/**
+ * 
+ * This class provides the functionality for plotting Histograms in Prism
+ * 
+ * @author Muhammad Omer Saeed
+ */
 
 public class Histogram extends ChartPanel implements SettingOwner, Observer{
 
@@ -80,6 +119,10 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 	 */
 	private HashMap<SeriesKey, XYIntervalSeries> keyToSeries;
 	
+	/**
+	 * This holds the data that we receive from the other components of Prism 
+	 * which require to plot a Histogram. It is emptied once the data is plotted.
+	 */
 	private ArrayList<Double> dataCache;
 	
 	/**
@@ -93,18 +136,37 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 	 */
 	private XYIntervalSeriesCollection seriesCollection;
 	
+	/**
+	 * The maximum probability in the {@link dataCache}
+	 */
 	private double maxProb;
+	
+	/**
+	 * The minimum probability in the {@link dataCache}
+	 */
 	private double minProb;
+	
+	/**
+	 * The number of buckets the probability range will be divided in
+	 */
 	private int numOfBuckets;
+	
+	/**
+	 * The title of the Histogram
+	 */
 	private String title;
 	
 	
 	/** Display for settings. Required to implement SettingsOwner */
 	private SettingDisplay display;
 	
-	/** Settings of the axis. */
+	/** Settings of the X axis. 
+	 */
 	private AxisSettingsHistogram xAxisSettings;
 
+	/**
+	 * Settings of the Y axis
+	 */
 	private AxisSettingsHistogram yAxisSettings;
 	
 	/** Display settings */
@@ -114,27 +176,43 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 	private SeriesSettingsList seriesList;
 	
 	/**Settings for histogram*/
-	
 	private MultipleLineStringSetting graphTitle;
 	private FontColorSetting titleFont;
 	private BooleanSetting legendVisible;
 	private ChoiceSetting legendPosition;
 	private FontColorSetting legendFont;
+	
+	/**
+	 * Tells whether the Histogram is newly created or it already has some series plotted on it
+	 */
 	private boolean isNew;
+	
+	/**
+	 * Holds the tick mark locations of the x axis
+	 */
 	private ArrayList<Double> ticks;
 	
-	private static Histogram hist;
-	private static SeriesKey key;
 	/**
-	 * 
+	 * Pointer needed in the Histogram property dialog
+	 */
+	private static Histogram hist;
+	
+	/**
+	 * Pointer needed in the Histogram property dialog
+	 */
+	private static SeriesKey key;
+
+	
+	/**
+	 * Creates an instance of the Histogram with no title
 	 */
 	public Histogram(){
 		this("");
 	}
 	
 	/**
-	 * 
-	 * @param title 
+	 * Creates an instance of the Histogram
+	 * @param title the title of the Histogram
 	 */
 	public Histogram(String title){
 		
@@ -147,7 +225,7 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 	}
 	
 	/**
-	 * Initialize all the fields of the Histogram
+	 * Initialize all the fields of the Histogram and set some properties
 	 */
 	public void init(){
 		
@@ -173,6 +251,9 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 		addToolTip();
 		ticks = new ArrayList<Double>();
 		
+		/**
+		 * Make a custom X axis so that we can control the tick marker locations
+		 */
 		plot.setDomainAxis(new NumberAxis("Probability"){
 
 			private static final long serialVersionUID = 1L;
@@ -200,6 +281,9 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 		});
 	}
 	
+	/**
+	 * Initialize all the settings of the graph
+	 */
 	public void initSettings(){
 		
 		xAxisSettings = new AxisSettingsHistogram("Probability", true, this);
@@ -228,33 +312,55 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 		
 		seriesList = new SeriesSettingsList(this);
 		
-		updateGraph();
+		updateGraph(); // apply the settings
 	}
 	
 	
-	
+	/**
+	 * Get the number of buckets
+	 * @return number of buckets
+	 */
 	public int getNumOfBuckets() {
 		return numOfBuckets;
 	}
 
+	/**
+	 * Set the number of buckets for the Histogram
+	 * @param numOfBuckets the new value of number of buckets
+	 */
 	public void setNumOfBuckets(int numOfBuckets) {
 		this.numOfBuckets = numOfBuckets;
 	}
 	
 	
-
+	/**
+	 * Get the maximum probability
+	 * @return maxProb
+	 */
 	public double getMaxProb() {
 		return maxProb;
 	}
 
+	/**
+	 * Set the maximum probability
+	 * @param maxProb the new value of max probability
+	 */
 	public void setMaxProb(double maxProb) {
 		this.maxProb = maxProb;
 	}
 
+	/**
+	 * Get the minimum probability
+	 * @return minProb
+	 */
 	public double getMinProb() {
 		return minProb;
 	}
 
+	/**
+	 * Set the minimum probability
+	 * @param minProb the new value of the minimum probability
+	 */
 	public void setMinProb(double minProb) {
 		this.minProb = minProb;
 	}
@@ -291,6 +397,11 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 		return key;		
 	}
 	
+	/**
+	 * Creates a unique name of the series to avoid conflict with any existing series name
+	 * @param seriesName the series name that has to be made unique
+	 * @return the unique series name
+	 */
 	private String getUniqueSeriesName(String seriesName)
 	{
 		synchronized (seriesCollection) 
@@ -370,9 +481,13 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 		}
 	}
 	
+	/**
+	 * Plots the series which is referenced by seriesKey.
+	 * @param seriesKey the key to the series that has to be plotted
+	 */
 	public void plotSeries(SeriesKey seriesKey){
 				
-		double range = (maxProb - minProb) / (double)numOfBuckets;
+		double range = (maxProb - minProb) / (double)numOfBuckets; // Our range for which the histogram will be shown
 		
 		for(int i = 0 ; i < numOfBuckets ; i++){
 			
@@ -381,7 +496,7 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 			
 			double height;
 			
-			if(i == (numOfBuckets-1))
+			if(i == (numOfBuckets-1)) // include the first value  
 				height = countProbabilities(minRange, maxRange, true);
 			else
 				height = countProbabilities(minRange, maxRange, false);
@@ -391,6 +506,7 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 			addPointToSeries(seriesKey, new XYIntervalDataItem(x, minRange, maxRange, height, height, height));
 			
 			
+			/**Only update the x axis tick marks if this is the first series which is being plotted*/
 			if(isNew){
 			
 				if(i == 0)
@@ -401,16 +517,28 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 			
 		}
 		
+		/**Set the visible range of the plot*/
 		plot.getDomainAxis().setRange(minProb-0.02, maxProb+0.02);
+		
+		/** clear the cache, we don't need it anymore*/
 		dataCache.clear();
 	}
+	
+	/**
+	 * Counts the number of states that fall in the range (minRange,maxRange]
+	 * 
+	 * @param minRange the minimum range of the probability
+	 * @param maxRange the maximum range of the probability
+	 * @param includeLast should the last value be included? i.e, count the states in the range (minRange, maxRange)
+	 * @return the number of states that fall in the specified range
+	 */
 	
 	public int countProbabilities(double minRange, double maxRange, boolean includeLast){
 		
 		int count = 0;
 		
 		if(includeLast){
-			maxRange += 1;
+			maxRange += 1; // just increase the max range so that the the last value is included in the check
 		}
 		
 		for(int i = 0 ; i < dataCache.size() ; i++){
@@ -425,13 +553,21 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 		return count;
 	}
 	
+	/**
+	 * Set the data Cache
+	 * @param probs the cache
+	 */
 	public void addDataToCache(ArrayList<Double> probs){
 		
 		dataCache = probs;
 		
 	}
 	
+	/**
+	 * Add custom tool tip for the Histogram to show more info
+	 */
 	public void addToolTip(){
+		
 		((ClusteredXYBarRenderer)plot.getRenderer()).setBaseToolTipGenerator(new XYToolTipGenerator() {
 			
 			@Override
@@ -455,32 +591,59 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 				return stringBuilder.toString();
 			}
 		});
+		
 	}
 	
-	
+	/**
+	 * Get whether this Histogram is new or some series have already been plotted on it
+	 * @return
+	 */
 	public boolean isNew() {
 		return isNew;
 	}
 
+	/**
+	 * Set whether this Histogram is new or some series have already been plotted on it
+	 * @param isNew the new value of isNew
+	 */
 	public void setIsNew(boolean isNew) {
 		this.isNew = isNew;
 	}
 
+	/**
+	 * Generates the property dialog for a Histogram. Allows the user to select either a new or an exisitng Histogram
+	 * to plot data on
+	 * 
+	 * @param defaultSeriesName
+	 * @param handler instance of {@link GUIGraphHandler}
+	 * @param minVal the min value in data cache
+	 * @param maxVal the max value in data cache
+	 * @return Either a new instance of a Histogram or an old one depending on what the user selects
+	 */
+	
 	public static Pair<Histogram, SeriesKey> showPropertiesDialog(String defaultSeriesName, GUIGraphHandler handler, double minVal, double maxVal){
 		
+		// make sure that the probabilities are valid
 		if(maxVal > 1.0)
-			maxVal = 1.0;
+			maxVal = 1.0; 
 		if(minVal < 0.0)
 			minVal = 0.0;
 		
+		// set properties for the dialog
 		JDialog dialog = new JDialog(GUIPrism.getGUI(), "Histogram properties", true);
 		dialog.setLayout(new BorderLayout());
+		
 		JPanel p1 = new JPanel(new FlowLayout());
 		p1.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Number of buckets"));
+		
 		JPanel p2 = new JPanel(new FlowLayout());
 		p2.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Series name"));
+		
+		
 		JSpinner buckets = new JSpinner(new SpinnerNumberModel(10, 5, Integer.MAX_VALUE, 1));
 		buckets.setToolTipText("Select the number of buckets for this Histogram");
+		
+		// provides the ability to select a new or an old histogram to plot the series on
 		JTextField seriesName = new JTextField(defaultSeriesName);
 		JRadioButton newSeries = new JRadioButton("New Histogram");
 		JRadioButton existing = new JRadioButton("Existing Histogram");
@@ -497,6 +660,7 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 		seriesSelectPanel.add(seriesOptionsPanel);
 		seriesSelectPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Add series to"));
 		
+		// provides ability to select the min/max range of the plot
 		JLabel minValsLabel = new JLabel("Min range:");
 		JSpinner minVals = new JSpinner(new SpinnerNumberModel(0.0, 0.0, minVal, 0.01));
 		minVals.setToolTipText("Does not allow value more than the min value in the probabilities");
@@ -505,10 +669,8 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 		maxVals.setToolTipText("Does not allow value less than the max value in the probabilities");
 		JPanel minMaxPanel = new JPanel();
 		minMaxPanel.setLayout(new BoxLayout(minMaxPanel, BoxLayout.X_AXIS));
-		
 		JPanel leftValsPanel = new JPanel(new BorderLayout());
 		JPanel rightValsPanel = new JPanel(new BorderLayout());
-		
 		minMaxPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Range"));
 		leftValsPanel.add(minValsLabel, BorderLayout.WEST);
 		leftValsPanel.add(minVals, BorderLayout.CENTER);
@@ -517,8 +679,10 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 		minMaxPanel.add(leftValsPanel);
 		minMaxPanel.add(rightValsPanel);
 		
-		boolean found = false;
 		
+		// fill the old histograms in the property dialog
+		
+		boolean found = false;
 		for(int i = 0 ; i < handler.getNumModels() ; i++){
 			
 			if(handler.getModel(i) instanceof Histogram){
@@ -532,10 +696,41 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 		existing.setEnabled(found);
 		seriesOptions.setEnabled(false);
 		
+		// the bottom panel
 		JPanel options = new JPanel(new FlowLayout(FlowLayout.RIGHT));
 		JButton ok = new JButton("Plot");
 		JButton cancel = new JButton("Cancel");
 		
+		// bind keyboard keys to plot and cancel buttons to improve usability
+		
+		ok.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "ok");
+		ok.getActionMap().put("ok", new AbstractAction() {
+			
+			private static final long serialVersionUID = -7324877661936685228L;
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				
+				ok.doClick();
+				
+			}
+		});
+		
+		cancel.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "ok");
+		cancel.getActionMap().put("ok", new AbstractAction() {
+			
+			private static final long serialVersionUID = 2642213543774356676L;
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				
+				cancel.doClick();
+				
+			}
+		});
+		
+		
+		//Action listener for the new series radio button
 		newSeries.addActionListener(new ActionListener() {
 			
 			@Override
@@ -552,6 +747,7 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 			}
 		});
 		
+		//Action listener for the existing series radio button
 		existing.addActionListener(new ActionListener() {
 			
 			@Override
@@ -570,6 +766,7 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 			}
 		});
 		
+		//Action listener for the plot button
 		ok.addActionListener(new ActionListener() {
 			
 			@Override
@@ -603,6 +800,7 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 			}
 		});
 		
+		//Action listener for the cancel button
 		cancel.addActionListener(new ActionListener() {
 			
 			@Override
@@ -629,6 +827,7 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 		options.add(ok);
 		options.add(cancel);
 		
+		// add everything to the main panel of the dialog
 		JPanel mainPanel = new JPanel();
 		mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
 		mainPanel.add(seriesSelectPanel);
@@ -637,39 +836,66 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 		mainPanel.add(minMaxPanel);
 		
 		
+		// add main panel to the dialog
 		dialog.add(mainPanel, BorderLayout.CENTER);
 		dialog.add(options, BorderLayout.SOUTH);
 		
+		// set dialog properties
 		dialog.setSize(320, 290);
 		dialog.setLocationRelativeTo(GUIPrism.getGUI());
 		dialog.setVisible(true);
 		
+		// return the user selected Histogram with the properties set
 		return new Pair<Histogram, SeriesKey>(hist, key);
 	}
 	
 	
 	
-	
+	/**
+	 * return x axis settings
+	 * @return
+	 */
 	public AxisSettingsHistogram getXAxisSettings() {
 		return xAxisSettings;
 	}
+	
+	/**
+	 * return y axis settings
+	 * @return
+	 */
 
 	public AxisSettingsHistogram getYAxisSettings() {
 		return yAxisSettings;
 	}
 
+	/**
+	 * return display settings
+	 * @return
+	 */
 	public DisplaySettings getDisplaySettings() {
 		return displaySettings;
 	}
 
+	/**
+	 * return series settings
+	 * @return
+	 */
 	public SeriesSettingsList getGraphSeriesList(){
 		return seriesList;
 	}
 	
+	/**
+	 * returns series lock to be used in the synchronized block
+	 * @return
+	 */
 	public XYIntervalSeriesCollection getSeriesLock(){
 		return seriesCollection;
 	}
 	
+	/**
+	 * Get all the series keys corresponding to the series plotted in the Histogram
+	 * @return
+	 */
 	public java.util.Vector<SeriesKey> getAllSeriesKeys()
 	{
 		synchronized (seriesCollection)
@@ -759,8 +985,17 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 
 	@Override
 	public int compareTo(Object o) {
-		//TODO Still have to complete this
-		return 0;
+		
+		if (o instanceof SettingOwner) {
+			SettingOwner po = (SettingOwner) o;
+			if (getSettingOwnerID() < po.getSettingOwnerID())
+				return -1;
+			else if (getSettingOwnerID() > po.getSettingOwnerID())
+				return 1;
+			else
+				return 0;
+		} else
+			return 0;
 	}
 
 	@Override
@@ -897,6 +1132,9 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 		updateGraph();
 	}
 	
+	/**
+	 * Update the settings of the graph if the settings changed
+	 */
 	public void updateGraph(){
 	
 		/* Update title if necessary. */
@@ -966,6 +1204,9 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 		doEnables();
 	}
 	
+	/**
+	 * Enable / disable some settings
+	 */
 	public void doEnables() {
 		legendPosition.setEnabled(legendVisible.getBooleanValue());
 		legendFont.setEnabled(legendVisible.getBooleanValue());

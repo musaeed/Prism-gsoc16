@@ -49,6 +49,7 @@ import prism.PrismFileLog;
 import prism.PrismLangException;
 import prism.PrismLog;
 import prism.PrismUtils;
+import prism.Result;
 import prism.ResultsCollection;
 import prism.UndefinedConstants;
 import simulator.method.SimulationMethod;
@@ -1512,7 +1513,7 @@ public class SimulatorEngine extends PrismComponent
 
 		// As long as there are at least some valid props, do sampling
 		if (validPropsCount > 0) {
-			doSampling(initialState, maxPathLength);
+			doSampling(initialState, maxPathLength, null, null, null);
 		}
 
 		// Process the results
@@ -1596,14 +1597,13 @@ public class SimulatorEngine extends PrismComponent
 		mainLog.println("\nSimulation method: " + simMethod.getName() + " (" + simMethod.getFullName() + ")");
 		mainLog.println("Simulation method parameters: " + simMethod.getParametersString());
 		mainLog.println("Simulation parameters: max path length=" + maxPathLength);
-
+		
 		// Add the properties to the simulator (after a check that they are valid)
 		int n = undefinedConstants.getNumPropertyIterations();
 		Values definedPFConstants = new Values();
 		Object[] results = new Object[n];
 		Values[] pfcs = new Values[n];
 		int[] indices = new int[n];
-
 		int validPropsCount = 0;
 		for (int i = 0; i < n; i++) {
 			definedPFConstants = undefinedConstants.getPFConstantValues();
@@ -1620,6 +1620,7 @@ public class SimulatorEngine extends PrismComponent
 				// (note that we use the copy stored in properties, which has been processed)
 				try {
 					simMethodNew.setExpression(properties.get(indices[i]));
+					
 				} catch (PrismException e) {
 					// In case of error, also need to remove property/sampler from list
 					// (NB: this will be at the end of the list so no re-indexing issues)
@@ -1636,7 +1637,7 @@ public class SimulatorEngine extends PrismComponent
 
 		// As long as there are at least some valid props, do sampling
 		if (validPropsCount > 0) {
-			doSampling(initialState, maxPathLength);
+			doSampling(initialState, maxPathLength, resultsCollection, undefinedConstants, pfcs);
 		}
 
 		// Process the results
@@ -1656,6 +1657,7 @@ public class SimulatorEngine extends PrismComponent
 					results[i] = e;
 				}
 			}
+			
 			// Store result in the ResultsCollection
 			resultsCollection.setResult(undefinedConstants.getMFConstantValues(), pfcs[i], results[i]);
 		}
@@ -1683,7 +1685,7 @@ public class SimulatorEngine extends PrismComponent
 	 * @param initialState Initial state (if null, is selected randomly)
 	 * @param maxPathLength The maximum path length for sampling
 	 */
-	private void doSampling(State initialState, long maxPathLength) throws PrismException
+	private void doSampling(State initialState, long maxPathLength, ResultsCollection resultsCollection, UndefinedConstants undefinedConstants, Values[] pfcs) throws PrismException
 	{
 		int iters;
 		long i;
@@ -1774,10 +1776,19 @@ public class SimulatorEngine extends PrismComponent
 				stoppedEarly = true;
 				break;
 			}
-
+			
+			int ii = 0;
 			// Update state of samplers based on last path
 			for (Sampler sampler : propertySamplers) {
 				sampler.updateStats();
+
+				if(resultsCollection != null && undefinedConstants != null){
+					
+					SimulationMethod sm = sampler.getSimulationMethod();
+					sm.computeMissingParameterAfterSim();
+					resultsCollection.setResult(undefinedConstants.getMFConstantValues(), pfcs[ii++], sm.getResult(sampler));
+					
+				}
 			}
 		}
 

@@ -139,6 +139,8 @@ public class SimulatorEngine extends PrismComponent
 	protected Updater updater;
 	// Random number generator
 	private RandomNumberGenerator rng;
+	
+	private boolean experimentStopped;
 
 	// ------------------------------------------------------------------------------
 	// Basic setup
@@ -168,6 +170,7 @@ public class SimulatorEngine extends PrismComponent
 		tmpTransitionRewards = null;
 		updater = null;
 		rng = new RandomNumberGenerator();
+		experimentStopped = false;
 	}
 
 	// ------------------------------------------------------------------------------
@@ -1659,7 +1662,7 @@ public class SimulatorEngine extends PrismComponent
 			}
 			
 			// Store result in the ResultsCollection
-			resultsCollection.setResult(undefinedConstants.getMFConstantValues(), pfcs[i], results[i]);
+			if(!experimentStopped)resultsCollection.setResult(undefinedConstants.getMFConstantValues(), pfcs[i], results[i]);
 		}
 
 		// Display results to log
@@ -1687,6 +1690,7 @@ public class SimulatorEngine extends PrismComponent
 	 */
 	private void doSampling(State initialState, long maxPathLength, ResultsCollection resultsCollection, UndefinedConstants undefinedConstants, Values[] pfcs) throws PrismException
 	{
+		experimentStopped = false;
 		int iters;
 		long i;
 		// Flags
@@ -1780,8 +1784,13 @@ public class SimulatorEngine extends PrismComponent
 			int ii = 0;
 			// Update state of samplers based on last path
 			for (Sampler sampler : propertySamplers) {
+				
+				if(experimentStopped){
+					break;
+				}
+				
 				sampler.updateStats();
-
+				
 				if(resultsCollection != null && undefinedConstants != null){
 					
 					SimulationMethod sm = sampler.getSimulationMethod();
@@ -1829,6 +1838,6 @@ public class SimulatorEngine extends PrismComponent
 	 */
 	public void stopSampling()
 	{
-		// TODO
+		experimentStopped = true;
 	}
 }

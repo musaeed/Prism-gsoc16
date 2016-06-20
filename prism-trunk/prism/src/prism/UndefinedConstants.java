@@ -810,4 +810,20 @@ public class UndefinedConstants
 				vals.addValue(pfConsts.get(i).getName(), pfConsts.get(i).getValue());
 		return vals;
 	}
+	
+	/**
+	 * Sometimes we also need the upper and lower bounds of the defined constants, so this list of constants will provide us with that
+	 * @return list of model constants
+	 */
+	public List<DefinedConstant> getMFDefinedConstants(){
+		return mfConsts;
+	}
+	
+	/**
+	 * Sometimes we also need the upper and lower bounds of the defined constants, so this list of constants will provide us with that
+	 * @return list of property constants
+	 */
+	public List<DefinedConstant> getPFDefinedConstants(){
+		return pfConsts;
+	}
 }

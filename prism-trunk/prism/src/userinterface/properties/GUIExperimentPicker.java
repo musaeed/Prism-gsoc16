@@ -64,6 +64,8 @@ public class GUIExperimentPicker extends javax.swing.JDialog
 	
 	private UndefinedConstants undef;
 	
+	private boolean isParam;
+	
 	private GUIPrism gui;
 	
 	static
@@ -78,14 +80,14 @@ public class GUIExperimentPicker extends javax.swing.JDialog
 	// End of variables declaration//GEN-END:variables
 	
 	/** Creates new form GUIConstantsPicker */
-	public GUIExperimentPicker(GUIPrism parent, UndefinedConstants undef, boolean areModel, boolean areProp, boolean offerGraph, boolean offerSimulation)
+	public GUIExperimentPicker(GUIPrism parent, UndefinedConstants undef, boolean areModel, boolean areProp, boolean offerGraph, boolean offerSimulation, boolean isParam)
 	{
 		super(parent, "Define Constants", true);
 		this.areModel = areModel;
 		this.areProp  = areProp;
 		this.undef = undef;
 		this.gui = parent;
-		
+		this.isParam = isParam;
 		//setup tables
 		propTable = new ConstantPickerList();
 		modelTable = new ConstantPickerList();
@@ -297,15 +299,39 @@ public class GUIExperimentPicker extends javax.swing.JDialog
 	
 	private void initValues(UndefinedConstants undef)
 	{
+		
+		if(isParam){
+			
+			this.useSimulationCheck.setEnabled(false);
+			this.useSimulationCheck.setToolTipText("Not available for parametric operation");
+		}
+		
 		for(int i = 0; i < undef.getMFNumUndefined(); i++)
 		{
 			ConstantLine line = new ConstantLine(undef.getMFUndefinedName(i), undef.getMFUndefinedType(i));
+			
+			if(isParam){
+				
+				line.singleValueField.setEditable(false);
+				line.singleValueCombo.setEnabled(false);
+				line.stepValueField.setText("");
+				line.stepValueField.setToolTipText("doesn't matter for the parametric option!");
+				line.stepValueField.setEditable(false);
+				line.rangeCombo.doClick();
+			}
+			
 			modelTable.addConstant(line);
 		}
 		for(int i = 0; i < undef.getPFNumUndefined(); i++)
 		{
 			ConstantLine line = new ConstantLine(undef.getPFUndefinedName(i), undef.getPFUndefinedType(i));
 			propTable.addConstant(line);
+			
+			if(isParam){
+				
+				line.startValueField.setText("1");
+				line.endValueField.setText("5");
+			}
 		}
 		
 		// go through list of remembered values and see if we can use them
@@ -340,13 +366,13 @@ public class GUIExperimentPicker extends javax.swing.JDialog
 	}
 	
 	/** Call this static method to construct a new GUIConstantsPicker to define undef. */
-	public static int defineConstantsWithDialog(GUIPrism parent, UndefinedConstants undef, boolean offerGraph, boolean offerSimulation)
+	public static int defineConstantsWithDialog(GUIPrism parent, UndefinedConstants undef, boolean offerGraph, boolean offerSimulation, boolean isParam)
 	{
 		boolean areModel = undef.getMFNumUndefined() > 0;
 		boolean areProp  = undef.getPFNumUndefined() > 0;
 		if(areModel || areProp)
 		{
-			return new GUIExperimentPicker(parent, undef, areModel, areProp, offerGraph, offerSimulation).defineValues();
+			return new GUIExperimentPicker(parent, undef, areModel, areProp, offerGraph, offerSimulation, isParam).defineValues();
 		}
 		else return NO_VALUES;
 	}
@@ -442,6 +468,11 @@ public class GUIExperimentPicker extends javax.swing.JDialog
 				for (i = 0; i < n; i++)
 				{
 					c = modelTable.getConstantLine(i);
+					
+					if(isParam)
+						c.stepValueField.setText("0.1"); //just a dummy value here, it doesn;t matter in the parametric case
+														// It will be ignored later
+					
 					c.checkValid();
 					if(c.isRange())
 					{

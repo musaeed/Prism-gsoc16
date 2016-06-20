@@ -83,6 +83,8 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import param.BigRational;
+import param.RegionValues;
 import parser.Values;
 import parser.ast.Expression;
 import parser.ast.ModulesFile;
@@ -92,11 +94,14 @@ import parser.type.Type;
 import parser.type.TypeDouble;
 import parser.type.TypeInt;
 import parser.type.TypeInterval;
+import prism.DefinedConstant;
 import prism.Pair;
 import prism.Prism;
 import prism.PrismException;
+import prism.PrismLangException;
 import prism.PrismSettings;
 import prism.PrismSettingsListener;
+import prism.Result;
 import prism.TileList;
 import prism.UndefinedConstants;
 import userinterface.GUIClipboardEvent;
@@ -145,7 +150,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	// State
 	private boolean modified;
 	private boolean computing;
-	private boolean verifyAfterReceiveParseNotification, experimentAfterReceiveParseNotification, simulateAfterReceiveParseNotification, exportLabelsAfterReceiveParseNotification;
+	private boolean verifyAfterReceiveParseNotification, experimentAfterReceiveParseNotification, simulateAfterReceiveParseNotification, exportLabelsAfterReceiveParseNotification, parametricAfterRecieveParseNotification;
 	private PropertiesFile parsedProperties;
 	private ArrayList<GUIProperty> propertiesToBeVerified;
 	private File activeFile;
@@ -395,6 +400,145 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		}
 	}
 
+	public void parametricAfterParse()
+	{
+		parametricAfterRecieveParseNotification = false;
+		
+		
+		GUIProperty gp = propList.getProperty(propList.getSelectedIndex());
+		Property prop = new Property(propList.getProperty(propList.getSelectedIndex()).getProperty());
+		
+		String propertiesString = getLabelsString() + "\n" + getConstantsString() + "\n" + propList.getValidSelectedAndReferencedString();
+		
+		try {
+			parsedProperties = getPrism().parsePropertiesString(parsedModel, propertiesString);
+		} catch (PrismLangException e) {
+			e.printStackTrace();
+		}
+
+		// sort out undefined constants
+		UndefinedConstants uCon = new UndefinedConstants(parsedModel, parsedProperties, prop);
+		
+
+		boolean showGraphDialog = false;
+
+		int result = GUIExperimentPicker.defineConstantsWithDialog(this.getGUI(), uCon, true, gp.isValidForSimulation(), true);
+		
+		if (result == GUIExperimentPicker.VALUES_DONE_SHOW_GRAPH || result == GUIExperimentPicker.VALUES_DONE_SHOW_GRAPH_AND_SIMULATE) {
+			showGraphDialog = true;
+		}
+		
+		String[] params = new String[uCon.getMFConstantValues().getNumValues()];
+		String[] lowerBounds = new String[uCon.getMFConstantValues().getNumValues()];
+		String[] upperBounds = new String[uCon.getMFConstantValues().getNumValues()];
+		
+		int ii = 0;
+		
+		for(DefinedConstant dcon : uCon.getMFDefinedConstants()){
+			
+			params[ii] = dcon.getName();
+			lowerBounds[ii] = dcon.getLow().toString();
+			upperBounds[ii++] = dcon.getHigh().toString();
+			
+		}
+		
+		for(String pName : params){
+			uCon.getMFConstantValues().removeValue(pName);
+		}
+		
+		final Graph graph = new Graph(gp.getPropString());
+		
+		if(showGraphDialog){
+
+			getGraphHandler().addGraph(graph);
+			graph.setErrorBarVisible(false);
+			graph.getErrorRenderer().setShapesVisible(false);
+			graph.getXAxisSettings().setHeading(params[0]);
+			graph.getYAxisSettings().setHeading("probability");
+			
+		}
+
+		
+		ii = 0;
+		
+		for(int n = 0 ; n < uCon.getPFDefinedConstants().size() ; n++){
+			
+			DefinedConstant def = uCon.getPFDefinedConstants().get(n);
+			
+			String name = def.getName();
+			int low = (int)def.getLow();
+			int high = (int)def.getHigh();
+			int step = (int)def.getStep();
+			
+			for(int iter = low ; iter <= high ; iter += step){
+				
+				try {
+
+					getPrism().setPRISMModelConstants(uCon.getMFConstantValues());
+					uCon.getPFConstantValues().removeValue(name);
+					uCon.getPFConstantValues().addValue(name, iter);
+					parsedProperties.setUndefinedConstants(uCon.getPFConstantValues());
+					
+					final Result res = getPrism().modelCheckParametric(parsedProperties, prop , params, lowerBounds, upperBounds);
+					
+					if(!showGraphDialog){
+						setTaskBarText("No graph plotted, see log for the results!");
+						return;
+					}
+					
+					final int temp = iter;
+					final double lBound = Double.parseDouble(lowerBounds[0]);
+					final double uBound = Double.parseDouble(upperBounds[0]);
+					
+					SwingUtilities.invokeLater(new Runnable() {
+						
+						@Override
+						public void run() {
+							
+							if (propList.getSelectedIndices().length == 1) {
+					
+								if (res.getResult() instanceof RegionValues) {
+									
+									SeriesKey sk = graph.addSeries(name + " = " + temp);
+									RegionValues vals = (RegionValues) res.getResult();
+									param.Function f = vals.getResult(0).getInitStateValueAsFunction();
+									int n = 100;
+									
+									for (int i = 0; i < n; i++) {
+										
+										double val = (double) i / (double) n;
+										
+										if(val < lBound || val > uBound){
+											continue;
+										}
+										
+										BigRational br = f.evaluate(new param.Point(new BigRational[] {new BigRational(i, n)}));
+										PrismXYDataItem di = new PrismXYDataItem(((double)i)/n, br.doubleValue());
+										graph.addPointToSeries(sk, di);
+									}
+									
+								}
+							}
+						}
+					});
+					
+				} catch (PrismException e) {
+					
+					JOptionPane.showMessageDialog(getGUI(), e, "Error", JOptionPane.ERROR_MESSAGE);
+					
+				}
+				
+			}
+			
+		}
+		
+		if(showGraphDialog){
+			
+			setTaskBarText("Parametric... done");
+		}
+
+	}
+	
 	public void experimentAfterParse()
 	{
 		experimentAfterReceiveParseNotification = false;
@@ -446,7 +590,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			return;
 		}
 		boolean offerGraph = type instanceof TypeInt || type instanceof TypeDouble || type instanceof TypeInterval;
-		int result = GUIExperimentPicker.defineConstantsWithDialog(this.getGUI(), uCon, offerGraph, gp.isValidForSimulation());
+		int result = GUIExperimentPicker.defineConstantsWithDialog(this.getGUI(), uCon, offerGraph, gp.isValidForSimulation(), false);
 		if (result == GUIExperimentPicker.VALUES_DONE_SHOW_GRAPH || result == GUIExperimentPicker.VALUES_DONE_SHOW_GRAPH_AND_SIMULATE) {
 			showGraphDialog = true;
 		} else if (result == GUIExperimentPicker.CANCELLED)
@@ -1206,6 +1350,14 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		experimentAfterReceiveParseNotification = true;
 		notifyEventListeners(new GUIPropertiesEvent(GUIPropertiesEvent.REQUEST_MODEL_PARSE));
 	}
+	
+	public void a_newParametric(){
+	
+		// Reset warnings counter 
+		getPrism().getMainLog().resetNumberOfWarnings();
+		parametricAfterRecieveParseNotification = true;
+		notifyEventListeners(new GUIPropertiesEvent(GUIPropertiesEvent.REQUEST_MODEL_PARSE));
+	}
 
 	public void a_stopExperiment()
 	{
@@ -1344,6 +1496,8 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 					verifyAfterParse();
 				if (experimentAfterReceiveParseNotification)
 					experimentAfterParse();
+				if(parametricAfterRecieveParseNotification)
+					parametricAfterParse();
 				if (simulateAfterReceiveParseNotification)
 					simulateAfterParse();
 				if (exportLabelsAfterReceiveParseNotification)
@@ -1844,7 +1998,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			propMenu.add(verifyAndPlot);
 			propMenu.add(simulate);
 			propMenu.add(newExperiment);
-			//propMenu.add(parametric);
+			propMenu.add(parametric);
 			JMenu exportlabelsMenu = new JMenu("Export labels");
 			exportlabelsMenu.setMnemonic('E');
 			exportlabelsMenu.setIcon(GUIPrism.getIconFromImage("smallExport.png"));
@@ -1875,7 +2029,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		propertiesPopup.add(verifyAndPlot);
 		propertiesPopup.add(simulate);
 		propertiesPopup.add(newExperiment);
-		//propertiesPopup.add(parametric);
+		propertiesPopup.add(parametric);
 		propertiesPopup.add(details);
 		propertiesPopup.add(new JSeparator());
 		propertiesPopup.add(GUIPrism.getClipboardPlugin().getCutAction());
@@ -2129,6 +2283,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			public void actionPerformed(ActionEvent e)
 			{
 				a_newExperiment();
+				
 			}
 		};
 		newExperiment.putValue(Action.LONG_DESCRIPTION, "Creates a new experiment");
@@ -2177,7 +2332,9 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				a_newExperiment();
+				
+				a_newParametric();
+				
 			}
 		};
 		parametric.putValue(Action.LONG_DESCRIPTION, "Perform parametric model checking");

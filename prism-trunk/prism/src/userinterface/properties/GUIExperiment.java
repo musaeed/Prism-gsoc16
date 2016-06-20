@@ -177,8 +177,10 @@ public class GUIExperiment
 	public void stop()
 	{
 		if (running && theThread != null) {
-			if (useSimulation)
+			if (useSimulation){
 				guiProp.getPrism().getSimulator().stopSampling();
+				results.setExperimentStopped(true);
+			}
 			theThread.interrupt();
 		}
 	}

@@ -57,7 +57,7 @@ public class ResultsCollection
 	// the "name" of the result (used for y-axis of any graphs plotted)
 	private String resultName;
 	
-	private boolean experimentStopped;
+	private boolean isCompleted;
 
 	/** Creates a new instance of ResultsCollection */
 	public ResultsCollection(UndefinedConstants uCons)
@@ -79,7 +79,7 @@ public class ResultsCollection
 
 		this.root = (rangingConstants.size() > 0) ? new TreeNode(0) : new TreeLeaf();
 		this.resultName = (resultName == null) ? "Result" : resultName;
-		experimentStopped = false;
+		this.isCompleted = true;
 	}
 
 	public Vector<DefinedConstant> getRangingConstants()
@@ -121,19 +121,18 @@ public class ResultsCollection
 	{
 		return currentIteration;
 	}
+	
+	public void setIsCompleted(boolean isC){
+		this.isCompleted = isC;
+	}
+	
+	public boolean getIsCompleted(){
+		return isCompleted;
+	}
 
 	public String getResultName()
 	{
 		return resultName;
-	}
-
-	
-	public boolean isExperimentStopped() {
-		return experimentStopped;
-	}
-
-	public void setExperimentStopped(boolean experimentStopped) {
-		this.experimentStopped = experimentStopped;
 	}
 
 	/**
@@ -150,10 +149,7 @@ public class ResultsCollection
 		}
 
 		// modify counters/flags as appropriate
-		if(!experimentStopped){
-			
-			currentIteration += ret;
-		}
+		currentIteration += ret;
 		
 		if (result instanceof Exception)
 			anyErrors = true;

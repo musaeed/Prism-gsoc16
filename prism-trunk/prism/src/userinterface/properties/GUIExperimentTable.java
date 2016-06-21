@@ -182,7 +182,10 @@ public class GUIExperimentTable extends JTable
 				case 3:
 					{
 					if (!ge.isFinished()) return "Running";
-					else return (ge.getCurrentIterations() < ge.getTotalIterations()) ? "Stopped" : "Done";
+					else if(!ge.isCompleted())
+						return "Stopped";
+					else	
+						return (ge.getCurrentIterations() < ge.getTotalIterations()) ? "Stopped" : "Done";
 				}
 				case 4:
 					{

@@ -1589,6 +1589,7 @@ public class SimulatorEngine extends PrismComponent
 			ResultsCollection resultsCollection, Expression expr, State initialState, long maxPathLength, SimulationMethod simMethod) throws PrismException,
 			InterruptedException
 	{
+		experimentStopped = false;
 		// Load model into simulator
 		createNewOnTheFlyPath(modulesFile);
 
@@ -1609,6 +1610,7 @@ public class SimulatorEngine extends PrismComponent
 		int[] indices = new int[n];
 		int validPropsCount = 0;
 		for (int i = 0; i < n; i++) {
+			
 			definedPFConstants = undefinedConstants.getPFConstantValues();
 			pfcs[i] = definedPFConstants;
 			propertiesFile.setSomeUndefinedConstants(definedPFConstants);
@@ -1640,6 +1642,7 @@ public class SimulatorEngine extends PrismComponent
 
 		// As long as there are at least some valid props, do sampling
 		if (validPropsCount > 0) {
+			
 			doSampling(initialState, maxPathLength, resultsCollection, undefinedConstants, pfcs);
 		}
 
@@ -1662,7 +1665,7 @@ public class SimulatorEngine extends PrismComponent
 			}
 			
 			// Store result in the ResultsCollection
-			if(!experimentStopped)resultsCollection.setResult(undefinedConstants.getMFConstantValues(), pfcs[i], results[i]);
+			resultsCollection.setResult(undefinedConstants.getMFConstantValues(), pfcs[i], results[i]);
 		}
 
 		// Display results to log
@@ -1717,8 +1720,8 @@ public class SimulatorEngine extends PrismComponent
 
 		// Main sampling loop
 		iters = 0;
-		while (!shouldStopSampling) {
-
+		while (!shouldStopSampling && !experimentStopped) {
+			
 			// See if all properties are done; if so, stop sampling
 			allDone = true;
 			for (Sampler sampler : propertySamplers) {
@@ -1784,11 +1787,6 @@ public class SimulatorEngine extends PrismComponent
 			int ii = 0;
 			// Update state of samplers based on last path
 			for (Sampler sampler : propertySamplers) {
-				
-				if(experimentStopped){
-					break;
-				}
-				
 				sampler.updateStats();
 				
 				if(resultsCollection != null && undefinedConstants != null){

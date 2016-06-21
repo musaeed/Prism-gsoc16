@@ -476,6 +476,18 @@ public class GUIExperimentPicker extends javax.swing.JDialog
 					c.checkValid();
 					if(c.isRange())
 					{
+						if(isParam)
+						{
+							double start = Double.parseDouble(c.getStartValue());
+							double end = Double.parseDouble(c.getEndValue());
+
+							if(start < 0 || end > 1)
+							{
+								JOptionPane.showMessageDialog(gui, "The param range should be in (0,1)!", "Error", JOptionPane.ERROR_MESSAGE);
+								return;
+							}
+						}
+
 						undef.defineConstant(c.getName(), c.getStartValue(), c.getEndValue(), c.getStepValue());
 					}
 					else

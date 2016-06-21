@@ -86,6 +86,10 @@ public class GUIExperiment
 	{
 		return cons.getRangingConstants();
 	}
+	
+	public boolean isCompleted(){
+		return results.getIsCompleted();
+	}
 
 	public String getDefinedConstantsString()
 	{
@@ -176,12 +180,21 @@ public class GUIExperiment
 
 	public void stop()
 	{
-		if (running && theThread != null) {
-			if (useSimulation){
+		if (running && theThread != null) 
+		{
+			
+			if (useSimulation)
+			{
+				
 				guiProp.getPrism().getSimulator().stopSampling();
-				results.setExperimentStopped(true);
+				guiProp.stopProgress();
+				guiProp.setTaskBarText("Running experiment... interrupted.");
+				guiProp.notifyEventListeners(new GUIComputationEvent(GUIComputationEvent.COMPUTATION_DONE, guiProp));
+				guiProp.notifyEventListeners(new GUIPropertiesEvent(GUIPropertiesEvent.EXPERIMENT_END));
 			}
+			
 			theThread.interrupt();
+			results.setIsCompleted(false);
 		}
 	}
 

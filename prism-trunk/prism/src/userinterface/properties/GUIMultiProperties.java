@@ -400,6 +400,10 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		}
 	}
 
+	/**
+	 * Perform parametric operation and plot the function generated if requested by the user
+	 * 
+	 */
 	public void parametricAfterParse()
 	{
 		parametricAfterRecieveParseNotification = false;
@@ -410,30 +414,44 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		
 		String propertiesString = getLabelsString() + "\n" + getConstantsString() + "\n" + propList.getValidSelectedAndReferencedString();
 		
-		try {
+		try 
+		{	
 			parsedProperties = getPrism().parsePropertiesString(parsedModel, propertiesString);
-		} catch (PrismLangException e) {
+		
+		} catch (PrismLangException e) 
+		{
 			e.printStackTrace();
 		}
 
 		// sort out undefined constants
 		UndefinedConstants uCon = new UndefinedConstants(parsedModel, parsedProperties, prop);
 		
+		// check if there are any params available to apply the parametric operation, if not notify the user and return
+		if(uCon.getMFNumUndefined() == 0){
+			
+			JOptionPane.showMessageDialog(getGUI(), "There are no params in this model!", "Error", JOptionPane.ERROR_MESSAGE);
+			return;
+			
+		}
 
+		// should the graph be plotted?
 		boolean showGraphDialog = false;
 
+		//define the undefined constants
 		int result = GUIExperimentPicker.defineConstantsWithDialog(this.getGUI(), uCon, true, gp.isValidForSimulation(), true);
 		
 		if (result == GUIExperimentPicker.VALUES_DONE_SHOW_GRAPH || result == GUIExperimentPicker.VALUES_DONE_SHOW_GRAPH_AND_SIMULATE) {
 			showGraphDialog = true;
 		}
 		
+		// the information of our params
 		String[] params = new String[uCon.getMFConstantValues().getNumValues()];
 		String[] lowerBounds = new String[uCon.getMFConstantValues().getNumValues()];
 		String[] upperBounds = new String[uCon.getMFConstantValues().getNumValues()];
 		
 		int ii = 0;
 		
+		// set the values to be passed to the parameteric model checking engine
 		for(DefinedConstant dcon : uCon.getMFDefinedConstants()){
 			
 			params[ii] = dcon.getName();
@@ -448,6 +466,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		
 		final Graph graph = new Graph(gp.getPropString());
 		
+		//set graph properties
 		if(showGraphDialog){
 
 			getGraphHandler().addGraph(graph);
@@ -458,8 +477,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			
 		}
 
-		
-		ii = 0;
+		notifyEventListeners(new GUIComputationEvent(GUIComputationEvent.COMPUTATION_START, this));
 		
 		for(int n = 0 ; n < uCon.getPFDefinedConstants().size() ; n++){
 			
@@ -470,17 +488,23 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			int high = (int)def.getHigh();
 			int step = (int)def.getStep();
 			
+			// do parametric checking for each pf value as specified by the user and plot each chart on the same graph
+			
 			for(int iter = low ; iter <= high ; iter += step){
 				
 				try {
 
 					getPrism().setPRISMModelConstants(uCon.getMFConstantValues());
+					// we need to undefine the last pf value and then redefine it with the new value
 					uCon.getPFConstantValues().removeValue(name);
 					uCon.getPFConstantValues().addValue(name, iter);
+					//set the value in the prop file
 					parsedProperties.setUndefinedConstants(uCon.getPFConstantValues());
 					
+					//actual parametric checking
 					final Result res = getPrism().modelCheckParametric(parsedProperties, prop , params, lowerBounds, upperBounds);
 					
+					//tell the user where the results are if the graph plot is not requested
 					if(!showGraphDialog){
 						setTaskBarText("No graph plotted, see log for the results!");
 						return;
@@ -490,6 +514,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 					final double lBound = Double.parseDouble(lowerBounds[0]);
 					final double uBound = Double.parseDouble(upperBounds[0]);
 					
+					// plot the graphs
 					SwingUtilities.invokeLater(new Runnable() {
 						
 						@Override
@@ -533,9 +558,11 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		}
 		
 		if(showGraphDialog){
-			
+			//finally done
 			setTaskBarText("Parametric... done");
 		}
+		
+		notifyEventListeners(new GUIComputationEvent(GUIComputationEvent.COMPUTATION_DONE, this));
 
 	}
 	

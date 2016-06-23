@@ -113,6 +113,7 @@ import userinterface.OptionsPanel;
 import userinterface.SimulationInformation;
 import userinterface.graph.Graph;
 import userinterface.graph.Histogram;
+import userinterface.graph.ParametricGraph;
 import userinterface.graph.PrismXYDataItem;
 import userinterface.graph.SeriesKey;
 import userinterface.model.GUIModelEvent;
@@ -440,6 +441,10 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		//define the undefined constants
 		int result = GUIExperimentPicker.defineConstantsWithDialog(this.getGUI(), uCon, true, gp.isValidForSimulation(), true);
 		
+		if(result == GUIExperimentPicker.CANCELLED){
+			return;
+		}
+		
 		if (result == GUIExperimentPicker.VALUES_DONE_SHOW_GRAPH || result == GUIExperimentPicker.VALUES_DONE_SHOW_GRAPH_AND_SIMULATE) {
 			showGraphDialog = true;
 		}
@@ -464,14 +469,12 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			uCon.getMFConstantValues().removeValue(pName);
 		}
 		
-		final Graph graph = new Graph(gp.getPropString());
+		final ParametricGraph graph = new ParametricGraph(gp.getPropString());
 		
 		//set graph properties
 		if(showGraphDialog){
 
 			getGraphHandler().addGraph(graph);
-			graph.setErrorBarVisible(false);
-			graph.getErrorRenderer().setShapesVisible(false);
 			graph.getXAxisSettings().setHeading(params[0]);
 			graph.getYAxisSettings().setHeading("probability");
 			
@@ -514,6 +517,9 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 					final double lBound = Double.parseDouble(lowerBounds[0]);
 					final double uBound = Double.parseDouble(upperBounds[0]);
 					
+					graph.setLowerBound(lBound);
+					graph.setUpperBound(uBound);
+					
 					// plot the graphs
 					SwingUtilities.invokeLater(new Runnable() {
 						
@@ -521,28 +527,12 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 						public void run() {
 							
 							if (propList.getSelectedIndices().length == 1) {
-					
-								if (res.getResult() instanceof RegionValues) {
+								
+								RegionValues vals = (RegionValues) res.getResult();
+								param.Function f = vals.getResult(0).getInitStateValueAsFunction();
+								SeriesKey key = graph.addSeries(name + " = " + temp, f);
+								graph.plotSeries(key);
 									
-									SeriesKey sk = graph.addSeries(name + " = " + temp);
-									RegionValues vals = (RegionValues) res.getResult();
-									param.Function f = vals.getResult(0).getInitStateValueAsFunction();
-									int n = 100;
-									
-									for (int i = 0; i < n; i++) {
-										
-										double val = (double) i / (double) n;
-										
-										if(val < lBound || val > uBound){
-											continue;
-										}
-										
-										BigRational br = f.evaluate(new param.Point(new BigRational[] {new BigRational(i, n)}));
-										PrismXYDataItem di = new PrismXYDataItem(((double)i)/n, br.doubleValue());
-										graph.addPointToSeries(sk, di);
-									}
-									
-								}
 							}
 						}
 					});

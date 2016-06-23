@@ -44,6 +44,7 @@ import userinterface.GUIPlugin;
 import userinterface.GUIPrism;
 import userinterface.graph.Graph;
 import userinterface.graph.GraphResultListener;
+import userinterface.graph.ParametricGraph;
 import userinterface.graph.PrismXYDataItem;
 import userinterface.graph.SeriesKey;
 
@@ -275,7 +276,7 @@ public class GUIGraphPicker extends javax.swing.JDialog
 		// add existing graphs to choose from
 		for (int i = 0; i < graphHandler.getNumModels(); i++) {
 			
-			if(graphHandler.getModel(i) instanceof Graph)
+			if(graphHandler.getModel(i) instanceof Graph && !(graphHandler.getModel(i) instanceof ParametricGraph))
 				existingGraphCombo.addItem(graphHandler.getGraphName(i));
 			
 		}

@@ -123,7 +123,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	 * Maps SeriesKeys to a XYSeries. (Make sure to synchronize on
 	 * seriesCollection)
 	 */
-	private HashMap<SeriesKey, XYSeries> keyToSeries;
+	protected HashMap<SeriesKey, XYSeries> keyToSeries;
 
 	/**
 	 * Maps SeriesKeys to a Graph Series. (Make sure to synchronize on
@@ -240,7 +240,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 
 		String[] methods = {"Error bars" , "Deviation plot"};
 		currentErrorMethod = new ChoiceSetting("Error render method", methods,
-				"Error bars", "Select the error render method", this, false);
+				"Deviation plot", "Select the error render method", this, false);
 
 		errorAlpha.setEnabled(false);
 		

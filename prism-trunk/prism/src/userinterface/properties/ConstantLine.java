@@ -30,6 +30,8 @@ package userinterface.properties;
 
 import java.awt.*;
 
+import javax.swing.JCheckBox;
+
 import prism.*;
 import parser.type.*;
 
@@ -41,6 +43,9 @@ public class ConstantLine extends javax.swing.JPanel
 	public static final String STEP_DEFAULT = "1";
 	
 	private Type type;
+	
+	private boolean isParameteric;
+	private JCheckBox isParametricOption;
 	
 	/** Creates new form ConstantLine */
 	public ConstantLine(String name, Type type)
@@ -299,6 +304,7 @@ public class ConstantLine extends javax.swing.JPanel
         stepValueField = new javax.swing.JTextField();
         singleValueCombo = new javax.swing.JRadioButton();
         rangeCombo = new javax.swing.JRadioButton();
+        isParametricOption = new JCheckBox("");
 
         boolSingleValueCombo.setBackground(new java.awt.Color(255, 255, 255));
         boolSingleValueCombo.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "true", "false" }));
@@ -365,7 +371,7 @@ public class ConstantLine extends javax.swing.JPanel
         gridBagConstraints.ipadx = 5;
         gridBagConstraints.weightx = 0.2;
         add(stepValueField, gridBagConstraints);
-
+        
         singleValueCombo.setBackground(new java.awt.Color(255, 255, 255));
         choiceButtonGroup.add(singleValueCombo);
         singleValueCombo.addActionListener(new java.awt.event.ActionListener() {
@@ -393,6 +399,15 @@ public class ConstantLine extends javax.swing.JPanel
         gridBagConstraints.gridy = 0;
         gridBagConstraints.ipadx = 5;
         add(rangeCombo, gridBagConstraints);
+        
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 8;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.ipadx = 0;
+        gridBagConstraints.weightx = 0.2;
+      //  add(isParametricOption, gridBagConstraints);
 
     }// </editor-fold>//GEN-END:initComponents
 	

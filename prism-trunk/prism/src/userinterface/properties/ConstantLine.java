@@ -29,6 +29,8 @@
 package userinterface.properties;
 
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 import javax.swing.JCheckBox;
 
@@ -45,7 +47,7 @@ public class ConstantLine extends javax.swing.JPanel
 	private Type type;
 	
 	private boolean isParameteric;
-	private JCheckBox isParametricOption;
+	public JCheckBox isParametricOption;
 	
 	/** Creates new form ConstantLine */
 	public ConstantLine(String name, Type type)
@@ -56,6 +58,18 @@ public class ConstantLine extends javax.swing.JPanel
 	setConstName(name);
 	setConstType(type);
 	doDefaults();
+	}
+	
+	/**Needed when we are creating a ConstantLine for the parametric operation*/
+	public ConstantLine(String name, Type type, boolean isParam)
+	{
+		this.isParameteric = isParam;
+		initComponents();
+		//setBorder(new BottomBorder());
+		setPreferredSize(new Dimension(1, getFontMetrics(getFont()).getHeight() + 4));
+		setConstName(name);
+		setConstType(type);
+		doDefaults();
 	}
 	
 	public void setConstName(String str)
@@ -159,6 +173,21 @@ public class ConstantLine extends javax.swing.JPanel
 		boolSingleValueCombo.setEnabled(false);
 		singleValueField.setEnabled(false);
 	}
+	
+	if(isParameteric){
+		
+
+    	singleValueCombo.setEnabled(true);
+		singleValueCombo.setSelected(true);
+		singleValueField.setEnabled(true);
+		stepValueField.setEnabled(true);
+		rangeCombo.setEnabled(false);
+		startValueField.setEnabled(false);
+		endValueField.setEnabled(false);
+		stepValueField.setEnabled(false);
+		
+	}
+	
 	}
 	
 	//ACCESS METHODS
@@ -304,7 +333,7 @@ public class ConstantLine extends javax.swing.JPanel
         stepValueField = new javax.swing.JTextField();
         singleValueCombo = new javax.swing.JRadioButton();
         rangeCombo = new javax.swing.JRadioButton();
-        isParametricOption = new JCheckBox("");
+        isParametricOption = new JCheckBox("Param");
 
         boolSingleValueCombo.setBackground(new java.awt.Color(255, 255, 255));
         boolSingleValueCombo.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "true", "false" }));
@@ -399,18 +428,52 @@ public class ConstantLine extends javax.swing.JPanel
         gridBagConstraints.gridy = 0;
         gridBagConstraints.ipadx = 5;
         add(rangeCombo, gridBagConstraints);
+
+        if(isParameteric){
         
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 8;
-        gridBagConstraints.gridy = 0;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.ipadx = 0;
-        gridBagConstraints.weightx = 0.2;
-      //  add(isParametricOption, gridBagConstraints);
+        	gridBagConstraints = new java.awt.GridBagConstraints();
+        	gridBagConstraints.gridx = 8;
+        	gridBagConstraints.gridy = 0;
+        	isParametricOption.setBackground(new Color(255,255,255));
+        	add(isParametricOption, gridBagConstraints);
+        	isParametricOption.addActionListener(new ActionListener() {
+
+        		@Override
+        		public void actionPerformed(ActionEvent e) {
+        			isParametricOptionActionPerformed(e);
+        		}
+        	});
+        	
+        }
 
     }// </editor-fold>//GEN-END:initComponents
 	
+    private void isParametricOptionActionPerformed(ActionEvent e){
+    	
+    	if(isParametricOption.isSelected()){
+    		
+    		singleValueCombo.setEnabled(false);
+    		singleValueField.setEnabled(false);
+    		stepValueField.setEnabled(false);
+       		rangeCombo.setEnabled(true);
+    		rangeCombo.setSelected(true);
+       		startValueField.setEnabled(true);
+    		endValueField.setEnabled(true);
+    		
+    	}
+    	else{
+    		
+    		singleValueCombo.setEnabled(true);
+    		singleValueCombo.setSelected(true);
+    		singleValueField.setEnabled(true);
+    		stepValueField.setEnabled(true);
+    		rangeCombo.setEnabled(false);
+    		startValueField.setEnabled(false);
+    		endValueField.setEnabled(false);
+    		stepValueField.setEnabled(false);
+    		
+    	}
+    }
 	private void rangeComboActionPerformed(java.awt.event.ActionEvent evt)//GEN-FIRST:event_rangeComboActionPerformed
 	{//GEN-HEADEREND:event_rangeComboActionPerformed
 	doEnables();

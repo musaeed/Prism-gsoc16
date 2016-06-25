@@ -100,23 +100,29 @@ public class ParametricGraph extends Graph{
 
 	public void plotSeries(SeriesKey key){
 
-		Function func = functionCache.get(key);
+		new Thread(new Runnable() {
+			
+			@Override
+			public void run() {
+				
+				Function func = functionCache.get(key);
 
-		for (int i = 0; i < resolution; i++) {
+				for (int i = 0; i < resolution; i++) {
 
-			double val = (double) i / (double) resolution;
+					double val = (double) i / (double) resolution;
 
-			if(val < lowerBound || val > upperBound){
-				continue;
+					if(val < lowerBound || val > upperBound){
+						continue;
+					}
+
+					BigRational br = func.evaluate(new param.Point(new BigRational[] {new BigRational(i, resolution)}));
+					PrismXYDataItem di = new PrismXYDataItem(((double)i)/resolution, br.doubleValue());
+					addPointToSeries(key, di);
+				}
+
+				hideShapes();
 			}
-
-			BigRational br = func.evaluate(new param.Point(new BigRational[] {new BigRational(i, resolution)}));
-			PrismXYDataItem di = new PrismXYDataItem(((double)i)/resolution, br.doubleValue());
-			super.addPointToSeries(key, di);
-		}
-
-		hideShapes();
-
+		}).start();
 	}
 	
 	public void rePlot(){

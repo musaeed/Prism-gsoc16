@@ -122,8 +122,10 @@ public class GUIExperimentPicker extends javax.swing.JDialog
 		initValues(undef);
 		
 		//setResizable(false);
-		
-		pack();
+		if(isParam)
+			setSize(new Dimension(650, 500));
+		else
+			pack();
 		setLocationRelativeTo(getParent()); // centre
 	}
 	
@@ -308,16 +310,23 @@ public class GUIExperimentPicker extends javax.swing.JDialog
 		
 		for(int i = 0; i < undef.getMFNumUndefined(); i++)
 		{
-			ConstantLine line = new ConstantLine(undef.getMFUndefinedName(i), undef.getMFUndefinedType(i));
+			ConstantLine line = null;
 			
-			if(isParam){
+			if(isParam)
+				line = new ConstantLine(undef.getMFUndefinedName(i), undef.getMFUndefinedType(i),true);
+			else
+				line = new ConstantLine(undef.getMFUndefinedName(i), undef.getMFUndefinedType(i),false);
+			
+			if(isParam && i==0){
 				
-				line.singleValueField.setEditable(false);
+				line.isParametricOption.setSelected(true);
 				line.singleValueCombo.setEnabled(false);
-				line.stepValueField.setText("");
-				line.stepValueField.setToolTipText("doesn't matter for the parametric option!");
-				line.stepValueField.setEditable(false);
-				line.rangeCombo.doClick();
+				line.singleValueField.setEnabled(false);
+				line.stepValueField.setEnabled(false);
+				line.rangeCombo.setEnabled(true);
+				line.rangeCombo.setSelected(true);
+				line.startValueField.setEnabled(true);
+				line.endValueField.setEnabled(true);
 			}
 			
 			modelTable.addConstant(line);
@@ -487,8 +496,15 @@ public class GUIExperimentPicker extends javax.swing.JDialog
 								return;
 							}
 						}
+						
+						if(c.isParametricOption.isSelected()){
+							
+							undef.defineConstant(c.getName(), c.getStartValue(), c.getEndValue(), c.getStepValue(), false, true);
+						}
+						else{
 
-						undef.defineConstant(c.getName(), c.getStartValue(), c.getEndValue(), c.getStepValue());
+							undef.defineConstant(c.getName(), c.getStartValue(), c.getEndValue(), c.getStepValue());
+						}
 					}
 					else
 					{

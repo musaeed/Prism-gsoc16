@@ -353,7 +353,7 @@ public class UndefinedConstants
 			name = constSwitchNames.elementAt(i);
 
 			// define constant using info from switch
-			dupe = defineConstant(name, constSwitchLows.elementAt(i), constSwitchHighs.elementAt(i), constSwitchSteps.elementAt(i), useAll);
+			dupe = defineConstant(name, constSwitchLows.elementAt(i), constSwitchHighs.elementAt(i), constSwitchSteps.elementAt(i), useAll, false);
 
 			// check for duplication
 			if (dupe) {
@@ -447,7 +447,7 @@ public class UndefinedConstants
 	 */
 	public boolean defineConstant(String name, String val) throws PrismException
 	{
-		return defineConstant(name, val, null, null, false);
+		return defineConstant(name, val, null, null, false, false);
 	}
 
 	/** Define value for a single undefined constant.
@@ -464,7 +464,7 @@ public class UndefinedConstants
 	 */
 	public boolean defineConstant(String name, String sl, String sh, String ss) throws PrismException
 	{
-		return defineConstant(name, sl, sh, ss, false);
+		return defineConstant(name, sl, sh, ss, false, false);
 	}
 
 	/** Define value for a single undefined constant.
@@ -480,7 +480,7 @@ public class UndefinedConstants
 	 *  
 	 *  @return True if the constant was defined before.
 	 */
-	public boolean defineConstant(String name, String sl, String sh, String ss, boolean useAll) throws PrismException
+	public boolean defineConstant(String name, String sl, String sh, String ss, boolean useAll, boolean isParam) throws PrismException
 	{
 		int index = 0;
 		boolean overwrite = false; // did definition exist already?
@@ -491,7 +491,7 @@ public class UndefinedConstants
 		if (index != -1) {
 			// const is in modules file
 			overwrite = (mfConsts.get(index).isDefined());
-			mfConsts.get(index).define(sl, sh, ss);
+			mfConsts.get(index).define(sl, sh, ss, isParam);
 		} else {
 			index = getPFConstIndex(name);
 			if (index != -1) {

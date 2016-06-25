@@ -449,20 +449,35 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			showGraphDialog = true;
 		}
 		
+		ArrayList<DefinedConstant> consts = new ArrayList<DefinedConstant>();
+		int paramCount = 0;
+		for(DefinedConstant dcon : uCon.getMFDefinedConstants()){
+			
+			if(!dcon.isParametric()){
+				consts.add(dcon);
+			}
+			else
+				paramCount++;
+		}
+		
+		consts.addAll(uCon.getPFDefinedConstants());
+		
 		// the information of our params
-		String[] params = new String[uCon.getMFConstantValues().getNumValues()];
-		String[] lowerBounds = new String[uCon.getMFConstantValues().getNumValues()];
-		String[] upperBounds = new String[uCon.getMFConstantValues().getNumValues()];
+		String[] params = new String[paramCount];
+		String[] lowerBounds = new String[paramCount];
+		String[] upperBounds = new String[paramCount];
 		
 		int ii = 0;
 		
-		// set the values to be passed to the parameteric model checking engine
+		// set the values to be passed to the parametric model checking engine
 		for(DefinedConstant dcon : uCon.getMFDefinedConstants()){
 			
-			params[ii] = dcon.getName();
-			lowerBounds[ii] = dcon.getLow().toString();
-			upperBounds[ii++] = dcon.getHigh().toString();
-			
+			if(dcon.isParametric()){
+				params[ii] = dcon.getName();
+				lowerBounds[ii] = dcon.getLow().toString();
+				upperBounds[ii++] = dcon.getHigh().toString();
+				
+			}
 		}
 		
 		for(String pName : params){
@@ -482,27 +497,43 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 
 		notifyEventListeners(new GUIComputationEvent(GUIComputationEvent.COMPUTATION_START, this));
 		
-		for(int n = 0 ; n < uCon.getPFDefinedConstants().size() ; n++){
+		for(int n = 0 ; n < consts.size() ; n++){
 			
-			DefinedConstant def = uCon.getPFDefinedConstants().get(n);
-			
+			DefinedConstant def = consts.get(n);
 			String name = def.getName();
-			int low = (int)def.getLow();
-			int high = (int)def.getHigh();
-			int step = (int)def.getStep();
+			double low = new Double(def.getLow().toString());
+			double high = new Double(def.getHigh().toString());
+			double step = new Double(def.getStep().toString());
 			
 			// do parametric checking for each pf value as specified by the user and plot each chart on the same graph
 			
-			for(int iter = low ; iter <= high ; iter += step){
+			
+			
+			for(double iter = low ; iter <= high ; iter += step){
 				
 				try {
 
-					getPrism().setPRISMModelConstants(uCon.getMFConstantValues());
+
 					// we need to undefine the last pf value and then redefine it with the new value
-					uCon.getPFConstantValues().removeValue(name);
-					uCon.getPFConstantValues().addValue(name, iter);
-					//set the value in the prop file
-					parsedProperties.setUndefinedConstants(uCon.getPFConstantValues());
+					
+					if(uCon.getMFDefinedConstants().contains(def)){
+						
+						uCon.getMFConstantValues().removeValue(name);
+						uCon.getMFConstantValues().addValue(name, iter);
+						//set the value in the prop file
+						parsedProperties.setSomeUndefinedConstants(uCon.getMFConstantValues());
+					}
+					else{
+						
+						uCon.getPFConstantValues().removeValue(name);
+						uCon.getPFConstantValues().addValue(name, iter);
+						//set the value in the prop file
+						parsedProperties.setUndefinedConstants(uCon.getPFConstantValues());
+						
+					}
+					
+					
+					getPrism().setPRISMModelConstants(uCon.getMFConstantValues());
 					
 					//actual parametric checking
 					final Result res = getPrism().modelCheckParametric(parsedProperties, prop , params, lowerBounds, upperBounds);
@@ -513,7 +544,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 						return;
 					}
 					
-					final int temp = iter;
+					final double temp = iter;
 					final double lBound = Double.parseDouble(lowerBounds[0]);
 					final double uBound = Double.parseDouble(upperBounds[0]);
 					

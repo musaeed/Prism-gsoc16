@@ -51,6 +51,9 @@ public class DefinedConstant
 	private int numSteps;
 	/* Storage for a (temporary) value of the constant. */
 	private Object value;
+	
+	/**Flag for telling whether this constant is parametric or not*/
+	private boolean isParametric;
 
 	/** Creates a new instance of DefinedConstant
 	(which is initially undefined, bar a name and type). */
@@ -93,6 +96,13 @@ public class DefinedConstant
 		} else {
 			throw new PrismException("Unknown type for undefined constant " + name + "");
 		}
+	}
+	
+	public void define(String sl, String sh, String ss, boolean isParametric) throws PrismException
+	{
+		this.isParametric = isParametric;
+		define(sl, sh, ss);
+		
 	}
 	
 	public void defineInt(String sl, String sh, String ss) throws PrismException
@@ -378,6 +388,16 @@ public class DefinedConstant
 	public Object getStep() { return step; }
 	
 	public int getNumSteps() { return numSteps; }
+	
+	
+
+	public boolean isParametric() {
+		return isParametric;
+	}
+
+	public void setParametric(boolean isParametric) {
+		this.isParametric = isParametric;
+	}
 
 	/** Convert to string. */
 	/*  Note that the (temorary) value is not included here */

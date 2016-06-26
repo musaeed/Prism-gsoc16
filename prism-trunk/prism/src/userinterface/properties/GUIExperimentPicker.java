@@ -319,14 +319,12 @@ public class GUIExperimentPicker extends javax.swing.JDialog
 			
 			if(isParam && i==0){
 				
-				line.isParametricOption.setSelected(true);
-				line.singleValueCombo.setEnabled(false);
-				line.singleValueField.setEnabled(false);
-				line.stepValueField.setEnabled(false);
-				line.rangeCombo.setEnabled(true);
-				line.rangeCombo.setSelected(true);
-				line.startValueField.setEnabled(true);
-				line.endValueField.setEnabled(true);
+				line.isParametricOption.doClick();
+				System.out.println("this called");
+			}
+			else if(isParam && i!=0){
+				
+				line.paramOptionUnselected();
 			}
 			
 			modelTable.addConstant(line);

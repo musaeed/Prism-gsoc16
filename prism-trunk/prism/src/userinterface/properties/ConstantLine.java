@@ -169,23 +169,10 @@ public class ConstantLine extends javax.swing.JPanel
 	{
 		startValueField.setEnabled(true);
 		endValueField.setEnabled(true);
-		stepValueField.setEnabled(true);
+		if(!isParameteric)
+			stepValueField.setEnabled(true);
 		boolSingleValueCombo.setEnabled(false);
 		singleValueField.setEnabled(false);
-	}
-	
-	if(isParameteric){
-		
-
-    	singleValueCombo.setEnabled(true);
-		singleValueCombo.setSelected(true);
-		singleValueField.setEnabled(true);
-		stepValueField.setEnabled(true);
-		rangeCombo.setEnabled(false);
-		startValueField.setEnabled(false);
-		endValueField.setEnabled(false);
-		stepValueField.setEnabled(false);
-		
 	}
 	
 	}
@@ -451,27 +438,10 @@ public class ConstantLine extends javax.swing.JPanel
     private void isParametricOptionActionPerformed(ActionEvent e){
     	
     	if(isParametricOption.isSelected()){
-    		
-    		singleValueCombo.setEnabled(false);
-    		singleValueField.setEnabled(false);
-    		stepValueField.setEnabled(false);
-       		rangeCombo.setEnabled(true);
-    		rangeCombo.setSelected(true);
-       		startValueField.setEnabled(true);
-    		endValueField.setEnabled(true);
-    		
+    		paramOptionSelected();    		
     	}
     	else{
-    		
-    		singleValueCombo.setEnabled(true);
-    		singleValueCombo.setSelected(true);
-    		singleValueField.setEnabled(true);
-    		stepValueField.setEnabled(true);
-    		rangeCombo.setEnabled(false);
-    		startValueField.setEnabled(false);
-    		endValueField.setEnabled(false);
-    		stepValueField.setEnabled(false);
-    		
+    		paramOptionUnselected();
     	}
     }
 	private void rangeComboActionPerformed(java.awt.event.ActionEvent evt)//GEN-FIRST:event_rangeComboActionPerformed
@@ -484,6 +454,28 @@ public class ConstantLine extends javax.swing.JPanel
 	doEnables();
 	}//GEN-LAST:event_singleValueComboActionPerformed
 	
+	
+	public void paramOptionSelected(){
+		
+		singleValueCombo.setEnabled(false);
+		singleValueField.setEnabled(false);
+   		rangeCombo.setEnabled(true);
+		rangeCombo.setSelected(true);
+   		startValueField.setEnabled(true);
+		endValueField.setEnabled(true);
+		stepValueField.setEnabled(false);
+	}
+	
+	public void paramOptionUnselected(){
+
+		singleValueCombo.setEnabled(true);
+		singleValueCombo.setSelected(true);
+		singleValueField.setEnabled(true);
+		rangeCombo.setEnabled(false);
+		startValueField.setEnabled(false);
+		endValueField.setEnabled(false);
+		stepValueField.setEnabled(false);
+	}
 	
     // Variables declaration - do not modify//GEN-BEGIN:variables
     javax.swing.JComboBox boolSingleValueCombo;
@@ -498,6 +490,8 @@ public class ConstantLine extends javax.swing.JPanel
     javax.swing.JTextField stepValueField;
     javax.swing.JLabel typeLabel;
     // End of variables declaration//GEN-END:variables
+    
+    
 	
 	class BottomBorder implements javax.swing.border.Border
 	{

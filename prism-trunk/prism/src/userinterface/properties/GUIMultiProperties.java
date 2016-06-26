@@ -493,9 +493,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			graph.getXAxisSettings().setHeading(params[0]);
 			graph.getYAxisSettings().setHeading("probability");
 			
-		}
-
-		notifyEventListeners(new GUIComputationEvent(GUIComputationEvent.COMPUTATION_START, this));
+		}		
 		
 		for(int n = 0 ; n < consts.size() ; n++){
 			
@@ -526,7 +524,17 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 					else{
 						
 						uCon.getPFConstantValues().removeValue(name);
-						uCon.getPFConstantValues().addValue(name, iter);
+						
+						if(def.getLow() instanceof Integer){
+							
+							uCon.getPFConstantValues().addValue(name, (int)iter);
+						}
+						else if(def.getLow() instanceof Double){
+							
+							uCon.getPFConstantValues().addValue(name, iter);
+						}
+						
+	
 						//set the value in the prop file
 						parsedProperties.setUndefinedConstants(uCon.getPFConstantValues());
 						
@@ -571,7 +579,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 				} catch (PrismException e) {
 					
 					JOptionPane.showMessageDialog(getGUI(), e, "Error", JOptionPane.ERROR_MESSAGE);
-					
+					e.printStackTrace();
 				}
 				
 			}
@@ -582,10 +590,9 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			//finally done
 			setTaskBarText("Parametric... done");
 		}
-		
-		notifyEventListeners(new GUIComputationEvent(GUIComputationEvent.COMPUTATION_DONE, this));
 
 	}
+	
 	
 	public void experimentAfterParse()
 	{

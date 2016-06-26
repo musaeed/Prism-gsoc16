@@ -60,6 +60,7 @@ import userinterface.graph.Graph;
 import userinterface.graph.GraphException;
 import userinterface.graph.GraphOptions;
 import userinterface.graph.Histogram;
+import userinterface.graph.ParametricGraph;
 
 @SuppressWarnings("serial")
 public class GUIGraphHandler extends JPanel implements MouseListener
@@ -77,12 +78,12 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 	private Action graphOptions, zoomIn, zoomOut, zoomDefault;
 
 	private Action printGraph, deleteGraph;
-	private Action exportImageJPG, exportImagePNG, exportImageEPS, exportXML, exportMatlab;
+	private Action exportImageJPG, exportImagePNG, exportImageEPS, exportXML, exportMatlab, exportGnuplot;
 	private Action importXML;
 
 	private JMenu zoomMenu, exportMenu, importMenu;
 
-	private FileFilter pngFilter, jpgFilter, epsFilter, graFilter, matlabFilter;
+	private FileFilter pngFilter, jpgFilter, epsFilter, graFilter, matlabFilter, gnuplotFilter;
 
 	public GUIGraphHandler(JFrame parent, GUIPlugin plug, boolean canDelete)
 	{
@@ -99,6 +100,7 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		epsFilter = new FileNameExtensionFilter("Encapsulated PostScript files (*.eps)", "eps");
 		graFilter = new FileNameExtensionFilter("PRISM graph files (*.gra, *.xml)", "gra", "xml");
 		matlabFilter = new FileNameExtensionFilter("Matlab files (*.m)", "m");
+		gnuplotFilter = new FileNameExtensionFilter("GNU plot files (*gnuplot)", "gnuplot");
 
 		models = new ArrayList<ChartPanel>();
 		options = new ArrayList<GraphOptions>();
@@ -284,6 +286,42 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		exportMatlab.putValue(Action.MNEMONIC_KEY, new Integer(KeyEvent.VK_M));
 		exportMatlab.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallFileMatlab.png"));
 		exportMatlab.putValue(Action.LONG_DESCRIPTION, "Export graph as a Matlab file.");
+		
+		exportGnuplot = new AbstractAction() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				
+				if (plug.showSaveFileDialog(gnuplotFilter) != JFileChooser.APPROVE_OPTION)
+					return;
+				
+				ChartPanel mgm = models.get(theTabs.getSelectedIndex());
+				
+				try 
+				{
+					if(mgm instanceof Graph && !(mgm instanceof ParametricGraph)){
+						
+						((Graph)mgm).exportToGnuplot(plug.getChooserFile());
+					}
+					else if(mgm instanceof ParametricGraph){
+						
+						((ParametricGraph)mgm).exportToGnuplot(plug.getChooserFile());
+					}
+					else if(mgm instanceof Histogram){
+						((Histogram)mgm).exportToGnuplot(plug.getChooserFile());
+					}
+					
+					
+				} catch (IOException ex) {
+					plug.error("Could not export Gnuplot file:\n" + ex.getMessage());
+				}
+			}
+		};
+		
+		exportGnuplot.putValue(Action.NAME, "GNU Plot file(*.gnuplot)");
+		exportGnuplot.putValue(Action.MNEMONIC_KEY, new Integer(KeyEvent.VK_G));
+		exportGnuplot.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallgnuplot.png"));
+		exportGnuplot.putValue(Action.LONG_DESCRIPTION, "Export graph as a GNU plot file.");
 
 		printGraph = new AbstractAction()
 		{
@@ -354,6 +392,7 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		exportMenu.add(exportImageJPG);
 
 		exportMenu.add(exportMatlab);
+		exportMenu.add(exportGnuplot);
 
 		importMenu = new JMenu("Import graph");
 		importMenu.setMnemonic('I');

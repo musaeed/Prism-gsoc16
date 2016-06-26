@@ -165,8 +165,14 @@ public class GUIExperimentTable extends JTable
 						b.setValue(ge.getCurrentIterations());
 						b.setStringPainted(true);
 						b.setBackground(Color.white);
-						int percent = (int)((double)ge.getCurrentIterations()/(double)ge.getTotalIterations()*100.0);
-						b.setString(""+ge.getCurrentIterations()+"/"+ge.getTotalIterations()+" ("+percent+"%)");
+						if(ge.isUseSimulation()){
+							System.out.println("Current: " + ge.getCurrentIterations());
+							System.out.println("Total: " + ge.getTotalIterations());
+						}
+						else{
+							int percent = (int)((double)ge.getCurrentIterations()/(double)ge.getTotalIterations()*100.0);
+							b.setString(""+ge.getCurrentIterations()+"/"+ge.getTotalIterations()+" ("+percent+"%)");
+						}
 					}
 						// special case where there are 0 iterations
 					else 

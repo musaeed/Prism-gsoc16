@@ -38,6 +38,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.geom.Rectangle2D;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -53,6 +54,7 @@ import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JSpinner;
@@ -1211,6 +1213,11 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 		legendPosition.setEnabled(legendVisible.getBooleanValue());
 		legendFont.setEnabled(legendVisible.getBooleanValue());
 
+	}
+	
+	public void exportToGnuplot(File file){
+		
+		JOptionPane.showMessageDialog(this, "Not implemented yet for histograms");
 	}
 
 }

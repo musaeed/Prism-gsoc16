@@ -43,6 +43,7 @@ import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
@@ -72,6 +73,7 @@ import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYItemRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.chart.title.LegendTitle;
+import org.jfree.data.xy.XYDataItem;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
@@ -1433,6 +1435,21 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 		}
 	}
 	
+	public boolean checkErrorBarsExists(PrismXYSeries series){
+		
+		for(int i = 0 ; i < series.getItemCount() ; i++){
+			
+			PrismXYDataItem item = (PrismXYDataItem)series.getDataItem(i);
+			
+			if(item.getError() != 0.0){
+				return true;
+			}
+			
+		}
+		
+		return false;
+	}
+	
 	public void exportToGnuplot(File file) throws IOException{
 		
 		PrintWriter out = new PrintWriter(new FileWriter(file));
@@ -1445,6 +1462,8 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 		
 		out.println();
 		
+		
+		
 		synchronized (getSeriesLock()) 
 		{
 			out.println("set xrange [" + getChart().getXYPlot().getDomainAxis().getRange().getLowerBound() + 
@@ -1453,43 +1472,80 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 			out.println("set yrange [" + getChart().getXYPlot().getRangeAxis().getRange().getLowerBound() + 
 					":" + getChart().getXYPlot().getRangeAxis().getRange().getUpperBound()*1.5 + "]");
 			
+			out.println("set title " + "\"" + getChart().getTitle().getText() + "\"");
+			
 			out.println("set xlabel " + "\"" + getChart().getXYPlot().getDomainAxis().getLabel() + "\"");
 			
 			out.println("set ylabel " + "\"" + getChart().getXYPlot().getRangeAxis().getLabel() + "\"");
 			
 			out.println();
 			
-			for(int i = 0 ; i < getAllSeriesKeys().size() ; i++){
+			for(int i = getAllSeriesKeys().size()-1 ; i >= 0 ; i--){
 				
-				if(i==0){
+				if(i==getAllSeriesKeys().size()-1){
 					
-					XYSeries series = keyToSeries.get(getAllSeriesKeys().get(i));
-					out.print("plot '-' using 1:2 with linespoints title " + "\"" + series.getKey()  + "\"");
+					PrismXYSeries series = (PrismXYSeries)keyToSeries.get(getAllSeriesKeys().get(i));
+					
+					boolean errorExists = checkErrorBarsExists(series);
+					
+					if(errorExists){
+						out.print("plot '-' using 1:2:3 with yerrorbars notitle, \"\" using 1:2 with lines title " + "\"" 
+					+ series.getKey() + "\"");
+					}
+					else
+						out.print("plot '-' using 1:2 with linespoints title " + "\"" + series.getKey()  + "\"");
 				}
 				else{
 					
-					XYSeries series = keyToSeries.get(getAllSeriesKeys().get(i));
-					out.print(",\"\" using 1:2 with linespoints title " + "\"" + series.getKey() + "\"");
+					PrismXYSeries series = (PrismXYSeries)keyToSeries.get(getAllSeriesKeys().get(i));
+					
+					boolean errorExists = checkErrorBarsExists(series);
+					
+					if(errorExists){
+						
+						out.print(", \"\" using 1:2:3 with yerrorbars notitle, \"\" using 1:2 with lines title " + "\""
+					+ series.getKey() + "\"");
+						
+					}
+					else
+						out.print(",\"\" using 1:2 with linespoints title " + "\"" + series.getKey() + "\"");
 				}
 				
 			}
-			
+
 			out.println("\n");
-			
-			for(int i = 0 ; i < getAllSeriesKeys().size() ; i++){
+
+			for(int i = getAllSeriesKeys().size()-1 ; i >= 0 ; i--){
+
+				PrismXYSeries series = (PrismXYSeries)keyToSeries.get(getAllSeriesKeys().get(i));
+
+				boolean errorExists = checkErrorBarsExists(series);
+
+				if(errorExists){
+
+					out.println("#X	#Y	#Error");
+
+					for(int j = 0 ; j < series.getItemCount() ; j++){
+
+						PrismXYDataItem item = (PrismXYDataItem)series.getDataItem(j);
+
+						out.println(item.getXValue() + "	" + item.getYValue() + "  " + item.getError());
+
+					}
+
+					out.println("end series");
+				}
 				
-				XYSeries series = keyToSeries.get(getAllSeriesKeys().get(i));
-				
-				out.println("#X   #Y");
+				out.println("#X	#Y");
 				
 				for(int j = 0 ; j < series.getItemCount() ; j++){
 					
 					out.println(series.getX(j) + "	" + series.getY(j));
-					
+
 				}
-				
+
 				out.println("end series");
-				
+
 			}
 			
 		}

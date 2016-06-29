@@ -198,7 +198,7 @@ public class ParametricGraph extends Graph{
 			out.println("set yrange [" + getChart().getXYPlot().getRangeAxis().getRange().getLowerBound() + 
 					":" + getChart().getXYPlot().getRangeAxis().getRange().getUpperBound()*1.5 + "]");
 			
-			out.println("set title " + "\"" + getChart().getTitle() + "\"");
+			out.println("set title " + "\"" + getChart().getTitle().getText() + "\"");
 			
 			out.println("set xlabel " + "\"" + getChart().getXYPlot().getDomainAxis().getLabel() + "\"");
 			
@@ -216,7 +216,7 @@ public class ParametricGraph extends Graph{
 				else{
 					
 					XYSeries series = keyToSeries.get(getAllSeriesKeys().get(i));
-					out.print(",\"\" using 1:2 with linespoints title " + "\"" + series.getKey() + "\"");
+					out.print(",\"\" using 1:2 with lines title " + "\"" + series.getKey() + "\"");
 				}
 				
 			}

@@ -166,6 +166,7 @@ public class GUIExperimentTable extends JTable
 						b.setStringPainted(true);
 						b.setBackground(Color.white);
 						if(ge.isUseSimulation()){
+							
 							System.out.println("Current: " + ge.getCurrentIterations());
 							System.out.println("Total: " + ge.getTotalIterations());
 						}

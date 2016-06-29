@@ -32,6 +32,7 @@ import parser.*;
 import parser.ast.*;
 import parser.type.*;
 import prism.*;
+import simulator.method.SimulationMethod;
 import userinterface.*;
 
 import javax.swing.*;
@@ -57,6 +58,8 @@ public class GUIExperiment
 	private Values definedMFConstants;
 	private Values definedPFConstants;
 	private Result res;
+	
+	private SimulationMethod simMethod;
 
 	/** Creates a new instance of GUIExperiment */
 	public GUIExperiment(GUIExperimentTable table, GUIMultiProperties guiProp, PropertiesFile prop, UndefinedConstants cons, boolean useSimulation)
@@ -66,6 +69,7 @@ public class GUIExperiment
 		this.prop = prop;
 		this.cons = cons;
 		this.useSimulation = useSimulation;
+		this.simMethod = null;
 
 		results = new prism.ResultsCollection(cons, prop.getProperty(0).getResultName());
 	}
@@ -79,7 +83,12 @@ public class GUIExperiment
 
 	public int getCurrentIterations()
 	{
-		return results.getCurrentIteration();
+		/*if(isUseSimulation() && simMethod != null){
+			return 0;
+			//return simMethod.getProgress(results.getCurrentIteration(), prop.ge)
+		}
+		else*/
+			return results.getCurrentIteration();
 	}
 
 	public Vector<DefinedConstant> getRangingConstants()
@@ -293,9 +302,11 @@ public class GUIExperiment
 							} else {
 								initialState = new parser.State(info.getInitialState(), prism.getPRISMModel());
 							}
+							
+							simMethod = info.createSimulationMethod();
 							// do simulation
 							prism.modelCheckSimulatorExperiment(propertiesFile, undefinedConstants, results, propertyToCheck.getExpression(), initialState,
-									info.getMaxPathLength(), info.createSimulationMethod());
+									info.getMaxPathLength(), simMethod);
 							// update progress meter
 							// (all properties simulated simultaneously so can't get more accurate feedback at the moment anyway)
 							table.progressChanged();

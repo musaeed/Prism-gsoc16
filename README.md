@@ -11,6 +11,9 @@ Enhanced Graph Plotting And General GUI Improvements In Prism.
 * Week 4
 * ...
 
+# Features addded till now
+
+
 # Tracking issues
 * [Prism model checker bug tracking](https://sourceforge.net/p/prism-mc/bugs/)
 

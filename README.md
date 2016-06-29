@@ -13,6 +13,7 @@ Enhanced Graph Plotting And General GUI Improvements In Prism.
 
 # Features addded till now
 
+[list] (https://github.com/musaeed/Prism-gsoc16/blob/master/roadmap/completed_stuff.md)
 
 # Tracking issues
 * [Prism model checker bug tracking](https://sourceforge.net/p/prism-mc/bugs/)

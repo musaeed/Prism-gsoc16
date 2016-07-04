@@ -484,12 +484,17 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 			uCon.getMFConstantValues().removeValue(pName);
 		}
 		
-		final ParametricGraph graph = new ParametricGraph(gp.getPropString());
+		GUIGraphPicker picker = new GUIGraphPicker(getGUI(), this, graphHandler);
+		ParametricGraph graph = picker.getGraphModel();
+		
+		if(graph == null){
+			
+			return;
+		}
+//		final ParametricGraph graph = new ParametricGraph(gp.getPropString());
 		
 		//set graph properties
 		if(showGraphDialog){
-
-			getGraphHandler().addGraph(graph);
 			graph.getXAxisSettings().setHeading(params[0]);
 			graph.getYAxisSettings().setHeading("probability");
 			

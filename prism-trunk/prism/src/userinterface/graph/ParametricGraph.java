@@ -5,6 +5,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.HashMap;
+import java.util.Vector;
 
 import javax.swing.JOptionPane;
 
@@ -93,12 +94,25 @@ public class ParametricGraph extends Graph{
 
 	public void hideShapes(){
 
-		int seriesCount = super.getChart().getXYPlot().getDataset().getSeriesCount();
+		synchronized (getSeriesLock()) {	
+			
+			Vector<SeriesKey> keys = getAllSeriesKeys();	
 
-		for(int i = 0 ; i < seriesCount ; i++){
-			super.getErrorRenderer().setSeriesShapesVisible(i, false);
+			for(int i = 0 ; i < keys.size() ; i++){
+
+
+
+				if(!functionCache.containsKey(keys.get(i)))
+				{
+					getErrorRenderer().setSeriesShapesVisible(i, true);
+				}
+				else
+				{
+					getErrorRenderer().setSeriesShapesVisible(i, false);
+				}
+			}
+
 		}
-		
 	}
 
 	public void plotSeries(SeriesKey key){
@@ -131,11 +145,27 @@ public class ParametricGraph extends Graph{
 	public void rePlot(){
 		
 		for(SeriesKey key : getAllSeriesKeys()){
+			
+			if(functionCache.get(key) == null){
+				
+				continue;
+			}
+			
 			XYSeries series = super.keyToSeries.get(key);
 			series.clear();
 			plotSeries(key);
 		}
 		
+	}
+	
+	
+	
+
+	@Override
+	public void addPointToSeries(SeriesKey seriesKey, PrismXYDataItem dataItem) {
+		super.addPointToSeries(seriesKey, dataItem);
+		
+		hideShapes();
 	}
 
 	@Override

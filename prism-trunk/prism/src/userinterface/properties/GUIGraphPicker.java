@@ -28,11 +28,14 @@
 package userinterface.properties;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Vector;
 
 import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
+
+import org.jfree.chart.ChartPanel;
 
 import parser.Values;
 import parser.type.TypeInterval;
@@ -70,8 +73,9 @@ public class GUIGraphPicker extends javax.swing.JDialog
 
 	private static final int MAX_NUM_SERIES_BEFORE_QUERY = 11;
 
+	
 	/** Creates new form GUIGraphPicker 
-	 * 
+	 * 	@wbp.parser.constructor
 	 * @param parent The parent.
 	 * @param plugin The GUIPlugin (GUIMultiProperties)
 	 * @param experiment The experiment for which to plot a graph.
@@ -79,6 +83,7 @@ public class GUIGraphPicker extends javax.swing.JDialog
 	 * @param resultsKnown If true, simply plot existing results (experiment has been done). 
 	 * If false, attach listeners to the results such that plot is made when results become available.
 	 */
+
 	public GUIGraphPicker(GUIPrism parent, GUIPlugin plugin, GUIExperiment experiment, GUIGraphHandler graphHandler, boolean resultsKnown)
 	{
 		super(parent, true);
@@ -225,6 +230,72 @@ public class GUIGraphPicker extends javax.swing.JDialog
 			}
 		}
 	}
+	
+	public GUIGraphPicker(GUIPrism parent, GUIPlugin plugin, GUIGraphHandler graphHandler) {
+		
+		super(parent, true);
+		setTitle("New Graph Series");
+
+		this.gui = parent;
+		this.plugin = plugin;
+
+		this.experiment = null;
+		this.graphHandler = graphHandler;
+		this.resultsCollection = null;
+
+		// graphCancelled will be set explicitly to false when the OK button is pressed
+		// (this means if the user closes the dialog, this counts as a cancel)
+		this.graphCancelled = true;
+
+		this.multiSeries = new Vector<DefinedConstant>();
+
+		initComponents();
+		setResizable(false);
+
+		initParametric();
+		setLocationRelativeTo(getParent()); // centre
+		getRootPane().setDefaultButton(lineOkayButton);
+
+		/* Wait untill OK or Cancel is pressed. */
+		setVisible(true);
+	}
+	
+	private void initParametric()
+	{
+		setTitle("Graph options");
+		this.selectAxisConstantCombo.setEnabled(false);
+		this.seriesNameField.setEnabled(false);
+		this.seriesNameField.setBackground(this.getBackground());
+
+		// default graph option is "new graph"
+		this.newGraphRadio.setSelected(true);
+
+		// add existing graphs to choose from
+		for (int i = 0; i < graphHandler.getNumModels(); i++) {
+
+			if(graphHandler.getModel(i) instanceof ParametricGraph)
+				existingGraphCombo.addItem(graphHandler.getGraphName(i));
+
+		}
+		// default to latest one
+		if (existingGraphCombo.getItemCount() > 0) {
+			existingGraphCombo.setSelectedIndex(existingGraphCombo.getItemCount() - 1);
+		}
+		// if there are no graphs, disable control
+		else {
+			existingGraphCombo.setEnabled(false);
+			this.existingGraphRadio.setEnabled(false);
+		}
+
+		// create a default series name
+		resetAutoSeriesName();
+
+		// other enables/disables
+		doEnables();
+
+		pack();
+		
+	}
 
 	/** According to what is stored in 'rc', set up the table to pick the constants
 	 */
@@ -276,7 +347,7 @@ public class GUIGraphPicker extends javax.swing.JDialog
 		// add existing graphs to choose from
 		for (int i = 0; i < graphHandler.getNumModels(); i++) {
 			
-			if(graphHandler.getModel(i) instanceof Graph && !(graphHandler.getModel(i) instanceof ParametricGraph))
+			if(graphHandler.getModel(i) instanceof Graph )
 				existingGraphCombo.addItem(graphHandler.getGraphName(i));
 			
 		}
@@ -348,6 +419,10 @@ public class GUIGraphPicker extends javax.swing.JDialog
 		}
 		this.seriesNameLabel.setEnabled(true);
 		this.seriesNameField.setEnabled(true);
+	}
+	
+	public ParametricGraph getGraphModel(){
+		return (ParametricGraph)graphModel;
 	}
 
 	/** This method is called from within the constructor to
@@ -589,6 +664,33 @@ public class GUIGraphPicker extends javax.swing.JDialog
 
 	private void lineOkayButtonActionPerformed(java.awt.event.ActionEvent evt)
 	{
+		
+		// this is for the parametric case, getselecteditem will be null then
+		if(selectAxisConstantCombo.getSelectedItem() == null){
+			
+			if (newGraphRadio.isSelected()) {
+				/* Make new graph. */
+				graphModel = new ParametricGraph("");
+				graphHandler.addGraph(graphModel);
+				
+			} else {
+				/* Add to an existing graph. */
+				
+				if(!(graphHandler.getModel(existingGraphCombo.getSelectedItem().toString()) instanceof ParametricGraph)){
+					graphModel = null;
+					return;
+				}
+				
+				graphModel = (Graph)graphHandler.getModel(existingGraphCombo.getSelectedItem().toString());
+			}
+			
+			graphCancelled = false;
+			setVisible(false);
+		
+			return;
+		}
+		
+		
 		int numSeries = 1;
 
 		// see which constant is on x axis

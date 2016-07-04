@@ -52,6 +52,7 @@ import simulator.method.CIiterations;
 import simulator.method.CIwidth;
 import simulator.method.SPRTMethod;
 import simulator.method.SimulationMethod;
+import userinterface.graph.SeriesKey;
 
 // prism - command line version
 
@@ -80,6 +81,7 @@ public class PrismCL implements PrismModelListener
 	private boolean exportbsccs = false;
 	private boolean exportmecs = false;
 	private boolean exportresults = false;
+	private boolean exportplot = false;
 	private boolean exportresultsmatrix = false;
 	private String exportResultsFormat = "plain";
 	private boolean exportPlainDeprecated = false;
@@ -97,6 +99,9 @@ public class PrismCL implements PrismModelListener
 	private boolean nobuild = false;
 	private boolean test = false;
 	private boolean testExitsOnFail = true;
+	
+	//for exporting the plots
+	private String exportPlotFormat = "jpg";
 
 	// property info
 	private Object propertyToCheck = null;
@@ -139,6 +144,7 @@ public class PrismCL implements PrismModelListener
 	private String exportTransientFilename = null;
 	private String exportStratFilename = null;
 	private String simpathFilename = null;
+	private String exportPlotFilename = null;
 
 	// logs
 	private PrismLog mainLog = null;
@@ -489,6 +495,25 @@ public class PrismCL implements PrismModelListener
 				}
 			}
 			tmpLog.close();
+		}
+		
+		// export the results as plots if the user requests
+		if(exportplot){
+			
+			PlotsExporter exporter = new PlotsExporter(exportPlotFormat, exportPlotFilename);
+			mainLog.print("Exporting plots :");
+			mainLog.println(" to file \"" + exportPlotFilename + "\"");
+			
+			
+			
+			for(i = 0 ; i < numPropertiesToCheck ; i++){
+				
+				SeriesKey key = exporter.addSeries();	
+				results[i].exportPlot(exporter, key);
+				
+			}
+
+			System.exit(1);
 		}
 
 		// close down
@@ -1258,6 +1283,47 @@ public class PrismCL implements PrismModelListener
 					} else {
 						errorAndExit("No file/options specified for -" + sw + " switch");
 					}
+				}
+				else if(sw.equals("exportplot")){
+					
+					if (i < args.length - 1) {
+						exportplot = true;
+						// Parse filename/options
+						s = args[++i];
+						// Assume use of : to split filename/options but check for , if : not found
+						// (this was the old notation)
+						String halves[] = splitFilesAndOptions(s);
+						if (halves[1].length() == 0 && halves[0].indexOf(',') > -1) {
+							int comma = halves[0].indexOf(',');
+							halves[1] = halves[0].substring(comma + 1);
+							halves[0] = halves[0].substring(0, comma);
+						}
+						exportPlotFilename = halves[0];
+						String ss[] = halves[1].split(",");
+						exportPlotFormat = "jpg";
+						
+						for (j = 0; j < ss.length; j++) {
+							if (ss[j].equals("")) {
+							} 
+							else if (ss[j].equals("jpg"))
+								exportPlotFormat = "jpg";
+							else if (ss[j].equals("png"))
+								exportPlotFormat = "png";
+							else if (ss[j].equals("gra"))
+								exportPlotFormat = "gra";
+							else if (ss[j].equals("eps"))
+								exportPlotFormat = "eps";
+							else if(ss[j].equals("matlab"))
+								exportPlotFormat = "matlab";
+							else if(ss[j].equals("gnuplot"))
+								exportPlotFormat = "gnuplot";
+							else
+								errorAndExit("Unknown option \"" + ss[j] + "\" for -" + sw + " switch");
+						}
+					} else {
+						errorAndExit("No file/options specified for -" + sw + " switch");
+					}
+					
 				}
 				// export model to explicit file(s)
 				else if (sw.equals("exportmodel")) {

@@ -83,11 +83,11 @@ public class GUIExperiment
 
 	public int getCurrentIterations()
 	{
-		/*if(isUseSimulation() && simMethod != null){
+		if(isUseSimulation() && simMethod != null){
 			return 0;
 			//return simMethod.getProgress(results.getCurrentIteration(), prop.ge)
 		}
-		else*/
+		else
 			return results.getCurrentIteration();
 	}
 

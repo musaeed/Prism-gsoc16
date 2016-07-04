@@ -28,9 +28,11 @@
 
 package prism;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Vector;
 
-import parser.*;
+import parser.Values;
+import userinterface.graph.SeriesKey;
 
 /**
  * This class stores the results of experiments. It should be unaware what is being done with the results,
@@ -309,6 +311,14 @@ public class ResultsCollection
 		return exporter;
 	}
 	
+	public PlotsExporter exportPlot(PlotsExporter exporter, SeriesKey key){
+		
+		exporter.start();
+		root.exportPlot(exporter, key);
+		exporter.end();
+		return exporter;
+	}
+	
 	/**
 	 * Create string representation of the data for a partial evaluation
 	 * @param partial Values for a subset of the constants
@@ -505,6 +515,10 @@ public class ResultsCollection
 		{
 			exportRec(new Values(), export);
 		}
+		
+		public void exportPlot(PlotsExporter export, SeriesKey key){
+			exportPlotRec(new Values(), export, key);
+		}
 
 		public String toStringRec(boolean pv, String sep, String eq, String head)
 		{
@@ -532,6 +546,15 @@ public class ResultsCollection
 			for (int i = 0; i < n; i++) {
 				values.setValue(constant.getName(), constant.getValue(i));
 				kids[i].exportRec(values, export);
+			}
+		}
+		
+		public void exportPlotRec(Values values, PlotsExporter export, SeriesKey key)
+		{
+			int n = constant.getNumSteps();
+			for (int i = 0; i < n; i++) {
+				values.setValue(constant.getName(), constant.getValue(i));
+				kids[i].exportPlotRec(values, export, key);
 			}
 		}
 		
@@ -683,6 +706,11 @@ public class ResultsCollection
 		public void exportRec(Values values, ResultsExporter export)
 		{
 			export.exportResult(values, val);
+		}
+		
+		public void exportPlotRec(Values values, PlotsExporter export, SeriesKey key)
+		{
+			export.exportResult(values, val, key);
 		}
 		
 		public String toStringPartialRec(Values partial, boolean first, boolean pv, String sep, String eq, String head)

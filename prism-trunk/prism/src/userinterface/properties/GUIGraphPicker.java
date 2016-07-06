@@ -739,7 +739,8 @@ public class GUIGraphPicker extends javax.swing.JDialog
 
 		if (newGraphRadio.isSelected()) {
 			/* Make new graph. */
-			graphModel = new Graph();
+			//graphModel = new Graph();
+			graphModel = new ParametricGraph("");
 			graphHandler.addGraph(graphModel);
 
 			graphModel.getYAxisSettings().setHeading(resultsCollection.getResultName());

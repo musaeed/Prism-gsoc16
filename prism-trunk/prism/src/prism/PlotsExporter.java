@@ -29,6 +29,8 @@ package prism;
 import java.io.File;
 import java.io.IOException;
 
+import param.BigRational;
+import param.RegionValues;
 import parser.Values;
 import userinterface.graph.Graph;
 import userinterface.graph.GraphException;
@@ -39,10 +41,11 @@ import userinterface.graph.SeriesKey;
 
 public class PlotsExporter {
 
-	ParametricGraph graph;
-	PlotsExportFormat format;
-	File file;
-
+	private ParametricGraph graph;
+	private PlotsExportFormat format;
+	private File file;
+	private boolean isParametric;
+	
 	public enum PlotsExportFormat{
 		JPG,PNG,MATLAB,GNUPLOT,EPS,GRA;
 
@@ -92,6 +95,7 @@ public class PlotsExporter {
 		setFormatByName(format);
 		file = new File(filename);
 		graph = new ParametricGraph("");
+		isParametric = false;
 	}
 	
 	public void setFormatByName(String formatName)
@@ -114,9 +118,39 @@ public class PlotsExporter {
 	
 	public void exportResult(final Values values, final Object result, SeriesKey key){
 		
-		double xVal, yVal;
+		// parametric case
+		if(result instanceof RegionValues){
+			
+			isParametric = true;
+			RegionValues vals = (RegionValues) result;
+			param.Function f = vals.getResult(0).getInitStateValueAsFunction();
+			PrismXYSeries series = (PrismXYSeries)graph.getXYSeries(key);
+			
+			graph.addFunction(key, f);
+			
+			for (int i = 0; i < 100; i++) {
+
+				double val = (double) i / (double) 100;
+
+				if(val < 0.0 || val > 1.0){
+					continue;
+				}
+
+				BigRational br = f.evaluate(new param.Point(new BigRational[] {new BigRational(i, 100)}));
+				PrismXYDataItem di = new PrismXYDataItem(((double)i)/100, br.doubleValue());
+				series.addOrUpdate(di);
+			}
+			
+			graph.hideShapes();
+			
+			return;
+		}
+		
+		//normal case
+		double xVal, yVal=0.0, error = 0.0;
 		
 		try {
+			
 			xVal = values.getDoubleValue(0);
 			
 		} catch (PrismLangException e) {
@@ -124,15 +158,29 @@ public class PlotsExporter {
 			return;
 		}
 		
-		yVal = (double) result;
+		if(result instanceof Double){
+			
+			yVal = (double) result;
+		}
+		else if(result instanceof Pair<?, ?>){
+			
+			Pair<Double, Double> pair = (Pair<Double, Double>) result;
+			yVal = pair.first;
+			error = pair.second;
+		}
+		else{
+			System.out.println(result.getClass());
+		}
+		
+		
 		
 		PrismXYSeries series = (PrismXYSeries)graph.getXYSeries(key);
-		series.addOrUpdate(new PrismXYDataItem(xVal, yVal));
+		PrismXYDataItem item = new PrismXYDataItem(xVal, yVal, error);
+		series.addOrUpdate(item);
 
 	}
 	
 	public void end(){
-		
 		
 		switch(format){
 		
@@ -178,10 +226,16 @@ public class PlotsExporter {
 		case GNUPLOT:
 			
 			try {
-				graph.exportToGnuplot(file);
+				if(isParametric)
+					graph.exportToGnuplotParametric(file);
+				else{
+					
+					graph.exportToGnuplot(file);
+				}
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
+			
 			break;
 		
 		case MATLAB:

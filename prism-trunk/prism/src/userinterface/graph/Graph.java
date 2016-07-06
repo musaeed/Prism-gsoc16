@@ -137,7 +137,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	 * Allows us to batch graph points (JFreeChart is not realtime). (Make sure
 	 * to synchronize on seriesCollection)
 	 */
-	private HashMap<SeriesKey, LinkedList<PrismXYDataItem>> graphCache;
+	protected HashMap<SeriesKey, LinkedList<PrismXYDataItem>> graphCache;
 
 	/**
 	 * Allows us to render errors on the graph

@@ -218,6 +218,17 @@ public class PrismCL implements PrismModelListener
 			}
 			errorAndExit(e.getMessage() + ".\nTip: Try using the -cuddmaxmem switch to increase the memory available to CUDD");
 		}
+		
+	/*	java.util.Map<Thread, StackTraceElement[]> map = Thread.getAllStackTraces();
+		  
+		for (java.util.Iterator itr = map.keySet().iterator(); itr.hasNext();itr.next())  {
+		Thread thread = (Thread)itr.next();
+		System.out.println(thread.getName() +" --> "+ thread.isDaemon());
+		StackTraceElement[] stackTraceElements = map.get(thread);
+		for (int i = 0; i < stackTraceElements.length; i++) {
+		System.out.println(stackTraceElements[i]);
+		}
+		}*/
 	}
 
 	/**
@@ -501,8 +512,8 @@ public class PrismCL implements PrismModelListener
 		if(exportplot){
 			
 			PlotsExporter exporter = new PlotsExporter(exportPlotFormat, exportPlotFilename);
-			mainLog.print("Exporting plots :");
-			mainLog.println(" to file \"" + exportPlotFilename + "\"");
+			mainLog.print("Exporting plot");
+			mainLog.println(" to file :\"" + exportPlotFilename + "\"");
 			
 			
 			
@@ -512,8 +523,10 @@ public class PrismCL implements PrismModelListener
 				results[i].exportPlot(exporter, key);
 				
 			}
-
-			System.exit(1);
+			
+			//TODO don't know why doesn't exit without system.exit 
+			closeDown();
+			System.exit(0);
 		}
 
 		// close down
@@ -2512,6 +2525,7 @@ public class PrismCL implements PrismModelListener
 				System.out.println("Failed to launch Nailgun server: " + e);
 			}
 		}
+
 	}
 }
 

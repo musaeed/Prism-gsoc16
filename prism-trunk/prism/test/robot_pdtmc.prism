@@ -1,0 +1,33 @@
+// pdtmc model of robot moving through terrain that is divided up into a 3×2 grid
+dtmc
+
+// parameters
+const double p;
+const double q;
+
+module robot
+
+	s : [0..5];
+
+	[] s=0 -> 0.2 : (s'=0) + 0.4-p : (s'=1) + 0.4 : (s'=3) + p : (s'=4);
+	[] s=1 -> q : (s'=2) + 1-q : (s'=4);
+	[] s=2 -> 1 : (s'=2);
+	[] s=3 -> 1 : (s'=3);
+	[] s=4 -> 0.35-p : (s'=3) + 0.15+p : (s'=4) + 0.5 : (s'=5);
+	[] s=5 -> 0.45 : (s'=2) + 0.5 : (s'=4) + 0.05 : (s'=5);
+
+endmodule
+
+// atomic propositions labelling states
+label "hazard" = s=1;
+label "goal1" = s=5;
+label "goal2" = s=2|s=3;
+
+// reward structure
+rewards "r1"
+	[] true : 1; 
+endrewards
+
+rewards "r2" 
+	s=1 : 1; 
+endrewards

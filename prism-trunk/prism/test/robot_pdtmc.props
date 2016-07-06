@@ -1,0 +1,2 @@
+// the probability of reaching goal 2 before goal 1
+P=? [ !"goal1" U "goal2" ]

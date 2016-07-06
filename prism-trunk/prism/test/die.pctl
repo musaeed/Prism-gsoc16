@@ -1,0 +1,6 @@
+const int x;
+
+P=? [ F s=7&d=x ]
+
+P=? [F<=1000 s=7&d=x]
+

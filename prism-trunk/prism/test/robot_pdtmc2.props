@@ -1,0 +1,4 @@
+const int k;
+
+// the probability of reaching goal 2 before goal 1
+P=? [ !"goal1" U s=k ]

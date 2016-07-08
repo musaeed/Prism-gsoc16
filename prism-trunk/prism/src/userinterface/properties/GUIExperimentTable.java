@@ -167,8 +167,7 @@ public class GUIExperimentTable extends JTable
 						b.setBackground(Color.white);
 						if(ge.isUseSimulation()){
 							
-							System.out.println("Current: " + ge.getCurrentIterations());
-							System.out.println("Total: " + ge.getTotalIterations());
+							//TODO the simulation problem still not fixed
 						}
 						else{
 							int percent = (int)((double)ge.getCurrentIterations()/(double)ge.getTotalIterations()*100.0);

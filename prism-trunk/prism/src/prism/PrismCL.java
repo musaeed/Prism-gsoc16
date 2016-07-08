@@ -1313,10 +1313,12 @@ public class PrismCL implements PrismModelListener
 						}
 						exportPlotFilename = halves[0];
 						String ss[] = halves[1].split(",");
-						exportPlotFormat = "jpg";
+						exportPlotFormat = "";
+						
 						
 						for (j = 0; j < ss.length; j++) {
 							if (ss[j].equals("")) {
+								exportPlotFormat = null;
 							} 
 							else if (ss[j].equals("jpg"))
 								exportPlotFormat = "jpg";
@@ -1326,8 +1328,8 @@ public class PrismCL implements PrismModelListener
 								exportPlotFormat = "gra";
 							else if (ss[j].equals("eps"))
 								exportPlotFormat = "eps";
-							else if(ss[j].equals("matlab"))
-								exportPlotFormat = "matlab";
+							else if(ss[j].equals("m"))
+								exportPlotFormat = "m";
 							else if(ss[j].equals("gnuplot"))
 								exportPlotFormat = "gnuplot";
 							else

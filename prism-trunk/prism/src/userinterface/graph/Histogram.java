@@ -1230,14 +1230,57 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 		
 		out.println();
 		
+		out.println("set xtics rotate out");
+		out.println("set auto x");
+		out.println("set yrange " + "[0:" +getChart().getXYPlot().getRangeAxis().getRange().getUpperBound()*1.2 + "]");
+		out.println("set style data histogram");
+		out.println("set style fill solid border");
+		out.println("set style histogram clustered");
+		out.println("set boxwidth 3");
+		
+		
 		synchronized (getSeriesLock()) {
 			
+			for(int i = 0 ; i < getChart().getXYPlot().getSeriesCount() ; i++){
+				
+				if(i==0)
+					out.print("plot '-' using 2:xticlabels(1)");
+				else
+					out.print(", '-' using 2:xticlabels(1)");
+			}
+			
+			out.println();
+			out.println();
+			
+			for(int i = 0 ; i < getAllSeriesKeys().size() ; i++){
+				
+				XYIntervalSeries series = keyToSeries.get(getAllSeriesKeys().get(i));
+				
+				out.println("max	" + series.getKey());
+				
+				for(int j = 0 ; j < series.getItemCount() ; j++){
+
+					XYIntervalDataItem item = (XYIntervalDataItem)series.getDataItem(j);
+					
+					double x = item.getXHighValue();
+					x = x*100;
+					x = Math.round(x);
+					x = x /100;
+
+					out.println( x + "	" + item.getYValue());
+
+				}
+				
+				out.println("end series");
+				out.println();
+			}
+	
 		}
 		
 		out.println();
 		out.println("pause -1");
+		
 		out.flush();
 		out.close();
 	}
-
 }

@@ -100,7 +100,7 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		epsFilter = new FileNameExtensionFilter("Encapsulated PostScript files (*.eps)", "eps");
 		graFilter = new FileNameExtensionFilter("PRISM graph files (*.gra, *.xml)", "gra", "xml");
 		matlabFilter = new FileNameExtensionFilter("Matlab files (*.m)", "m");
-		gnuplotFilter = new FileNameExtensionFilter("GNU plot files (*gnuplot)", "gnuplot");
+		gnuplotFilter = new FileNameExtensionFilter("GNU plot files (*gnuplot , *.gplot , *.gp , *.plt , *.gpi)", "gnuplot");
 
 		models = new ArrayList<ChartPanel>();
 		options = new ArrayList<GraphOptions>();

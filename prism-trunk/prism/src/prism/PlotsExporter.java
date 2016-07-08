@@ -41,10 +41,19 @@ import userinterface.graph.SeriesKey;
 
 public class PlotsExporter {
 
+	// even the simple graphs are parametric type so thats why here is parametricgraph used instead of just graph
 	private ParametricGraph graph;
+	//the format the graph has to be exported in
 	private PlotsExportFormat format;
+	//the file where data has to be written
 	private File file;
+	//is the graph parametric or simple?
 	private boolean isParametric;
+	
+	/**
+	 * The supported formats for exporting the plots from the command line
+	 * @author Muhammad Omer Saeed
+	 */
 	
 	public enum PlotsExportFormat{
 		JPG,PNG,MATLAB,GNUPLOT,EPS,GRA;
@@ -70,6 +79,11 @@ public class PlotsExporter {
 			}
 		}
 
+		/**
+		 * For parsing the format given as a string to PlotExportFormat enumeration
+		 * @param formatName the format in string
+		 * @return the enum corresponding to the format
+		 */
 		public static PlotsExportFormat parse(String formatName){
 
 			switch(formatName){
@@ -78,9 +92,13 @@ public class PlotsExporter {
 				return PlotsExportFormat.JPG;
 			case "png":
 				return PlotsExportFormat.PNG;
-			case "matlab":
+			case "m":
 				return PlotsExportFormat.MATLAB;
 			case "gnuplot":
+			case "gplot":
+			case "gpi":
+			case "plt":
+			case "gp":	
 				return PlotsExportFormat.GNUPLOT;
 			case "gra":
 				return PlotsExportFormat.GRA;
@@ -91,15 +109,28 @@ public class PlotsExporter {
 		}
 	}
 	
-	public PlotsExporter(String format, String filename){
+	/**
+	 * Constructor for the plot exporter
+	 * @param format format of the plot to be exported. Can be null in which case it will be deduced
+	 * @param filename
+	 */
+	public PlotsExporter(String format, String filename)
+	{
 		setFormatByName(format);
 		file = new File(filename);
 		graph = new ParametricGraph("");
 		isParametric = false;
 	}
 	
+	/**
+	 * Set the format by giving a string format
+	 * @param formatName
+	 */
 	public void setFormatByName(String formatName)
 	{
+		if(formatName == null){
+			return;
+		}
 		setFormat(PlotsExportFormat.parse(formatName));
 	}
 	
@@ -107,15 +138,28 @@ public class PlotsExporter {
 		this.format = format;
 	}
 	
+	/**
+	 * add a new series to the current graph
+	 * @return the serieskey
+	 */
 	public SeriesKey addSeries(){
 		
 		return graph.addSeries("New series");
 	}
 
+	/**
+	 * nothing to do in the start as of now
+	 */
 	public void start(){
 		//TODO
 	}
 	
+	/**
+	 * add the data to the graphs and set the corresponding properties depending if the graph is parametric or not
+	 * @param values x data
+	 * @param result y data and possibly error data too
+	 * @param key the key to which series the data has to be added
+	 */
 	public void exportResult(final Values values, final Object result, SeriesKey key){
 		
 		// parametric case
@@ -180,7 +224,28 @@ public class PlotsExporter {
 
 	}
 	
+	/**
+	 * Deduce the format of the export plot if not given by user. Default: jpg
+	 */
+	public void deduceFormat(){
+		
+		String filename = file.getName();
+		String ext = filename.substring(filename.indexOf('.')+1);
+		
+		setFormat(PlotsExportFormat.parse(ext));
+		
+		
+	}
+	
+	/**
+	 * After all the data has been added to the plots, write the data to the specified file
+	 */
 	public void end(){
+		
+		// if not format provided, deduce!
+		if(format == null){
+			deduceFormat();
+		}
 		
 		switch(format){
 		

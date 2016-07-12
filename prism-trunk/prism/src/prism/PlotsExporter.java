@@ -28,6 +28,7 @@ package prism;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.StringTokenizer;
 
 import param.BigRational;
 import param.RegionValues;
@@ -35,6 +36,7 @@ import parser.Values;
 import userinterface.graph.Graph;
 import userinterface.graph.GraphException;
 import userinterface.graph.ParametricGraph;
+import userinterface.graph.PrismErrorRenderer;
 import userinterface.graph.PrismXYDataItem;
 import userinterface.graph.PrismXYSeries;
 import userinterface.graph.SeriesKey;
@@ -49,6 +51,13 @@ public class PlotsExporter {
 	private File file;
 	//is the graph parametric or simple?
 	private boolean isParametric;
+	
+	//different export options
+	int width;
+	int height;
+	int errorType;
+	int samplingRate;
+	
 	
 	/**
 	 * The supported formats for exporting the plots from the command line
@@ -120,6 +129,12 @@ public class PlotsExporter {
 		file = new File(filename);
 		graph = new ParametricGraph("");
 		isParametric = false;
+		
+		//set default options
+		width = 800;
+		height = 500;
+		errorType = PrismErrorRenderer.ERRORDEVIATION;
+		samplingRate = 100;
 	}
 	
 	/**
@@ -128,7 +143,7 @@ public class PlotsExporter {
 	 */
 	public void setFormatByName(String formatName)
 	{
-		if(formatName == null){
+		if(formatName == null || formatName.equals("")){
 			return;
 		}
 		setFormat(PlotsExportFormat.parse(formatName));
@@ -172,16 +187,16 @@ public class PlotsExporter {
 			
 			graph.addFunction(key, f);
 			
-			for (int i = 0; i < 100; i++) {
+			for (int i = 0; i < samplingRate; i++) {
 
-				double val = (double) i / (double) 100;
+				double val = (double) i / (double) samplingRate;
 
 				if(val < 0.0 || val > 1.0){
 					continue;
 				}
 
-				BigRational br = f.evaluate(new param.Point(new BigRational[] {new BigRational(i, 100)}));
-				PrismXYDataItem di = new PrismXYDataItem(((double)i)/100, br.doubleValue());
+				BigRational br = f.evaluate(new param.Point(new BigRational[] {new BigRational(i, samplingRate)}));
+				PrismXYDataItem di = new PrismXYDataItem(((double)i)/samplingRate, br.doubleValue());
 				series.addOrUpdate(di);
 			}
 			
@@ -232,9 +247,51 @@ public class PlotsExporter {
 		String filename = file.getName();
 		String ext = filename.substring(filename.indexOf('.')+1);
 		
-		setFormat(PlotsExportFormat.parse(ext));
+		setFormat(PlotsExportFormat.parse(ext));	
+	}
+	
+	/**
+	 * Parse and set the options if given by the user. If not, keep the defaults
+	 * @param option the options to be parsed
+	 */
+	public void parseOptions(String option){
 		
-		
+		// tokenize using the '=' sign
+		StringTokenizer tokens = new StringTokenizer(option, "=");
+
+		try{
+
+			switch(tokens.nextToken()){
+
+			case "height":
+				height = Integer.parseInt(tokens.nextToken());
+				break;
+			case "width":
+				width = Integer.parseInt(tokens.nextToken());
+				break;
+			case "sr":
+				samplingRate = Integer.parseInt(tokens.nextToken());
+				break;
+			case "errortype":
+				
+				String type = tokens.nextToken();
+				
+				if(type.equalsIgnoreCase("deviation")){
+					errorType = PrismErrorRenderer.ERRORDEVIATION;
+				}
+				else if(type.equalsIgnoreCase("errorbars")){
+					errorType = PrismErrorRenderer.ERRORBARS;
+				}
+				
+				break;
+
+			}
+			
+		} catch(NumberFormatException e){
+			
+			System.out.println("Invalid format of options given.");
+			e.printStackTrace();
+		}
 	}
 	
 	/**
@@ -243,7 +300,7 @@ public class PlotsExporter {
 	public void end(){
 		
 		// if not format provided, deduce!
-		if(format == null){
+		if(format == null || format.equals("")){
 			deduceFormat();
 		}
 		
@@ -252,7 +309,8 @@ public class PlotsExporter {
 		case JPG:
 			try {
 				
-				Graph.exportToJPEG(file, graph.getChart(), 800, 500);
+				graph.getErrorRenderer().setCurrentMethod(errorType);
+				Graph.exportToJPEG(file, graph.getChart(), width, height);
 			
 			} catch (GraphException | IOException e) {
 				e.printStackTrace();
@@ -263,7 +321,8 @@ public class PlotsExporter {
 			
 			try {
 				
-				Graph.exportToPNG(file, graph.getChart(), 800, 500, false);
+				graph.getErrorRenderer().setCurrentMethod(errorType);
+				Graph.exportToPNG(file, graph.getChart(), width, height, false);
 			
 			} catch (GraphException | IOException e) {
 				e.printStackTrace();
@@ -273,7 +332,9 @@ public class PlotsExporter {
 		case GRA:
 			
 			try {
+				
 				graph.save(file);
+				
 			} catch (PrismException e) {
 				e.printStackTrace();
 			}
@@ -282,7 +343,9 @@ public class PlotsExporter {
 		case EPS:
 			
 			try {
-				Graph.exportToEPS(file, 800, 500, graph.getChart());
+				
+				Graph.exportToEPS(file, width, height, graph.getChart());
+				
 			} catch (GraphException | IOException e) {
 				e.printStackTrace();
 			}
@@ -291,6 +354,7 @@ public class PlotsExporter {
 		case GNUPLOT:
 			
 			try {
+				
 				if(isParametric)
 					graph.exportToGnuplotParametric(file);
 				else{

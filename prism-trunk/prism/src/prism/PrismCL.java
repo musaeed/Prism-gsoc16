@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringTokenizer;
 
 import parser.Values;
 import parser.ast.Expression;
@@ -203,6 +204,9 @@ public class PrismCL implements PrismModelListener
 	private String[] paramUpperBounds = null;
 	private String[] paramNames = null;
 
+	
+	//plot exporter for -exportplot switch
+	PlotsExporter plotExporter;
 
 	/**
 	 * Entry point: call run method, catch CuddOutOfMemoryException
@@ -511,7 +515,7 @@ public class PrismCL implements PrismModelListener
 		// export the results as plots if the user requests
 		if(exportplot){
 			
-			PlotsExporter exporter = new PlotsExporter(exportPlotFormat, exportPlotFilename);
+			
 			mainLog.print("Exporting plot");
 			mainLog.println(" to file :\"" + exportPlotFilename + "\"");
 			
@@ -519,8 +523,8 @@ public class PrismCL implements PrismModelListener
 			
 			for(i = 0 ; i < numPropertiesToCheck ; i++){
 				
-				SeriesKey key = exporter.addSeries();	
-				results[i].exportPlot(exporter, key);
+				SeriesKey key = plotExporter.addSeries();	
+				results[i].exportPlot(plotExporter, key);
 				
 			}
 			
@@ -1312,29 +1316,49 @@ public class PrismCL implements PrismModelListener
 							halves[0] = halves[0].substring(0, comma);
 						}
 						exportPlotFilename = halves[0];
+				
 						String ss[] = halves[1].split(",");
 						exportPlotFormat = "";
 						
+						j = 0;
 						
-						for (j = 0; j < ss.length; j++) {
-							if (ss[j].equals("")) {
-								exportPlotFormat = null;
-							} 
-							else if (ss[j].equals("jpg"))
-								exportPlotFormat = "jpg";
-							else if (ss[j].equals("png"))
-								exportPlotFormat = "png";
-							else if (ss[j].equals("gra"))
-								exportPlotFormat = "gra";
-							else if (ss[j].equals("eps"))
-								exportPlotFormat = "eps";
-							else if(ss[j].equals("m"))
-								exportPlotFormat = "m";
-							else if(ss[j].equals("gnuplot"))
-								exportPlotFormat = "gnuplot";
-							else
-								errorAndExit("Unknown option \"" + ss[j] + "\" for -" + sw + " switch");
+						if(ss.length > 0){
+
+							if(!ss[0].contains("=")){
+							
+								if (ss[j].equals("")) {
+									exportPlotFormat = null;
+								} 
+								else if (ss[j].equals("jpg"))
+									exportPlotFormat = "jpg";
+								else if (ss[j].equals("png"))
+									exportPlotFormat = "png";
+								else if (ss[j].equals("gra"))
+									exportPlotFormat = "gra";
+								else if (ss[j].equals("eps"))
+									exportPlotFormat = "eps";
+								else if(ss[j].equals("m"))
+									exportPlotFormat = "m";
+								else if(ss[j].equals("gnuplot"))
+									exportPlotFormat = "gnuplot";
+								else
+									errorAndExit("Unknown option \"" + ss[j] + "\" for -" + sw + " switch");
+
+								j++;
+								
+							}
 						}
+						
+						plotExporter = new PlotsExporter(exportPlotFormat, exportPlotFilename);
+						
+						
+						
+						for ( ; j < ss.length; j++) {
+							// parse and save options
+							plotExporter.parseOptions(ss[j]);
+						}
+						
+						
 					} else {
 						errorAndExit("No file/options specified for -" + sw + " switch");
 					}

@@ -169,10 +169,9 @@ public class ConstantLine extends javax.swing.JPanel
 	{
 		startValueField.setEnabled(true);
 		endValueField.setEnabled(true);
-		if(!isParameteric)
-			stepValueField.setEnabled(true);
 		boolSingleValueCombo.setEnabled(false);
 		singleValueField.setEnabled(false);
+		stepValueField.setEnabled(true);
 	}
 	
 	}
@@ -471,10 +470,12 @@ public class ConstantLine extends javax.swing.JPanel
 		singleValueCombo.setEnabled(true);
 		singleValueCombo.setSelected(true);
 		singleValueField.setEnabled(true);
-		rangeCombo.setEnabled(false);
-		startValueField.setEnabled(false);
-		endValueField.setEnabled(false);
-		stepValueField.setEnabled(false);
+		rangeCombo.setEnabled(true);
+		startValueField.setEnabled(true);
+		endValueField.setEnabled(true);
+		stepValueField.setEnabled(true);
+		
+		singleValueCombo.doClick();
 	}
 	
     // Variables declaration - do not modify//GEN-BEGIN:variables

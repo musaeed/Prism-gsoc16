@@ -320,11 +320,7 @@ public class GUIExperimentPicker extends javax.swing.JDialog
 			if(isParam && i==0){
 				
 				line.isParametricOption.doClick();
-				System.out.println("this called");
-			}
-			else if(isParam && i!=0){
 				
-				line.paramOptionUnselected();
 			}
 			
 			modelTable.addConstant(line);
@@ -334,11 +330,6 @@ public class GUIExperimentPicker extends javax.swing.JDialog
 			ConstantLine line = new ConstantLine(undef.getPFUndefinedName(i), undef.getPFUndefinedType(i));
 			propTable.addConstant(line);
 			
-			if(isParam){
-				
-				line.startValueField.setText("1");
-				line.endValueField.setText("5");
-			}
 		}
 		
 		// go through list of remembered values and see if we can use them
@@ -475,10 +466,6 @@ public class GUIExperimentPicker extends javax.swing.JDialog
 				for (i = 0; i < n; i++)
 				{
 					c = modelTable.getConstantLine(i);
-					
-					if(isParam)
-						c.stepValueField.setText("0.1"); //just a dummy value here, it doesn;t matter in the parametric case
-														// It will be ignored later
 					
 					c.checkValid();
 					if(c.isRange())

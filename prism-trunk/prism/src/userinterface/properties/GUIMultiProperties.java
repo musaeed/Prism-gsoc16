@@ -408,17 +408,17 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 	public void parametricAfterParse()
 	{
 		parametricAfterRecieveParseNotification = false;
-		
-		
+
+
 		GUIProperty gp = propList.getProperty(propList.getSelectedIndex());
 		Property prop = new Property(propList.getProperty(propList.getSelectedIndex()).getProperty());
-		
+
 		String propertiesString = getLabelsString() + "\n" + getConstantsString() + "\n" + propList.getValidSelectedAndReferencedString();
-		
+
 		try 
 		{	
 			parsedProperties = getPrism().parsePropertiesString(parsedModel, propertiesString);
-		
+
 		} catch (PrismLangException e) 
 		{
 			e.printStackTrace();
@@ -426,13 +426,14 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 
 		// sort out undefined constants
 		UndefinedConstants uCon = new UndefinedConstants(parsedModel, parsedProperties, prop);
-		
+
 		// check if there are any params available to apply the parametric operation, if not notify the user and return
-		if(uCon.getMFNumUndefined() == 0){
-			
+		if(uCon.getMFNumUndefined() == 0)
+		{
+
 			JOptionPane.showMessageDialog(getGUI(), "There are no params in this model!", "Error", JOptionPane.ERROR_MESSAGE);
 			return;
-			
+
 		}
 
 		// should the graph be plotted?
@@ -440,164 +441,339 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 
 		//define the undefined constants
 		int result = GUIExperimentPicker.defineConstantsWithDialog(this.getGUI(), uCon, true, gp.isValidForSimulation(), true);
-		
-		if(result == GUIExperimentPicker.CANCELLED){
+
+		if(result == GUIExperimentPicker.CANCELLED)
+		{
 			return;
 		}
-		
-		if (result == GUIExperimentPicker.VALUES_DONE_SHOW_GRAPH || result == GUIExperimentPicker.VALUES_DONE_SHOW_GRAPH_AND_SIMULATE) {
+
+		if (result == GUIExperimentPicker.VALUES_DONE_SHOW_GRAPH || result == GUIExperimentPicker.VALUES_DONE_SHOW_GRAPH_AND_SIMULATE) 
+		{
 			showGraphDialog = true;
 		}
-		
+
 		ArrayList<DefinedConstant> consts = new ArrayList<DefinedConstant>();
 		int paramCount = 0;
-		for(DefinedConstant dcon : uCon.getMFDefinedConstants()){
-			
-			if(!dcon.isParametric()){
+		for(DefinedConstant dcon : uCon.getMFDefinedConstants())
+		{
+
+			if(!dcon.isParametric())
+			{
 				consts.add(dcon);
 			}
 			else
 				paramCount++;
 		}
-		
+
 		consts.addAll(uCon.getPFDefinedConstants());
-		
+
 		// the information of our params
 		String[] params = new String[paramCount];
 		String[] lowerBounds = new String[paramCount];
 		String[] upperBounds = new String[paramCount];
-		
+
 		int ii = 0;
-		
+
 		// set the values to be passed to the parametric model checking engine
-		for(DefinedConstant dcon : uCon.getMFDefinedConstants()){
-			
-			if(dcon.isParametric()){
+		for(DefinedConstant dcon : uCon.getMFDefinedConstants())
+		{
+
+			if(dcon.isParametric())
+			{
 				params[ii] = dcon.getName();
 				lowerBounds[ii] = dcon.getLow().toString();
 				upperBounds[ii++] = dcon.getHigh().toString();
-				
+
+			}
+		}
+
+		for(String pName : params)
+		{
+			uCon.getMFConstantValues().removeValue(pName);
+		}
+
+		GUIGraphPicker picker = new GUIGraphPicker(getGUI(), this, graphHandler);
+		ParametricGraph graph = picker.getGraphModel();
+
+		if(graph == null)
+		{
+
+			return;
+		}
+
+		//set graph properties
+		if(showGraphDialog)
+		{
+			graph.getXAxisSettings().setHeading(params[0]);
+			graph.getYAxisSettings().setHeading("probability");
+
+		}
+
+
+		if(uCon.getMFConstantValues().getNumValues() == 0)
+		{
+			try
+			{
+
+				for(int i = 0 ; i < uCon.getPFConstantValues().getNumValues() ; i++)
+				{
+
+					DefinedConstant def = uCon.getPFDefinedConstants().get(i);
+					String name = def.getName();
+					double low = new Double(def.getLow().toString());
+					double high = new Double(def.getHigh().toString());
+					double step = new Double(def.getStep().toString());
+
+
+
+					for(double iter = low ; iter <= high ; iter += step)
+					{
+
+						uCon.getPFConstantValues().removeValue(name);
+						uCon.getPFConstantValues().addValue(name, iter);
+						//set the value in the prop file
+						parsedProperties.setSomeUndefinedConstants(uCon.getPFConstantValues());
+
+						getPrism().setPRISMModelConstants(uCon.getMFConstantValues());
+
+						//actual parametric checking
+						final Result res = getPrism().modelCheckParametric(parsedProperties, prop , params, lowerBounds, upperBounds);
+
+						//tell the user where the results are if the graph plot is not requested
+						if(!showGraphDialog)
+						{
+							setTaskBarText("No graph plotted, see log for the results!");
+							return;
+						}
+
+						final double temp = iter;
+						final double lBound = Double.parseDouble(lowerBounds[0]);
+						final double uBound = Double.parseDouble(upperBounds[0]);
+
+						graph.setLowerBound(lBound);
+						graph.setUpperBound(uBound);
+
+						// plot the graphs
+						SwingUtilities.invokeLater(new Runnable() 
+						{
+
+							@Override
+							public void run() 
+							{
+
+								if (propList.getSelectedIndices().length == 1) 
+								{
+
+									RegionValues vals = (RegionValues) res.getResult();
+									param.Function f = vals.getResult(0).getInitStateValueAsFunction();
+									SeriesKey key = graph.addSeries(name + " = " + temp, f);
+									graph.plotSeries(key);
+
+								}
+							}
+						});
+
+					}
+				}
+			} catch(PrismException e)
+			{
+				JOptionPane.showMessageDialog(getGUI(), e, "Error", JOptionPane.ERROR_MESSAGE);
+				e.printStackTrace();
 			}
 		}
 		
-		for(String pName : params){
-			uCon.getMFConstantValues().removeValue(pName);
-		}
-		
-		GUIGraphPicker picker = new GUIGraphPicker(getGUI(), this, graphHandler);
-		ParametricGraph graph = picker.getGraphModel();
-		
-		if(graph == null){
-			
-			return;
-		}
-//		final ParametricGraph graph = new ParametricGraph(gp.getPropString());
-		
-		//set graph properties
-		if(showGraphDialog){
-			graph.getXAxisSettings().setHeading(params[0]);
-			graph.getYAxisSettings().setHeading("probability");
-			
-		}		
-		
-		for(int n = 0 ; n < consts.size() ; n++){
-			
-			DefinedConstant def = consts.get(n);
-			String name = def.getName();
-			double low = new Double(def.getLow().toString());
-			double high = new Double(def.getHigh().toString());
-			double step = new Double(def.getStep().toString());
-			
-			// do parametric checking for each pf value as specified by the user and plot each chart on the same graph
-			
-			
-			
-			for(double iter = low ; iter <= high ; iter += step){
-				
-				try {
+		else if(uCon.getPFConstantValues().getNumValues() == 0)
+		{
 
+			try
+			{
 
-					// we need to undefine the last pf value and then redefine it with the new value
+				for(int i = 0 ; i < uCon.getMFDefinedConstants().size() ; i++)
+				{
+
+					DefinedConstant def = uCon.getMFDefinedConstants().get(i);
 					
-					if(uCon.getMFDefinedConstants().contains(def)){
-						
+					if(def.isParametric()){
+						continue;
+					}
+					
+					String name = def.getName();
+					double low = new Double(def.getLow().toString());
+					double high = new Double(def.getHigh().toString());
+					double step = new Double(def.getStep().toString());
+
+					for(double iter = low ; iter <= high ; iter += step)
+					{
+
 						uCon.getMFConstantValues().removeValue(name);
 						uCon.getMFConstantValues().addValue(name, iter);
 						//set the value in the prop file
 						parsedProperties.setSomeUndefinedConstants(uCon.getMFConstantValues());
+
+						getPrism().setPRISMModelConstants(uCon.getMFConstantValues());
+
+						//actual parametric checking
+						final Result res = getPrism().modelCheckParametric(parsedProperties, prop , params, lowerBounds, upperBounds);
+
+						//tell the user where the results are if the graph plot is not requested
+						if(!showGraphDialog)
+						{
+							setTaskBarText("No graph plotted, see log for the results!");
+							return;
+						}
+
+						final double temp = iter;
+						final double lBound = Double.parseDouble(lowerBounds[0]);
+						final double uBound = Double.parseDouble(upperBounds[0]);
+
+						graph.setLowerBound(lBound);
+						graph.setUpperBound(uBound);
+
+						// plot the graphs
+						SwingUtilities.invokeLater(new Runnable() 
+						{
+
+							@Override
+							public void run() 
+							{
+
+								if (propList.getSelectedIndices().length == 1) 
+								{
+
+									RegionValues vals = (RegionValues) res.getResult();
+									param.Function f = vals.getResult(0).getInitStateValueAsFunction();
+									SeriesKey key = graph.addSeries(name + " = " + temp, f);
+									graph.plotSeries(key);
+
+								}
+							}
+						});
 					}
-					else{
-						
-						uCon.getPFConstantValues().removeValue(name);
-						
-						if(def.getLow() instanceof Integer){
-							
-							uCon.getPFConstantValues().addValue(name, (int)iter);
-						}
-						else if(def.getLow() instanceof Double){
-							
-							uCon.getPFConstantValues().addValue(name, iter);
-						}
-						
-	
+
+				}
+			} catch(PrismException e)
+			{
+				JOptionPane.showMessageDialog(getGUI(), e, "Error", JOptionPane.ERROR_MESSAGE);
+				e.printStackTrace();
+			}
+		}
+		else
+		{
+			try
+			{
+				
+				getPrism().setPRISMModelConstants(uCon.getMFConstantValues());
+
+				for(int i = 0 ; i < uCon.getMFDefinedConstants().size(); i++)
+				{
+					DefinedConstant defMF = uCon.getMFDefinedConstants().get(i);
+
+					if(defMF.isParametric())
+					{
+						continue;
+					}
+
+					String name = defMF.getName();
+					double low = new Double(defMF.getLow().toString());
+					double high = new Double(defMF.getHigh().toString());
+					double step = new Double(defMF.getStep().toString());
+
+					for(double iter = low ; iter <= high ; iter+=step)
+					{
+
+						uCon.getMFConstantValues().removeValue(name);
+						uCon.getMFConstantValues().addValue(name, iter);
 						//set the value in the prop file
-						parsedProperties.setUndefinedConstants(uCon.getPFConstantValues());
-						
-					}
-					
-					
-					getPrism().setPRISMModelConstants(uCon.getMFConstantValues());
-					
-					//actual parametric checking
-					final Result res = getPrism().modelCheckParametric(parsedProperties, prop , params, lowerBounds, upperBounds);
-					
-					//tell the user where the results are if the graph plot is not requested
-					if(!showGraphDialog){
-						setTaskBarText("No graph plotted, see log for the results!");
-						return;
-					}
-					
-					final double temp = iter;
-					final double lBound = Double.parseDouble(lowerBounds[0]);
-					final double uBound = Double.parseDouble(upperBounds[0]);
-					
-					graph.setLowerBound(lBound);
-					graph.setUpperBound(uBound);
-					
-					// plot the graphs
-					SwingUtilities.invokeLater(new Runnable() {
-						
-						@Override
-						public void run() {
-							
-							if (propList.getSelectedIndices().length == 1) {
+						parsedProperties.setSomeUndefinedConstants(uCon.getMFConstantValues());
+
+
+						for(int j = 0 ; j < uCon.getPFConstantValues().getNumValues() ; j++)
+						{
+
+							DefinedConstant defPF = uCon.getPFDefinedConstants().get(j);
+							String namePF = defPF.getName();
+							double lowPF = new Double(defPF.getLow().toString());
+							double highPF = new Double(defPF.getHigh().toString());
+							double stepPF = new Double(defPF.getStep().toString());
+
+							for(double iterPF = lowPF ; iterPF <= highPF ; iterPF += stepPF)
+							{
+
+								uCon.getPFConstantValues().removeValue(namePF);
+
+								if(defPF.getLow() instanceof Integer)
+								{
+
+									uCon.getPFConstantValues().addValue(namePF, (int)iterPF);
+								}
+								else if(defPF.getLow() instanceof Double)
+								{
+
+									uCon.getPFConstantValues().addValue(namePF, iterPF);
+								}
 								
-								RegionValues vals = (RegionValues) res.getResult();
-								param.Function f = vals.getResult(0).getInitStateValueAsFunction();
-								SeriesKey key = graph.addSeries(name + " = " + temp, f);
-								graph.plotSeries(key);
-									
+								//set the value in the prop file
+								parsedProperties.setUndefinedConstants(uCon.getPFConstantValues());
+
+								//actual parametric checking
+								final Result res = getPrism().modelCheckParametric(parsedProperties, prop , params, lowerBounds, upperBounds);
+
+								//tell the user where the results are if the graph plot is not requested
+								if(!showGraphDialog)
+								{
+									setTaskBarText("No graph plotted, see log for the results!");
+									return;
+								}
+
+								final double temp1 =  Math.round(iter * 100.0) / 100.0;
+								final double temp2 =  Math.round(iterPF * 100.0) / 100.0;
+								final double lBound = Double.parseDouble(lowerBounds[0]);
+								final double uBound = Double.parseDouble(upperBounds[0]);
+
+								graph.setLowerBound(lBound);
+								graph.setUpperBound(uBound);
+
+								// plot the graphs
+								SwingUtilities.invokeLater(new Runnable() 
+								{
+
+									@Override
+									public void run() 
+									{
+
+										if (propList.getSelectedIndices().length == 1) 
+										{
+
+											RegionValues vals = (RegionValues) res.getResult();
+											param.Function f = vals.getResult(0).getInitStateValueAsFunction();
+											SeriesKey key = graph.addSeries(name + " = " + temp1 + ", " + namePF + "=" + temp2, f);
+											graph.plotSeries(key);
+
+										}
+									}
+								});
+
 							}
 						}
-					});
-					
-				} catch (PrismException e) {
-					
-					JOptionPane.showMessageDialog(getGUI(), e, "Error", JOptionPane.ERROR_MESSAGE);
-					e.printStackTrace();
+					}
+
 				}
-				
+			} catch(PrismException e)
+			{
+				JOptionPane.showMessageDialog(getGUI(), e, "Error", JOptionPane.ERROR_MESSAGE);
+				e.printStackTrace();
 			}
-			
+
 		}
-		
-		if(showGraphDialog){
+
+		if(showGraphDialog)
+		{
 			//finally done
 			setTaskBarText("Parametric... done");
 		}
 
 	}
-	
+
 	
 	public void experimentAfterParse()
 	{

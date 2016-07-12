@@ -241,7 +241,7 @@ public class PrismCL implements PrismModelListener
 	public void run(String[] args)
 	{
 		int i, j, k;
-		Result res;
+		Result res = null;
 
 		// Initialise
 		initialise(args);
@@ -361,7 +361,6 @@ public class PrismCL implements PrismModelListener
 				// otherwise, treat each case individually
 				else {
 					for (k = 0; k < undefinedConstants[j].getNumPropertyIterations(); k++) {
-
 						try {
 							// Set values for PropertiesFile constants
 							if (propertiesFile != null) {
@@ -399,7 +398,7 @@ public class PrismCL implements PrismModelListener
 
 						// store result of model checking
 						results[j].setResult(definedMFConstants, definedPFConstants, res.getResult());
-
+						
 						// if a counterexample was generated, display it
 						Object cex = res.getCounterexample();
 						if (cex != null) {
@@ -519,11 +518,12 @@ public class PrismCL implements PrismModelListener
 			mainLog.print("Exporting plot");
 			mainLog.println(" to file :\"" + exportPlotFilename + "\"");
 			
+
 			
 			
 			for(i = 0 ; i < numPropertiesToCheck ; i++){
-				
-				SeriesKey key = plotExporter.addSeries();	
+
+				SeriesKey key = plotExporter.addSeries();
 				results[i].exportPlot(plotExporter, key);
 				
 			}
@@ -2343,6 +2343,7 @@ public class PrismCL implements PrismModelListener
 		mainLog.println();
 		mainLog.println("EXPORT OPTIONS:");
 		mainLog.println("-exportresults <file[:options]>  Export the results of model checking to a file");
+		mainLog.println("-exportplot <file[:options]> ....Export the results of model checking to a plot");
 		mainLog.println("-exportmodel <files[:options]> . Export the built model to file(s)");
 		mainLog.println("-exporttrans <file> ............ Export the transition matrix to a file");
 		mainLog.println("-exportstaterewards <file> ..... Export the state rewards vector to a file");
@@ -2433,6 +2434,19 @@ public class PrismCL implements PrismModelListener
 			mainLog.println(" * csv - Export results as comma-separated values");
 			mainLog.println(" * matrix - Export results as one or more 2D matrices (e.g. for surface plots)");
 			mainLog.println(" * comment - Export results in comment format for regerssion testing)");
+		}
+		
+		else if(sw.equals("exportplot")){
+			
+			mainLog.println("Switch: -exportplot <file[:options]>\n");
+			mainLog.println("Exports the results of model checking as a plot");
+			mainLog.println("Many plot formats are available including .jpg, .png, .m (matlab script file), .gra (Prism graph)"
+					+ ", .gnuplot (GNU plot file) and .eps");
+			mainLog.println("If provided, <options> is a comma-separated list of options taken from:");
+			mainLog.println(" * height - set the height of the plot (valid for jpg, png and eps)");
+			mainLog.println(" * width  - set the width of the plot (valid for jpg, png and eps)");
+			mainLog.println(" * sr     - set the sampling rate of the function (valid for parametric experiments)");
+			mainLog.println(" * errortype - set the error rendering types for the prism simulation experiments. Options available are \"deviation\" (default) and \"errorbars\".");			
 		}
 		// -exportmodel
 		else if (sw.equals("exportmodel")) {

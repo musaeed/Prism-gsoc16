@@ -255,10 +255,15 @@ public class Histogram extends ChartPanel implements SettingOwner, Observer{
 		plot.setRenderer(new ClusteredXYBarRenderer());
 		addToolTip();
 		ticks = new ArrayList<Double>();
+		setCustomDomainAxis();
+	}
+	
+	
+	/**
+	 * Make a custom X axis so that we can control the tick marker locations
+	 */
+	public void setCustomDomainAxis(){
 		
-		/**
-		 * Make a custom X axis so that we can control the tick marker locations
-		 */
 		plot.setDomainAxis(new NumberAxis("Probability"){
 
 			private static final long serialVersionUID = 1L;

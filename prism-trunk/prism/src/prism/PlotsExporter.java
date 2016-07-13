@@ -30,11 +30,14 @@ import java.io.File;
 import java.io.IOException;
 import java.util.StringTokenizer;
 
+import org.jfree.chart.ChartPanel;
+
 import param.BigRational;
 import param.RegionValues;
 import parser.Values;
 import userinterface.graph.Graph;
 import userinterface.graph.GraphException;
+import userinterface.graph.Histogram;
 import userinterface.graph.ParametricGraph;
 import userinterface.graph.PrismErrorRenderer;
 import userinterface.graph.PrismXYDataItem;
@@ -44,7 +47,7 @@ import userinterface.graph.SeriesKey;
 public class PlotsExporter {
 
 	// even the simple graphs are parametric type so thats why here is parametricgraph used instead of just graph
-	private ParametricGraph graph;
+	private ChartPanel graph;
 	//the format the graph has to be exported in
 	private PlotsExportFormat format;
 	//the file where data has to be written
@@ -127,7 +130,6 @@ public class PlotsExporter {
 	{
 		setFormatByName(format);
 		file = new File(filename);
-		graph = new ParametricGraph("");
 		isParametric = false;
 		
 		//set default options
@@ -149,17 +151,42 @@ public class PlotsExporter {
 		setFormat(PlotsExportFormat.parse(formatName));
 	}
 	
+	/**
+	 * Set the plot export type to a xy plot
+	 */
+	public void setTypeGraph(){
+		graph = new ParametricGraph("");
+	}
+	
+	/**
+	 * set the plot export type to a histogram
+	 */
+	public void setTypeHistogram(){
+		graph = new Histogram();
+	}
+	
 	public void setFormat(PlotsExportFormat format){
 		this.format = format;
 	}
 	
 	/**
-	 * add a new series to the current graph
+	 * add a new series to the current graph, only called in the Parametric graph case
 	 * @return the serieskey
 	 */
 	public SeriesKey addSeries(){
 		
-		return graph.addSeries("New series");
+		if(graph instanceof ParametricGraph){
+			
+			return ((ParametricGraph)graph).addSeries("New series");
+			
+		}
+		else if(graph instanceof Histogram){
+			return ((Histogram)graph).addSeries("New Histogram");
+		}
+		else{
+			return null; // should never happen
+		}
+
 	}
 
 	/**
@@ -183,9 +210,9 @@ public class PlotsExporter {
 			isParametric = true;
 			RegionValues vals = (RegionValues) result;
 			param.Function f = vals.getResult(0).getInitStateValueAsFunction();
-			PrismXYSeries series = (PrismXYSeries)graph.getXYSeries(key);
+			PrismXYSeries series = (PrismXYSeries)((ParametricGraph)graph).getXYSeries(key);
 			
-			graph.addFunction(key, f);
+			((ParametricGraph)graph).addFunction(key, f);
 			
 			for (int i = 0; i < samplingRate; i++) {
 
@@ -200,7 +227,7 @@ public class PlotsExporter {
 				series.addOrUpdate(di);
 			}
 			
-			graph.hideShapes();
+			((ParametricGraph)graph).hideShapes();
 			
 			return;
 		}
@@ -233,7 +260,7 @@ public class PlotsExporter {
 		
 		
 		
-		PrismXYSeries series = (PrismXYSeries)graph.getXYSeries(key);
+		PrismXYSeries series = (PrismXYSeries)((ParametricGraph)graph).getXYSeries(key);
 		PrismXYDataItem item = new PrismXYDataItem(xVal, yVal, error);
 		series.addOrUpdate(item);
 
@@ -309,8 +336,17 @@ public class PlotsExporter {
 		case JPG:
 			try {
 				
-				graph.getErrorRenderer().setCurrentMethod(errorType);
-				Graph.exportToJPEG(file, graph.getChart(), width, height);
+				if(graph instanceof ParametricGraph){
+					
+					((ParametricGraph)graph).getErrorRenderer().setCurrentMethod(errorType);
+					Graph.exportToJPEG(file, graph.getChart(), width, height);
+					
+				}
+				else if(graph instanceof Histogram){
+					
+					Graph.exportToJPEG(file, graph.getChart(), width, height);
+				}
+				
 			
 			} catch (GraphException | IOException e) {
 				e.printStackTrace();
@@ -321,8 +357,16 @@ public class PlotsExporter {
 			
 			try {
 				
-				graph.getErrorRenderer().setCurrentMethod(errorType);
-				Graph.exportToPNG(file, graph.getChart(), width, height, false);
+				if(graph instanceof ParametricGraph){
+				
+					((ParametricGraph)graph).getErrorRenderer().setCurrentMethod(errorType);
+					Graph.exportToPNG(file, graph.getChart(), width, height, false);
+					
+				}
+				else if(graph instanceof Histogram){
+					
+					Graph.exportToPNG(file, graph.getChart(), width, height, false);
+				}
 			
 			} catch (GraphException | IOException e) {
 				e.printStackTrace();
@@ -333,7 +377,16 @@ public class PlotsExporter {
 			
 			try {
 				
-				graph.save(file);
+				if(graph instanceof ParametricGraph){
+					
+					((ParametricGraph)graph).save(file);
+					
+				}
+				
+				else if (graph instanceof Histogram){
+					//TODO gra export format not implemented for histograms yet
+				}
+	
 				
 			} catch (PrismException e) {
 				e.printStackTrace();
@@ -355,21 +408,41 @@ public class PlotsExporter {
 			
 			try {
 				
-				if(isParametric)
-					graph.exportToGnuplotParametric(file);
-				else{
-					
-					graph.exportToGnuplot(file);
+				if(graph instanceof ParametricGraph){
+
+					if(isParametric)
+						((ParametricGraph)graph).exportToGnuplotParametric(file);
+					else{
+
+						((ParametricGraph)graph).exportToGnuplot(file);
+					}
 				}
+				
+				else if(graph instanceof Histogram){
+					
+					((Histogram)graph).exportToGnuplot(file);
+					
+				}
+				
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			
+
 			break;
-		
+
 		case MATLAB:
 			try {
-				graph.exportToMatlab(file);
+				
+				
+				if(graph instanceof ParametricGraph){
+					
+					((ParametricGraph)graph).exportToMatlab(file);
+					
+				}
+				else if(graph instanceof Histogram){
+					//TODO matlab export format not implemented for histograms yet
+				}
+
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -378,6 +451,14 @@ public class PlotsExporter {
 		}
 		
 		
+	}
+	
+	/**
+	 * Get the current chartpanel of the plot exporter. Can be a parametric graph or a histogram
+	 * @return
+	 */
+	public ChartPanel getGraph(){
+		return graph;
 	}
 
 }

@@ -7,8 +7,11 @@
 - Dynamic updating of the graphs while a longer experiment runs
 - Support for parametric operations from the GUI
 - Support for parametric graphs with options to change the sampling of the function dynamically
-- Support for exporting the plots in a gnuplot readable format
-
+- Support for exporting the plots in a gnuplot readable format including the histograms
+- Support for exporting the plots from the command line using the -exportplot switch
+- Added additional options to modify the properties of various plots that can be exported from the command line and support for auto format detection
+- fixed the progress for the simulation experiments
+- Added support for mixed plots (xy graphs and parametric graphs) to be plotted on the same plot
 
 # Minor feature enhancements
 

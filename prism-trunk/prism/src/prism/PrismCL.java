@@ -53,6 +53,7 @@ import simulator.method.CIiterations;
 import simulator.method.CIwidth;
 import simulator.method.SPRTMethod;
 import simulator.method.SimulationMethod;
+import userinterface.graph.Histogram;
 import userinterface.graph.SeriesKey;
 
 // prism - command line version
@@ -251,6 +252,8 @@ public class PrismCL implements PrismModelListener
 
 		// Sort out properties to check
 		sortProperties();
+		
+		boolean isVerifyProperty = false;
 
 		// process info about undefined constants
 		try {
@@ -360,6 +363,11 @@ public class PrismCL implements PrismModelListener
 				}
 				// otherwise, treat each case individually
 				else {
+					
+					if(undefinedConstants[j].getNumPropertyIterations() == 1){
+						isVerifyProperty = true;
+					}
+					
 					for (k = 0; k < undefinedConstants[j].getNumPropertyIterations(); k++) {
 						try {
 							// Set values for PropertiesFile constants
@@ -518,18 +526,32 @@ public class PrismCL implements PrismModelListener
 			mainLog.print("Exporting plot");
 			mainLog.println(" to file :\"" + exportPlotFilename + "\"");
 			
-
-			
-			
-			for(i = 0 ; i < numPropertiesToCheck ; i++){
-
-				SeriesKey key = plotExporter.addSeries();
-				results[i].exportPlot(plotExporter, key);
+			if(isVerifyProperty && !param){
 				
+				ArrayList<Double> probs = res.getHistProbs();
+				plotExporter.setTypeHistogram();
+				SeriesKey key = plotExporter.addSeries();
+				Histogram hist = (Histogram)plotExporter.getGraph();
+				hist.addDataToCache(probs);
+				hist.plotSeries(key);
+				hist.setCustomDomainAxis();
+				plotExporter.end();
+				
+			}	
+			else{
+				
+				plotExporter.setTypeGraph();
+				
+				for(i = 0 ; i < numPropertiesToCheck ; i++){
+
+					SeriesKey key = plotExporter.addSeries();
+					results[i].exportPlot(plotExporter, key);
+
+				}
 			}
 			
 			//TODO don't know why doesn't exit without system.exit 
-			closeDown();
+			mainLog.close();
 			System.exit(0);
 		}
 
@@ -1339,7 +1361,8 @@ public class PrismCL implements PrismModelListener
 									exportPlotFormat = "eps";
 								else if(ss[j].equals("m"))
 									exportPlotFormat = "m";
-								else if(ss[j].equals("gnuplot"))
+								else if(ss[j].equals("gnuplot") || ss[j].equals("gplot") || ss[j].equals("gpi")
+										|| ss[j].equals("plt") || ss[j].equals("gp"))
 									exportPlotFormat = "gnuplot";
 								else
 									errorAndExit("Unknown option \"" + ss[j] + "\" for -" + sw + " switch");

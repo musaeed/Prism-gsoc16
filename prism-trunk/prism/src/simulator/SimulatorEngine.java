@@ -141,6 +141,9 @@ public class SimulatorEngine extends PrismComponent
 	private RandomNumberGenerator rng;
 	
 	private boolean experimentStopped;
+	
+	// progress percentage for the simulator engine
+	private int percentageDone;
 
 	// ------------------------------------------------------------------------------
 	// Basic setup
@@ -1474,6 +1477,7 @@ public class SimulatorEngine extends PrismComponent
 	public Object[] modelCheckMultipleProperties(ModulesFile modulesFile, PropertiesFile propertiesFile, List<Expression> exprs, State initialState,
 			long maxPathLength, SimulationMethod simMethod) throws PrismException
 	{
+		percentageDone = 0;
 		// Load model into simulator
 		createNewOnTheFlyPath(modulesFile);
 
@@ -1590,6 +1594,7 @@ public class SimulatorEngine extends PrismComponent
 			InterruptedException
 	{
 		experimentStopped = false;
+		percentageDone = 0;
 		// Load model into simulator
 		createNewOnTheFlyPath(modulesFile);
 
@@ -1708,7 +1713,7 @@ public class SimulatorEngine extends PrismComponent
 		long minPathFound = 0, maxPathFound = 0;
 		// Progress info
 		int lastPercentageDone = 0;
-		int percentageDone = 0;
+		percentageDone = 0;
 		// Timing info
 		long start, stop;
 		double time_taken;
@@ -1798,11 +1803,13 @@ public class SimulatorEngine extends PrismComponent
 				}
 			}
 		}
-
+		
 		// Print details
 		if (!stoppedEarly) {
 			if (!shouldStopSampling)
+			{
 				mainLog.print(" 100% ]");
+			}
 			mainLog.println();
 			stop = System.currentTimeMillis();
 			time_taken = (stop - start) / 1000.0;
@@ -1837,5 +1844,14 @@ public class SimulatorEngine extends PrismComponent
 	public void stopSampling()
 	{
 		experimentStopped = true;
+	}
+	
+	/**
+	 * The percentage of the progress done during the simulation progress
+	 * @return percentageDone
+	 */
+	public int getPercentageDone()
+	{
+		return this.percentageDone;
 	}
 }

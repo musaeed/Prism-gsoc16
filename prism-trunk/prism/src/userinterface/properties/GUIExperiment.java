@@ -59,7 +59,7 @@ public class GUIExperiment
 	private Values definedPFConstants;
 	private Result res;
 	
-	private SimulationMethod simMethod;
+	private int percentageDone;
 
 	/** Creates a new instance of GUIExperiment */
 	public GUIExperiment(GUIExperimentTable table, GUIMultiProperties guiProp, PropertiesFile prop, UndefinedConstants cons, boolean useSimulation)
@@ -69,13 +69,20 @@ public class GUIExperiment
 		this.prop = prop;
 		this.cons = cons;
 		this.useSimulation = useSimulation;
-		this.simMethod = null;
 
 		results = new prism.ResultsCollection(cons, prop.getProperty(0).getResultName());
 	}
 
 	//ACCESS METHODS
 
+	public void setPercentageDone(int percent){
+		this.percentageDone = percent;
+	}
+	
+	public int getPercentageDone(){
+		return this.percentageDone;
+	}
+	
 	public int getTotalIterations()
 	{
 		return cons.getNumIterations();
@@ -83,10 +90,11 @@ public class GUIExperiment
 
 	public int getCurrentIterations()
 	{
-		if(isUseSimulation() && simMethod != null)
+		if(isUseSimulation())
 		{
-			return 0;
-			//return simMethod.getProgress(results.getCurrentIteration(), prop.ge)
+			int percent = guiProp.getPrism().getSimulator().getPercentageDone();
+			setPercentageDone(percent);
+			return percent;
 		}
 		else
 			return results.getCurrentIteration();
@@ -303,11 +311,9 @@ public class GUIExperiment
 							} else {
 								initialState = new parser.State(info.getInitialState(), prism.getPRISMModel());
 							}
-							
-							simMethod = info.createSimulationMethod();
 							// do simulation
 							prism.modelCheckSimulatorExperiment(propertiesFile, undefinedConstants, results, propertyToCheck.getExpression(), initialState,
-									info.getMaxPathLength(), simMethod);
+									info.getMaxPathLength(), info.createSimulationMethod());
 							// update progress meter
 							// (all properties simulated simultaneously so can't get more accurate feedback at the moment anyway)
 							table.progressChanged();

@@ -157,22 +157,39 @@ public class GUIExperimentTable extends JTable
 				case 1: return ge.getDefinedConstantsString();
 				case 2:
 					{
+						
+					if((getValueAt(rowIndex, 3).equals("Done") || getValueAt(rowIndex, 3).equals("Stopped")) && ge.isUseSimulation())
+					{	
+						
+						JProgressBar b = new JProgressBar();
+						b.setStringPainted(true);
+						b.setBackground(Color.white);
+						b.setMaximum(90);
+						int percent = (int)((double)ge.getPercentageDone() / 90.0*100.0);
+						b.setValue(percent);
+						b.setString( percent + "%");
+						return b;
+					}
+					
 					JProgressBar b = new JProgressBar();
+					b.setStringPainted(true);
+					b.setBackground(Color.white);
+					
+					if(ge.isUseSimulation()){
+						b.setMaximum(90);
+						int percent = (int)((double)ge.getCurrentIterations() / 90.0*100.0);
+						b.setValue(percent);
+						b.setString(percent+"%");
+					}
+					else{
 					// default case
 					if (ge.getTotalIterations() > 0) 
 					{
 						b.setMaximum(ge.getTotalIterations());
 						b.setValue(ge.getCurrentIterations());
-						b.setStringPainted(true);
-						b.setBackground(Color.white);
-						if(ge.isUseSimulation()){
-							
-							//TODO the simulation problem still not fixed
-						}
-						else{
-							int percent = (int)((double)ge.getCurrentIterations()/(double)ge.getTotalIterations()*100.0);
-							b.setString(""+ge.getCurrentIterations()+"/"+ge.getTotalIterations()+" ("+percent+"%)");
-						}
+						int percent = (int)((double)ge.getCurrentIterations()/(double)ge.getTotalIterations()*100.0);
+						b.setString(""+ge.getCurrentIterations()+"/"+ge.getTotalIterations()+" ("+percent+"%)");
+						
 					}
 						// special case where there are 0 iterations
 					else 
@@ -183,6 +200,7 @@ public class GUIExperimentTable extends JTable
 						b.setBackground(Color.white);
 						b.setString("0/0 (100%)");
 					}
+					}
 					return b;
 				}
 				case 3:
@@ -190,8 +208,13 @@ public class GUIExperimentTable extends JTable
 					if (!ge.isFinished()) return "Running";
 					else if(!ge.isCompleted())
 						return "Stopped";
-					else	
-						return (ge.getCurrentIterations() < ge.getTotalIterations()) ? "Stopped" : "Done";
+					else{
+						if(ge.isUseSimulation()){
+							return ge.getPercentageDone() == 90 ? "Done" : "Stopped";
+						}
+						else
+							return (ge.getCurrentIterations() < ge.getTotalIterations()) ? "Stopped" : "Done";
+					}
 				}
 				case 4:
 					{

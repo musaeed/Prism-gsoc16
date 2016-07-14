@@ -31,8 +31,10 @@ package userinterface.graph;
 
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.Graphics2D;
 import java.awt.Paint;
 import java.awt.Rectangle;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.awt.print.Printable;
 import java.io.File;
@@ -43,13 +45,13 @@ import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
 import java.util.StringTokenizer;
 import java.util.TimerTask;
 
+import javax.swing.JOptionPane;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -73,7 +75,6 @@ import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYItemRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.chart.title.LegendTitle;
-import org.jfree.data.xy.XYDataItem;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
@@ -85,6 +86,16 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.EntityResolver;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+
+import com.itextpdf.awt.DefaultFontMapper;
+import com.itextpdf.text.PageSize;
+import com.itextpdf.text.pdf.PdfContentByte;
+import com.itextpdf.text.pdf.PdfName;
+import com.itextpdf.text.pdf.PdfPage;
+import com.itextpdf.text.pdf.PdfPageEvent;
+import com.itextpdf.text.pdf.PdfPageEventHelper;
+import com.itextpdf.text.pdf.PdfTemplate;
+import com.itextpdf.text.pdf.PdfWriter;
 
 import net.sf.epsgraphics.ColorMode;
 import net.sf.epsgraphics.EpsGraphics;
@@ -99,6 +110,7 @@ import settings.Setting;
 import settings.SettingDisplay;
 import settings.SettingException;
 import settings.SettingOwner;
+import userinterface.GUIPrism;
 
 /**
  * This class represents multiple series on a single unit graph; all series are
@@ -1791,6 +1803,45 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 		fileOutputStream.close();
 
 		//ChartUtilities.saveChartAsPNG(file, chart, width, height, null, alpha, 9);
+	}
+	
+	/**
+	 * Exports the given chart to a pdf format file
+	 * @param file the file that has to be saved in pdf format
+	 * @param chart the chart that needs to be exported into pdf
+	 */
+	
+	public static void exportToPDF(File file, JFreeChart chart){
+		
+		PdfWriter out = null;
+		com.itextpdf.text.Document document = new com.itextpdf.text.Document(PageSize.A4.rotate());
+		
+		int width = 800, height = 500;
+		
+		try{
+			
+			out = PdfWriter.getInstance(document, new FileOutputStream(file));
+			document.open();
+			PdfContentByte contentByte = out.getDirectContent();
+			PdfTemplate template = contentByte.createTemplate(width, height);
+			@SuppressWarnings("deprecation")
+			Graphics2D graphics2d = template.createGraphics(width, height,new DefaultFontMapper());
+			Rectangle2D rectangle2d = new Rectangle2D.Double(0, 0, width,height);
+
+			chart.draw(graphics2d, rectangle2d);
+
+			graphics2d.dispose();
+			contentByte.addTemplate(template, 0, 0);
+			
+		} catch(Exception e){
+			
+			JOptionPane.showMessageDialog(GUIPrism.getGUI(), e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+			e.printStackTrace();
+			return;
+		}
+		
+		document.close();
+		
 	}
 
 	/**

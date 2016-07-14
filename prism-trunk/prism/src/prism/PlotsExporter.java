@@ -68,7 +68,7 @@ public class PlotsExporter {
 	 */
 	
 	public enum PlotsExportFormat{
-		JPG,PNG,MATLAB,GNUPLOT,EPS,GRA;
+		JPG,PNG,MATLAB,GNUPLOT,PDF,EPS,GRA;
 
 		public String fullname(){
 
@@ -84,6 +84,8 @@ public class PlotsExporter {
 				return "GNUPLOT";
 			case EPS:
 				return "EPS";
+			case PDF:
+				return "PDF";
 			case GRA:
 				return "Prism Graph file";
 			default:
@@ -114,6 +116,8 @@ public class PlotsExporter {
 				return PlotsExportFormat.GNUPLOT;
 			case "gra":
 				return PlotsExportFormat.GRA;
+			case "pdf":
+				return PlotsExportFormat.PDF;
 			default:
 				return PlotsExportFormat.JPG;
 
@@ -448,6 +452,18 @@ public class PlotsExporter {
 			}
 			break;
 			
+		case PDF:
+			
+			try{
+				//works for all type of graphs
+				
+				Graph.exportToPDF(file, graph.getChart());
+				
+			} catch(Exception e){
+				e.printStackTrace();
+			}
+			
+			break;
 		}
 		
 		

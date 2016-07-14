@@ -78,12 +78,12 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 	private Action graphOptions, zoomIn, zoomOut, zoomDefault;
 
 	private Action printGraph, deleteGraph;
-	private Action exportImageJPG, exportImagePNG, exportImageEPS, exportXML, exportMatlab, exportGnuplot;
+	private Action exportImageJPG, exportImagePNG, exportPDF, exportImageEPS, exportXML, exportMatlab, exportGnuplot;
 	private Action importXML;
 
 	private JMenu zoomMenu, exportMenu, importMenu;
 
-	private FileFilter pngFilter, jpgFilter, epsFilter, graFilter, matlabFilter, gnuplotFilter;
+	private FileFilter pngFilter, jpgFilter, pdfFilter, epsFilter, graFilter, matlabFilter, gnuplotFilter;
 
 	public GUIGraphHandler(JFrame parent, GUIPlugin plug, boolean canDelete)
 	{
@@ -97,6 +97,7 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 
 		pngFilter = new FileNameExtensionFilter("PNG files (*.png)", "png");
 		jpgFilter = new FileNameExtensionFilter("JPEG files (*.jpg, *.jpeg)", "jpg", "jpeg"); 
+		pdfFilter = new FileNameExtensionFilter("PDF files(*.pdf)", "pdf");
 		epsFilter = new FileNameExtensionFilter("Encapsulated PostScript files (*.eps)", "eps");
 		graFilter = new FileNameExtensionFilter("PRISM graph files (*.gra, *.xml)", "gra", "xml");
 		matlabFilter = new FileNameExtensionFilter("Matlab files (*.m)", "m");
@@ -251,6 +252,25 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		exportImagePNG.putValue(Action.MNEMONIC_KEY, new Integer(KeyEvent.VK_P));
 		exportImagePNG.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallFileImage.png"));
 		exportImagePNG.putValue(Action.LONG_DESCRIPTION, "Export graph as a Portable Network Graphics file.");
+		
+		
+		exportPDF = new AbstractAction() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				
+				if (plug.showSaveFileDialog(pdfFilter) != JFileChooser.APPROVE_OPTION)
+					return;
+				
+				ChartPanel mgm = models.get(theTabs.getSelectedIndex());
+				Graph.exportToPDF(plug.getChooserFile(), mgm.getChart());
+				
+			}
+		};
+		exportPDF.putValue(Action.NAME, "Portable document format (*.pdf)");
+		exportPDF.putValue(Action.MNEMONIC_KEY, new Integer(KeyEvent.VK_P));
+		exportPDF.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallFilePdf.png"));
+		exportPDF.putValue(Action.LONG_DESCRIPTION, "Export the graph as a Portable document format file.");
 
 		exportImageEPS = new AbstractAction()
 		{
@@ -388,6 +408,7 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		exportMenu.setIcon(GUIPrism.getIconFromImage("smallExport.png"));
 		exportMenu.add(exportXML);
 		exportMenu.add(exportImagePNG);
+		exportMenu.add(exportPDF);
 		exportMenu.add(exportImageEPS);
 		exportMenu.add(exportImageJPG);
 

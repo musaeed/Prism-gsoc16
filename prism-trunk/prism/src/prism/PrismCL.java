@@ -1359,6 +1359,8 @@ public class PrismCL implements PrismModelListener
 									exportPlotFormat = "gra";
 								else if (ss[j].equals("eps"))
 									exportPlotFormat = "eps";
+								else if(ss[j].equals("pdf"))
+									exportPlotFormat = "pdf";
 								else if(ss[j].equals("m"))
 									exportPlotFormat = "m";
 								else if(ss[j].equals("gnuplot") || ss[j].equals("gplot") || ss[j].equals("gpi")
@@ -2464,7 +2466,7 @@ public class PrismCL implements PrismModelListener
 			mainLog.println("Switch: -exportplot <file[:options]>\n");
 			mainLog.println("Exports the results of model checking as a plot");
 			mainLog.println("Many plot formats are available including .jpg, .png, .m (matlab script file), .gra (Prism graph)"
-					+ ", .gnuplot (GNU plot file) and .eps");
+					+ ", .gnuplot (GNU plot file), .pdf (Portable document format) and .eps");
 			mainLog.println("If provided, <options> is a comma-separated list of options taken from:");
 			mainLog.println(" * height - set the height of the plot (valid for jpg, png and eps)");
 			mainLog.println(" * width  - set the width of the plot (valid for jpg, png and eps)");

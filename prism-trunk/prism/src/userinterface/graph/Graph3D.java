@@ -19,11 +19,15 @@ import org.xml.sax.SAXException;
 
 import com.orsoncharts.Chart3D;
 import com.orsoncharts.Chart3DPanel;
+import com.orsoncharts.Range;
 import com.orsoncharts.plot.XYZPlot;
+import com.orsoncharts.renderer.GradientColorScale;
+import com.orsoncharts.renderer.RainbowScale;
 import com.orsoncharts.renderer.xyz.SurfaceRenderer;
 import com.orsoncharts.util.Orientation;
 
 import settings.ChoiceSetting;
+import settings.ColorSetting;
 import settings.FontColorPair;
 import settings.FontColorSetting;
 import settings.MultipleLineStringSetting;
@@ -55,6 +59,8 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	private FontColorSetting titleFont;
 	private ChoiceSetting legendOrientation;
 	private ChoiceSetting scaleMethod;
+	private ColorSetting lowColor;
+	private ColorSetting highColor;
 	
 	
 	public Graph3D(){
@@ -79,9 +85,14 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		legendOrientation = new ChoiceSetting("legend orientation", new String[]{"Horizontal","Vertical"}, "Horizontal" 
 				, "change the orientation of the legend", this, false);
 		
-		scaleMethod = new ChoiceSetting("scale method", new String[]{"Rainbow scale"}, "Rainbow scale", 
+		scaleMethod = new ChoiceSetting("scale method", new String[]{"Rainbow scale", "Gradient scale"}, "Rainbow scale", 
 				"change the scale method for the chart", this, false);
 		
+		lowColor = new ColorSetting("low color", Color.WHITE, "low color for the gradient scale", this, false);
+		lowColor.setEnabled(false);
+		
+		highColor = new ColorSetting("high color", Color.BLACK, "high color of the gradient scale", this, false);
+		highColor.setEnabled(false);
 	}
 	
 	
@@ -148,7 +159,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 
 	@Override
 	public int getNumSettings() {
-		return 4;
+		return 6;
 	}
 
 
@@ -165,6 +176,10 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 			return this.legendOrientation;
 		case 3:
 			return this.scaleMethod;
+		case 4:
+			return this.lowColor;
+		case 5:
+			return this.highColor;
 		default:
 				return null;
 		
@@ -209,7 +224,35 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 			chart.setLegendOrientation(Orientation.VERTICAL);
 		}
 		
-		/*scale method*/		
+		/*scale method*/
+		if(scaleMethod.getStringValue().equals("Rainbow scale")){
+			
+			lowColor.setEnabled(false);
+			highColor.setEnabled(false);
+			renderer.setColorScale(new RainbowScale(new Range(0.0, 1.0)));
+		}
+		else if(scaleMethod.getStringValue().equals("Gradient scale")){
+			
+			lowColor.setEnabled(true);
+			highColor.setEnabled(true);
+			renderer.setColorScale(new GradientColorScale(new Range(0.0, 1.0), lowColor.getColorValue(), highColor.getColorValue()));
+		}
+		
+		/*low color*/
+		
+		if(lowColor.isEnabled()){
+			
+			if(!lowColor.getColorValue().equals(((GradientColorScale)renderer.getColorScale()).getLowColor()))
+				renderer.setColorScale(new GradientColorScale(new Range(0.0, 1.0), lowColor.getColorValue(), highColor.getColorValue()));
+		}
+		
+		/*high color*/
+		
+		if(highColor.isEnabled()){
+			
+			if(!highColor.getColorValue().equals(((GradientColorScale)renderer.getColorScale()).getHighColor()))
+				renderer.setColorScale(new GradientColorScale(new Range(0.0, 1.0), lowColor.getColorValue(), highColor.getColorValue()));
+		}
 	}
 
 	@Override

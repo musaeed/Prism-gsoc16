@@ -1,11 +1,16 @@
 package userinterface.graph;
 
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.geom.Rectangle2D;
 import java.util.Observable;
 
 import com.orsoncharts.plot.XYZPlot;
 import com.orsoncharts.renderer.xyz.SurfaceRenderer;
+import com.orsoncharts.table.RectanglePainter;
 
 import settings.BooleanSetting;
+import settings.ColorSetting;
 import settings.Setting;
 import settings.SettingDisplay;
 import settings.SettingOwner;
@@ -21,6 +26,7 @@ public class DisplaySettings3D extends Observable implements SettingOwner{
 	
 	private BooleanSetting antiAlias;
 	private BooleanSetting faceoutLines;
+	private ColorSetting chartBoxColor;
 	
 	public DisplaySettings3D(Graph3D graph) {
 		
@@ -28,6 +34,8 @@ public class DisplaySettings3D extends Observable implements SettingOwner{
 		
 		antiAlias = new BooleanSetting("Anti alias", true, "set anti alias", this, false);
 		faceoutLines = new BooleanSetting("Face out lines", false, "Draw face out lines?", this, false);
+		chartBoxColor = new ColorSetting("Chart box color", Color.WHITE, "set the color of the chart box", this, false);
+		
 	}
 	
 	@Override
@@ -63,7 +71,7 @@ public class DisplaySettings3D extends Observable implements SettingOwner{
 
 	@Override
 	public int getNumSettings() {
-		return 2;
+		return 3;
 	}
 
 	@Override
@@ -74,6 +82,8 @@ public class DisplaySettings3D extends Observable implements SettingOwner{
 			return this.antiAlias;
 		case 1:
 			return this.faceoutLines;
+		case 2:
+			return this.chartBoxColor;
 		default:
 			return null;
 		}
@@ -105,6 +115,11 @@ public class DisplaySettings3D extends Observable implements SettingOwner{
 		/*draw face out lines?*/
 		if(faceoutLines.getBooleanValue() != ((SurfaceRenderer)((XYZPlot)graph.getChart().getPlot()).getRenderer()).getDrawFaceOutlines()){
 			((SurfaceRenderer)((XYZPlot)graph.getChart().getPlot()).getRenderer()).setDrawFaceOutlines(faceoutLines.getBooleanValue());
+		}
+		
+		/*chart box color*/
+		if(!chartBoxColor.getColorValue().equals(graph.getChart().getChartBoxColor())){
+			graph.getChart().setChartBoxColor(chartBoxColor.getColorValue());
 		}
 	}
 

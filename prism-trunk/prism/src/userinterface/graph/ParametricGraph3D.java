@@ -12,15 +12,19 @@ import com.orsoncharts.renderer.xyz.SurfaceRenderer;
 
 import param.BigRational;
 import param.Function;
+import settings.IntegerSetting;
+import settings.Setting;
 
 public class ParametricGraph3D extends Graph3D {
 	
 	private static final long serialVersionUID = 1L;
 
 	private ParamFunction function;
-	private int resolution;
 	private double lowerBoundX, lowerBoundY;
 	private double upperBoundX, upperBoundY;
+	
+	private IntegerSetting xResolution;
+	private IntegerSetting yResolution;
 	
 	public ParametricGraph3D(Function func){
 		this();
@@ -29,16 +33,17 @@ public class ParametricGraph3D extends Graph3D {
 	
 	public ParametricGraph3D(){
 		initSettings();
-		resolution = 25;
 		lowerBoundX = lowerBoundY = 0.0;
 		upperBoundX = upperBoundY = 1.0;
+		
+		xResolution = new IntegerSetting("Sampling rate X", 25, "change the sampling rate of the x axis", this, false);
+		yResolution = new IntegerSetting("Sampling rate Y", 25, "change the sampling rate of the y axis", this, false);
 	}
 	
-	public ParametricGraph3D(Function func, int resolution, double lowerBoundX, double upperBoundX, 
+	public ParametricGraph3D(Function func, double lowerBoundX, double upperBoundX, 
 			double lowerBoundY, double upperBoundY){
 		
 		function = new ParamFunction(func);
-		this.resolution = resolution;
 		this.lowerBoundX = lowerBoundX;
 		this.upperBoundX = upperBoundX;
 		this.lowerBoundY = lowerBoundY;
@@ -72,9 +77,6 @@ public class ParametricGraph3D extends Graph3D {
 		
 		renderer = (SurfaceRenderer) plot.getRenderer();
 		renderer.setColorScale(new RainbowScale(new Range(0.0, 1.0)));
-		renderer.setXSamples(resolution);
-		renderer.setZSamples(resolution);
-		renderer.setDrawFaceOutlines(false);
 		
 		setLayout(new BorderLayout());
 		add(panel, BorderLayout.CENTER);
@@ -89,7 +91,45 @@ public class ParametricGraph3D extends Graph3D {
 		this.getyAxisSetting().updateAxis();
 		this.getzAxisSetting().updateAxis();
 	}
+
+	@Override
+	public int getNumSettings() {
+		return 8;
+	}
+
+	@Override
+	public Setting getSetting(int index) {
+
+		if(index < 6){
+			return super.getSetting(index);
+		}
+
+		switch(index){
+		
+		case 6:
+			return xResolution;
+		case 7:
+			return yResolution;
+		default:
+			return null;
+
+		}
+	}
 	
+	@Override
+	public void updateGraph(){
+		
+		super.updateGraph();
+	
+		if(xResolution.getIntegerValue() != renderer.getXSamples()){
+			renderer.setXSamples(xResolution.getIntegerValue());
+		}
+		
+		if(yResolution.getIntegerValue() != renderer.getXSamples()){
+			renderer.setZSamples(yResolution.getIntegerValue());			
+		}
+	}
+
 	private class ParamFunction implements Function3D{
 		
 		private static final long serialVersionUID = 1L;

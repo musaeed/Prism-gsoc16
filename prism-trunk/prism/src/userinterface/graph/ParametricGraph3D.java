@@ -6,7 +6,6 @@ import com.orsoncharts.Chart3DFactory;
 import com.orsoncharts.Chart3DPanel;
 import com.orsoncharts.Range;
 import com.orsoncharts.data.function.Function3D;
-import com.orsoncharts.graphics3d.swing.DisplayPanel3D;
 import com.orsoncharts.plot.XYZPlot;
 import com.orsoncharts.renderer.RainbowScale;
 import com.orsoncharts.renderer.xyz.SurfaceRenderer;
@@ -86,7 +85,9 @@ public class ParametricGraph3D extends Graph3D {
 		
 		this.getDisplaySettings().updateDisplay();
 		this.updateGraph();
-
+		this.getxAxisSetting().updateAxis();
+		this.getyAxisSetting().updateAxis();
+		this.getzAxisSetting().updateAxis();
 	}
 	
 	private class ParamFunction implements Function3D{

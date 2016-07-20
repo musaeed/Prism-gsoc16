@@ -14,12 +14,13 @@ import settings.FontColorSetting;
 import settings.Setting;
 import settings.SettingDisplay;
 import settings.SettingOwner;
+import sun.awt.X11.XAbstractMenuItem;
 
 public class AxisSettings3D extends Observable implements SettingOwner{
 
-	public static int XAXIS = 0;
-	public static int YAXIS = 1;
-	public static int ZAXIS = 2;
+	public static final int XAXIS = 0;
+	public static final int YAXIS = 1;
+	public static final int ZAXIS = 2;
 	
 	private String name;
 	private SettingDisplay display;
@@ -51,17 +52,13 @@ public class AxisSettings3D extends Observable implements SettingOwner{
 		this.graph = graph;
 		this.chart = graph.getChart();
 		this.plot = graph.getPlot();
-		
+
 		labelFont = new FontColorSetting("label font", new FontColorPair(new Font(Font.SANS_SERIF, Font.PLAIN, 16), Color.black),
 				"change the font of the label", this, false);
 		visible = new BooleanSetting("Axis visible?", true, "change the visibility of the axis", this, false);
 		inverted = new BooleanSetting("Inverted", false, "invert the axis", this, false);
 		
 		display = null;	
-		
-		updateAxis();
-		setChanged();
-		notifyObservers();
 		
 	}
 	
@@ -124,17 +121,46 @@ public class AxisSettings3D extends Observable implements SettingOwner{
 
 	@Override
 	public SettingDisplay getDisplay() {
-		// TODO Auto-generated method stub
-		return null;
+		return this.display;
 	}
 
 	@Override
 	public void setDisplay(SettingDisplay display) {
-		// TODO Auto-generated method stub
-		
+		this.display = display;
 	}
 	
 	public void updateAxis(){
+		
+		switch(axisType){
+
+		case AxisSettings3D.XAXIS:
+			axis = ((XYZPlot)graph.getChart().getPlot()).getXAxis();
+			break;
+		case AxisSettings3D.YAXIS:
+			axis = ((XYZPlot)graph.getChart().getPlot()).getZAxis();
+			break;
+		case AxisSettings3D.ZAXIS:
+			axis = ((XYZPlot)graph.getChart().getPlot()).getYAxis();
+			break;
+		default:
+			return;
+		}
+		
+		/*label font and color*/
+		{
+			axis.setLabelFont(labelFont.getFontColorValue().f);
+			axis.setLabelColor(labelFont.getFontColorValue().c);
+		}
+		
+		/*visible setting*/
+		if(visible.getBooleanValue() != axis.isVisible()){
+			axis.setVisible(visible.getBooleanValue());
+		}
+		
+		/*inverted setting*/
+		if(inverted.getBooleanValue() != axis.isInverted()){
+			axis.setInverted(inverted.getBooleanValue());
+		}
 		
 	}
 

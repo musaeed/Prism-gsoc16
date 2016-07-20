@@ -38,7 +38,6 @@ import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Random;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
@@ -53,9 +52,6 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 
 import org.jfree.chart.ChartPanel;
 
-import com.orsoncharts.Chart3D;
-import com.orsoncharts.data.xyz.XYZDataItem;
-
 import prism.PrismException;
 import userinterface.GUIPlugin;
 import userinterface.GUIPrism;
@@ -66,7 +62,6 @@ import userinterface.graph.GraphException;
 import userinterface.graph.GraphOptions;
 import userinterface.graph.Histogram;
 import userinterface.graph.ParametricGraph;
-import userinterface.graph.SeriesKey;
 
 @SuppressWarnings("serial")
 public class GUIGraphHandler extends JPanel implements MouseListener
@@ -159,6 +154,8 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 				
 				if(mgm instanceof ChartPanel)
 					((ChartPanel)mgm).zoomInBoth(-1, -1);
+				else if(mgm instanceof Graph3D)
+					;//TODO
 			}
 		};
 
@@ -175,6 +172,8 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 				
 				if(mgm instanceof ChartPanel)
 					((ChartPanel)mgm).zoomOutBoth(-1, -1);
+				else if(mgm instanceof Graph3D)
+					;//TODO
 			}
 		};
 
@@ -191,6 +190,8 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 				
 				if(mgm instanceof ChartPanel)
 					((ChartPanel)mgm).restoreAutoBounds();
+				else if(mgm instanceof Graph3D)
+					((Graph3D)mgm).getChart3DPanel().zoomToFit();
 			}
 		};
 

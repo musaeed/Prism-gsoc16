@@ -45,6 +45,8 @@ import javax.swing.event.ListSelectionListener;
 
 import org.jfree.chart.ChartPanel;
 
+import com.orsoncharts.Chart3DPanel;
+
 import settings.SettingTable;
 import userinterface.GUIPlugin;
 import userinterface.GUIPrism;
@@ -55,16 +57,17 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 	
 	private JList seriesList, axesList;
 	
-	private ChartPanel theModel;
+	private JPanel theModel;
 	private Observable xAxisSettings;
 	private Observable yAxisSettings;
-	private DisplaySettings displaySettings;
+	private Observable zAxisSettings;
+	private Observable displaySettings;
 	
 	private JFrame parent;
 	private GUIPlugin plugin;
 	
 	/** Creates new form GraphOptionsPanel */
-	public GraphOptionsPanel(GUIPlugin plugin, JFrame parent, ChartPanel theModel)
+	public GraphOptionsPanel(GUIPlugin plugin, JFrame parent, JPanel theModel)
 	{
 		this.plugin = plugin;
 		this.parent = parent;
@@ -82,6 +85,7 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 			((Graph)theModel).setDisplay(graphPropertiesTable);
 			xAxisSettings = ((Graph)theModel).getXAxisSettings();
 			yAxisSettings = ((Graph)theModel).getYAxisSettings();
+			zAxisSettings = null;
 			displaySettings = ((Graph)theModel).getDisplaySettings();
 			
 		}
@@ -90,7 +94,17 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 			((Histogram)theModel).setDisplay(graphPropertiesTable);
 			xAxisSettings = ((Histogram)theModel).getXAxisSettings();
 			yAxisSettings = ((Histogram)theModel).getYAxisSettings();
+			zAxisSettings = null;
 			displaySettings = ((Histogram)theModel).getDisplaySettings();
+		}
+		else if(theModel instanceof Graph3D){
+			
+			((Graph3D)theModel).setDisplay(graphPropertiesTable);
+			xAxisSettings = ((Graph3D)theModel).getxAxisSetting();
+			yAxisSettings = ((Graph3D)theModel).getyAxisSetting();
+			zAxisSettings = null;
+			//zAxisSettings = ((Graph3D)theModel).getzAxisSetting();
+			displaySettings = ((Graph3D)theModel).getDisplaySettings();
 		}
 
 		
@@ -123,8 +137,12 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 		own = new ArrayList();		
 		own.add(displaySettings);
 		displayPropertiesTable = new SettingTable(parent);
-		displayPropertiesTable.setOwners(own);	
-		displaySettings.setDisplay(displayPropertiesTable);
+		displayPropertiesTable.setOwners(own);
+		
+		if(theModel instanceof ChartPanel)
+			((DisplaySettings)displaySettings).setDisplay(displayPropertiesTable);
+		else if(theModel instanceof Graph3D)
+			((DisplaySettings3D)displaySettings).setDisplay(displayPropertiesTable);
 		
 		
 		if(theModel instanceof Graph){
@@ -133,6 +151,10 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 		else if(theModel instanceof Histogram){
 			
 			seriesList = new JList(((Histogram)theModel).getGraphSeriesList());
+		}
+		else if(theModel instanceof Graph3D){
+			// we dont have any series for a 3d graph
+			seriesList = new JList<>();
 		}
 
 		
@@ -473,7 +495,8 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 					selected.add(((SeriesSettings)((Histogram)theModel).getGraphSeriesList().getElementAt(sel[i])).getSeriesKey());
 			}
 			
-			SeriesEditorDialog.makeSeriesEditor(plugin, parent, theModel, selected);
+			if(theModel instanceof ChartPanel)
+				SeriesEditorDialog.makeSeriesEditor(plugin, parent, (ChartPanel)theModel, selected);
 		}
     	
 	/*	ArrayList ss = seriesList.getSelectedSeries();

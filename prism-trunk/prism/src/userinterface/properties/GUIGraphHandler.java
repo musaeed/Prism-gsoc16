@@ -38,6 +38,7 @@ import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Random;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
@@ -52,15 +53,20 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 
 import org.jfree.chart.ChartPanel;
 
+import com.orsoncharts.Chart3D;
+import com.orsoncharts.data.xyz.XYZDataItem;
+
 import prism.PrismException;
 import userinterface.GUIPlugin;
 import userinterface.GUIPrism;
 import userinterface.graph.GUIImageExportDialog;
 import userinterface.graph.Graph;
+import userinterface.graph.Graph3D;
 import userinterface.graph.GraphException;
 import userinterface.graph.GraphOptions;
 import userinterface.graph.Histogram;
 import userinterface.graph.ParametricGraph;
+import userinterface.graph.SeriesKey;
 
 @SuppressWarnings("serial")
 public class GUIGraphHandler extends JPanel implements MouseListener
@@ -70,13 +76,13 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 	private JTabbedPane theTabs;
 	private JPopupMenu backMenu, graphMenu;
 
-	private java.util.List<ChartPanel> models;
+	private java.util.List<JPanel> models;
 	private java.util.List<GraphOptions> options;
 
 	private GUIPlugin plug;
 
 	private Action graphOptions, zoomIn, zoomOut, zoomDefault;
-
+	
 	private Action printGraph, deleteGraph;
 	private Action exportImageJPG, exportImagePNG, exportPDF, exportImageEPS, exportXML, exportMatlab, exportGnuplot;
 	private Action importXML;
@@ -103,7 +109,7 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		matlabFilter = new FileNameExtensionFilter("Matlab files (*.m)", "m");
 		gnuplotFilter = new FileNameExtensionFilter("GNU plot files (*gnuplot , *.gplot , *.gp , *.plt , *.gpi)", "gnuplot");
 
-		models = new ArrayList<ChartPanel>();
+		models = new ArrayList<JPanel>();
 		options = new ArrayList<GraphOptions>();
 	}
 
@@ -149,8 +155,10 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				ChartPanel mgm = models.get(theTabs.getSelectedIndex());
-				mgm.zoomInBoth(-1, -1);
+				JPanel mgm = models.get(theTabs.getSelectedIndex());
+				
+				if(mgm instanceof ChartPanel)
+					((ChartPanel)mgm).zoomInBoth(-1, -1);
 			}
 		};
 
@@ -163,8 +171,10 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				ChartPanel mgm = models.get(theTabs.getSelectedIndex());
-				mgm.zoomOutBoth(-1, -1);
+				JPanel mgm = models.get(theTabs.getSelectedIndex());
+				
+				if(mgm instanceof ChartPanel)
+					((ChartPanel)mgm).zoomOutBoth(-1, -1);
 			}
 		};
 
@@ -177,8 +187,10 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				ChartPanel mgm = models.get(theTabs.getSelectedIndex());
-				mgm.restoreAutoBounds();
+				JPanel mgm = models.get(theTabs.getSelectedIndex());
+				
+				if(mgm instanceof ChartPanel)
+					((ChartPanel)mgm).restoreAutoBounds();
 			}
 		};
 
@@ -229,9 +241,14 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				GUIImageExportDialog imageDialog = new GUIImageExportDialog(plug.getGUI(), getModel(theTabs.getSelectedIndex()), GUIImageExportDialog.JPEG);
+				JPanel model = getModel(theTabs.getSelectedIndex());
+				
+				if(model instanceof ChartPanel){
+				
+					GUIImageExportDialog imageDialog = new GUIImageExportDialog(plug.getGUI(), (ChartPanel)model, GUIImageExportDialog.JPEG);
 
-				saveImage(imageDialog);
+					saveImage(imageDialog);
+				}
 			}
 		};
 		exportImageJPG.putValue(Action.NAME, "JPEG Interchange Format (*.jpg, *.jpeg)");
@@ -243,9 +260,14 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				GUIImageExportDialog imageDialog = new GUIImageExportDialog(plug.getGUI(), getModel(theTabs.getSelectedIndex()), GUIImageExportDialog.PNG);
+				JPanel model = getModel(theTabs.getSelectedIndex());
+				
+				if(model instanceof ChartPanel){
+				
+					GUIImageExportDialog imageDialog = new GUIImageExportDialog(plug.getGUI(), (ChartPanel)model, GUIImageExportDialog.PNG);
 
-				saveImage(imageDialog);
+					saveImage(imageDialog);
+				}
 			}
 		};
 		exportImagePNG.putValue(Action.NAME, "Portable Network Graphics (*.png)");
@@ -262,8 +284,10 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 				if (plug.showSaveFileDialog(pdfFilter) != JFileChooser.APPROVE_OPTION)
 					return;
 				
-				ChartPanel mgm = models.get(theTabs.getSelectedIndex());
-				Graph.exportToPDF(plug.getChooserFile(), mgm.getChart());
+				JPanel mgm = models.get(theTabs.getSelectedIndex());
+				
+				if(mgm instanceof ChartPanel)
+					Graph.exportToPDF(plug.getChooserFile(), ((ChartPanel)mgm).getChart());
 				
 			}
 		};
@@ -276,9 +300,15 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				GUIImageExportDialog imageDialog = new GUIImageExportDialog(plug.getGUI(), getModel(theTabs.getSelectedIndex()), GUIImageExportDialog.EPS);
+				JPanel model = getModel(theTabs.getSelectedIndex());
+				
+				if(model instanceof ChartPanel){
+				
+					GUIImageExportDialog imageDialog = new GUIImageExportDialog(plug.getGUI(), (ChartPanel)model, GUIImageExportDialog.EPS);
 
-				saveImage(imageDialog);
+					saveImage(imageDialog);
+					
+				}
 			}
 		};
 		exportImageEPS.putValue(Action.NAME, "Encapsulated PostScript (*.eps)");
@@ -315,26 +345,32 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 				if (plug.showSaveFileDialog(gnuplotFilter) != JFileChooser.APPROVE_OPTION)
 					return;
 				
-				ChartPanel mgm = models.get(theTabs.getSelectedIndex());
-				
-				try 
+				JPanel mgm = models.get(theTabs.getSelectedIndex());
+
+				if(mgm instanceof ChartPanel)
 				{
-					if(mgm instanceof Graph && !(mgm instanceof ParametricGraph)){
-						
-						((Graph)mgm).exportToGnuplot(plug.getChooserFile());
+			
+					try 
+					{
+						if(mgm instanceof Graph && !(mgm instanceof ParametricGraph)){
+
+							((Graph)mgm).exportToGnuplot(plug.getChooserFile());
+						}
+						else if(mgm instanceof ParametricGraph){
+
+							((ParametricGraph)mgm).exportToGnuplot(plug.getChooserFile());
+						}
+						else if(mgm instanceof Histogram){
+							((Histogram)mgm).exportToGnuplot(plug.getChooserFile());
+						}
+
+
+					} catch (IOException ex) {
+						plug.error("Could not export Gnuplot file:\n" + ex.getMessage());
 					}
-					else if(mgm instanceof ParametricGraph){
-						
-						((ParametricGraph)mgm).exportToGnuplot(plug.getChooserFile());
-					}
-					else if(mgm instanceof Histogram){
-						((Histogram)mgm).exportToGnuplot(plug.getChooserFile());
-					}
-					
-					
-				} catch (IOException ex) {
-					plug.error("Could not export Gnuplot file:\n" + ex.getMessage());
 				}
+				
+				
 			}
 		};
 		
@@ -347,34 +383,46 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				ChartPanel graph = models.get(theTabs.getSelectedIndex());
-				
-				if(graph instanceof Graph){
-					
-					if (!((Graph)graph).getDisplaySettings().getBackgroundColor().equals(Color.white)) {
-						if (plug.questionYesNo("Your graph has a coloured background, this background will show up on the \n"
-								+ "printout. Would you like to make the current background colour white?") == 0) {
-							((Graph)graph).getDisplaySettings().setBackgroundColor(Color.white);
+				JPanel graph = models.get(theTabs.getSelectedIndex());
+
+				if(graph instanceof ChartPanel)
+				{
+
+					if(graph instanceof Graph)
+					{
+
+						if (!((Graph)graph).getDisplaySettings().getBackgroundColor().equals(Color.white)) 
+						{
+							if (plug.questionYesNo("Your graph has a coloured background, this background will show up on the \n"
+									+ "printout. Would you like to make the current background colour white?") == 0) 
+							{
+								
+								((Graph)graph).getDisplaySettings().setBackgroundColor(Color.white);
+							}
 						}
+
 					}
-					
-				}
-				else if(graph instanceof Histogram){
-					
-					if (!((Histogram)graph).getDisplaySettings().getBackgroundColor().equals(Color.white)) {
-						if (plug.questionYesNo("Your graph has a coloured background, this background will show up on the \n"
-								+ "printout. Would you like to make the current background colour white?") == 0) {
-							((Histogram)graph).getDisplaySettings().setBackgroundColor(Color.white);
+					else if(graph instanceof Histogram)
+					{
+
+						if (!((Histogram)graph).getDisplaySettings().getBackgroundColor().equals(Color.white)) 
+						{
+							if (plug.questionYesNo("Your graph has a coloured background, this background will show up on the \n"
+									+ "printout. Would you like to make the current background colour white?") == 0) 
+							{
+								((Histogram)graph).getDisplaySettings().setBackgroundColor(Color.white);
+							}
 						}
+
 					}
-					
+
+
+
+					((ChartPanel)graph).createChartPrintJob();
 				}
-
-
-
-				graph.createChartPrintJob();
 			}
 		};
+		
 		printGraph.putValue(Action.NAME, "Print graph");
 		printGraph.putValue(Action.MNEMONIC_KEY, new Integer(KeyEvent.VK_P));
 		printGraph.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallPrint.png"));
@@ -384,7 +432,7 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				ChartPanel graph = models.get(theTabs.getSelectedIndex());
+				JPanel graph = models.get(theTabs.getSelectedIndex());
 
 				models.remove(theTabs.getSelectedIndex());
 				options.remove(theTabs.getSelectedIndex());
@@ -436,61 +484,65 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 	public void saveImage(GUIImageExportDialog imageDialog)
 	{
 		if (!imageDialog.isCancelled()) {
-			ChartPanel graph = getModel(theTabs.getSelectedIndex());
 
-			if(graph instanceof Graph){
-				/* If background is not white, and it will show up, then lets warn everyone. */
-				if (!((Graph)graph).getDisplaySettings().getBackgroundColor().equals(Color.white)
-						&& (imageDialog.getImageType() != GUIImageExportDialog.PNG || !imageDialog.getAlpha())) {
-					if (plug.questionYesNo("Your graph has a coloured background, this background will show up on the \n"
-							+ "exported image. Would you like to make the current background colour white?") == 0) {
-						((Graph)graph).getDisplaySettings().setBackgroundColor(Color.white);
+			JPanel graph = getModel(theTabs.getSelectedIndex());
+
+			if(graph instanceof ChartPanel){
+
+				if(graph instanceof Graph){
+					/* If background is not white, and it will show up, then lets warn everyone. */
+					if (!((Graph)graph).getDisplaySettings().getBackgroundColor().equals(Color.white)
+							&& (imageDialog.getImageType() != GUIImageExportDialog.PNG || !imageDialog.getAlpha())) {
+						if (plug.questionYesNo("Your graph has a coloured background, this background will show up on the \n"
+								+ "exported image. Would you like to make the current background colour white?") == 0) {
+							((Graph)graph).getDisplaySettings().setBackgroundColor(Color.white);
+						}
 					}
 				}
-			}
-			else if(graph instanceof Histogram){
-				
-				/* If background is not white, and it will show up, then lets warn everyone. */
-				if (!((Histogram)graph).getDisplaySettings().getBackgroundColor().equals(Color.white)
-						&& (imageDialog.getImageType() != GUIImageExportDialog.PNG || !imageDialog.getAlpha())) {
-					if (plug.questionYesNo("Your graph has a coloured background, this background will show up on the \n"
-							+ "exported image. Would you like to make the current background colour white?") == 0) {
-						((Histogram)graph).getDisplaySettings().setBackgroundColor(Color.white);
-					}
-				}
-				
-			}
+				else if(graph instanceof Histogram){
 
-			if (imageDialog.getImageType() == GUIImageExportDialog.JPEG) {
-				if (plug.showSaveFileDialog(jpgFilter) != JFileChooser.APPROVE_OPTION)
-					return;
-				try {
-					Graph.exportToJPEG(plug.getChooserFile(), graph.getChart(), imageDialog.getExportWidth(), imageDialog.getExportHeight());
-				} catch (GraphException ex) {
-					plug.error("Could not export JPEG file:\n" + ex.getMessage());
-				} catch (IOException ex) {
-					plug.error("Could not export JPEG file:\n" + ex.getMessage());
+					/* If background is not white, and it will show up, then lets warn everyone. */
+					if (!((Histogram)graph).getDisplaySettings().getBackgroundColor().equals(Color.white)
+							&& (imageDialog.getImageType() != GUIImageExportDialog.PNG || !imageDialog.getAlpha())) {
+						if (plug.questionYesNo("Your graph has a coloured background, this background will show up on the \n"
+								+ "exported image. Would you like to make the current background colour white?") == 0) {
+							((Histogram)graph).getDisplaySettings().setBackgroundColor(Color.white);
+						}
+					}
+
 				}
-			} else if (imageDialog.getImageType() == GUIImageExportDialog.PNG) {
-				if (plug.showSaveFileDialog(pngFilter) != JFileChooser.APPROVE_OPTION)
-					return;
-				try {
-					
-					Graph.exportToPNG(plug.getChooserFile(), graph.getChart(), imageDialog.getExportWidth(), imageDialog.getExportHeight(), imageDialog.getAlpha());
-				} catch (GraphException ex) {
-					plug.error("Could not export PNG file:\n" + ex.getMessage());
-				} catch (IOException ex) {
-					plug.error("Could not export PNG file:\n" + ex.getMessage());
-				}
-			} else if (imageDialog.getImageType() == GUIImageExportDialog.EPS) {
-				if (plug.showSaveFileDialog(epsFilter) != JFileChooser.APPROVE_OPTION)
-					return;
-				try {
-					Graph.exportToEPS(plug.getChooserFile(), imageDialog.getExportWidth(), imageDialog.getExportHeight(), graph.getChart());
-				} catch (GraphException ex) {
-					plug.error("Could not export EPS file:\n" + ex.getMessage());
-				} catch (IOException ex) {
-					plug.error("Could not export EPS file:\n" + ex.getMessage());
+
+				if (imageDialog.getImageType() == GUIImageExportDialog.JPEG) {
+					if (plug.showSaveFileDialog(jpgFilter) != JFileChooser.APPROVE_OPTION)
+						return;
+					try {
+						Graph.exportToJPEG(plug.getChooserFile(), ((ChartPanel)graph).getChart(), imageDialog.getExportWidth(), imageDialog.getExportHeight());
+					} catch (GraphException ex) {
+						plug.error("Could not export JPEG file:\n" + ex.getMessage());
+					} catch (IOException ex) {
+						plug.error("Could not export JPEG file:\n" + ex.getMessage());
+					}
+				} else if (imageDialog.getImageType() == GUIImageExportDialog.PNG) {
+					if (plug.showSaveFileDialog(pngFilter) != JFileChooser.APPROVE_OPTION)
+						return;
+					try {
+
+						Graph.exportToPNG(plug.getChooserFile(), ((ChartPanel)graph).getChart(), imageDialog.getExportWidth(), imageDialog.getExportHeight(), imageDialog.getAlpha());
+					} catch (GraphException ex) {
+						plug.error("Could not export PNG file:\n" + ex.getMessage());
+					} catch (IOException ex) {
+						plug.error("Could not export PNG file:\n" + ex.getMessage());
+					}
+				} else if (imageDialog.getImageType() == GUIImageExportDialog.EPS) {
+					if (plug.showSaveFileDialog(epsFilter) != JFileChooser.APPROVE_OPTION)
+						return;
+					try {
+						Graph.exportToEPS(plug.getChooserFile(), imageDialog.getExportWidth(), imageDialog.getExportHeight(), ((ChartPanel)graph).getChart());
+					} catch (GraphException ex) {
+						plug.error("Could not export EPS file:\n" + ex.getMessage());
+					} catch (IOException ex) {
+						plug.error("Could not export EPS file:\n" + ex.getMessage());
+					}
 				}
 			}
 		}
@@ -508,7 +560,7 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		return null;
 	}
 
-	public int addGraph(ChartPanel m)
+	public int addGraph(JPanel m)
 	{
 		String name = "";
 
@@ -531,7 +583,7 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		}
 	}
 
-	public int addGraph(ChartPanel m, String tabName)
+	public int addGraph(JPanel m, String tabName)
 	{
 		// add the model to the list of models
 		models.add(m);
@@ -541,8 +593,11 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		
 		options.add(new GraphOptions(plug, m, plug.getGUI(), "Options for graph " + tabName));
 
-		// anything that happens to the graph should propagate
-		m.addMouseListener(this);
+		if(m instanceof ChartPanel)
+			// anything that happens to the graph should propagate
+			m.addMouseListener(this);
+		else if(m instanceof Graph3D)
+			((Graph3D)m).addMouseListener(this);
 
 		// get the index of this model in the model list
 		int index = models.indexOf(m);
@@ -567,12 +622,12 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		}
 	}
 
-	public ChartPanel getModel(int i)
+	public JPanel getModel(int i)
 	{	
 		return models.get(i);
 	}
 
-	public ChartPanel getModel(String tabHeader)
+	public JPanel getModel(String tabHeader)
 	{
 		for (int i = 0; i < theTabs.getComponentCount(); i++) {
 			if (theTabs.getTitleAt(i).equals(tabHeader)) {
@@ -651,7 +706,9 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		}
 
 		for (int i = 0; i < models.size(); i++) {
-			if (e.getSource() == models.get(i)) {
+			
+		if (e.getSource() == models.get(i)) {
+				
 				graphOptions.setEnabled(true);
 				zoomMenu.setEnabled(true);
 
@@ -685,6 +742,10 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 
 	public void mouseExited(MouseEvent e)
 	{
+	}
+	
+	public JPopupMenu getGraphMenu(){
+		return this.graphMenu;
 	}
 
 }

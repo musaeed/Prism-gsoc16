@@ -766,6 +766,7 @@ public class Graph extends ChartPanel implements SettingOwner, EntityResolver, O
 	public void setErrorBarVisible (boolean visible){
 
 		try{
+			
 			errorBarVisible.setValue(visible);
 			doEnables();
 			updateGraph();

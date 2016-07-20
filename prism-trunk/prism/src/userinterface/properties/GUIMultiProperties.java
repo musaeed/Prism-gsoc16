@@ -83,7 +83,6 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
-import param.BigRational;
 import param.RegionValues;
 import parser.Values;
 import parser.ast.Expression;
@@ -114,6 +113,7 @@ import userinterface.SimulationInformation;
 import userinterface.graph.Graph;
 import userinterface.graph.Histogram;
 import userinterface.graph.ParametricGraph;
+import userinterface.graph.ParametricGraph3D;
 import userinterface.graph.PrismXYDataItem;
 import userinterface.graph.SeriesKey;
 import userinterface.model.GUIModelEvent;
@@ -491,22 +491,38 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 		{
 			uCon.getMFConstantValues().removeValue(pName);
 		}
+		
+		ParametricGraph graph = null;
+		ParametricGraph3D graph3d = null;
+		
+		if(params.length == 1){
 
-		GUIGraphPicker picker = new GUIGraphPicker(getGUI(), this, graphHandler);
-		ParametricGraph graph = picker.getGraphModel();
+			GUIGraphPicker picker = new GUIGraphPicker(getGUI(), this, graphHandler);
+			graph = picker.getGraphModel();
 
-		if(graph == null)
-		{
+			if(graph == null)
+			{
+				return;
+			}
 
-			return;
 		}
-
+		else if (params.length == 2)
+		{
+			graph3d = new ParametricGraph3D();
+			graphHandler.addGraph(graph3d);
+		}
+		
 		//set graph properties
 		if(showGraphDialog)
 		{
-			graph.getXAxisSettings().setHeading(params[0]);
-			graph.getYAxisSettings().setHeading("probability");
+			if(params.length ==1){
 
+				graph.getXAxisSettings().setHeading(params[0]);
+				graph.getYAxisSettings().setHeading("probability");
+			}
+			else if(params.length == 2){
+				//TODO 3d
+			}
 		}
 
 
@@ -530,7 +546,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 					{
 
 						uCon.getPFConstantValues().removeValue(name);
-						uCon.getPFConstantValues().addValue(name, iter);
+						uCon.getPFConstantValues().addValue(name, (int)iter);
 						//set the value in the prop file
 						parsedProperties.setSomeUndefinedConstants(uCon.getPFConstantValues());
 
@@ -547,31 +563,46 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 						}
 
 						final double temp = iter;
-						final double lBound = Double.parseDouble(lowerBounds[0]);
-						final double uBound = Double.parseDouble(upperBounds[0]);
-
-						graph.setLowerBound(lBound);
-						graph.setUpperBound(uBound);
-
-						// plot the graphs
-						SwingUtilities.invokeLater(new Runnable() 
-						{
-
-							@Override
-							public void run() 
+						
+						if(params.length == 1){
+							
+							graph.setLowerBound(Double.parseDouble(lowerBounds[0]));
+							graph.setUpperBound(Double.parseDouble(upperBounds[0]));
+							
+							final ParametricGraph tempGraph = graph;
+							
+							// plot the graphs
+							SwingUtilities.invokeLater(new Runnable() 
 							{
 
-								if (propList.getSelectedIndices().length == 1) 
+								@Override
+								public void run() 
 								{
 
-									RegionValues vals = (RegionValues) res.getResult();
-									param.Function f = vals.getResult(0).getInitStateValueAsFunction();
-									SeriesKey key = graph.addSeries(name + " = " + temp, f);
-									graph.plotSeries(key);
+									if (propList.getSelectedIndices().length == 1) 
+									{
 
+										RegionValues vals = (RegionValues) res.getResult();
+										param.Function f = vals.getResult(0).getInitStateValueAsFunction();
+										SeriesKey key = tempGraph.addSeries(name + " = " + temp, f);
+										tempGraph.plotSeries(key);
+
+									}
 								}
-							}
-						});
+							});
+						
+						}
+						
+						else if(params.length == 2){
+							
+							graph3d.setBounds(Double.parseDouble(lowerBounds[0]), Double.parseDouble(upperBounds[0]), 
+									Double.parseDouble(lowerBounds[1]), Double.parseDouble(upperBounds[1]));
+							RegionValues vals = (RegionValues) res.getResult();
+							param.Function f = vals.getResult(0).getInitStateValueAsFunction();
+							
+							graph3d.setFunction(f);
+							graph3d.plot(propertiesString, params[0],"Probability",params[1]);
+						}
 
 					}
 				}
@@ -628,6 +659,8 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 
 						graph.setLowerBound(lBound);
 						graph.setUpperBound(uBound);
+						
+						final ParametricGraph tempGraph = graph;
 
 						// plot the graphs
 						SwingUtilities.invokeLater(new Runnable() 
@@ -639,11 +672,11 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 
 								if (propList.getSelectedIndices().length == 1) 
 								{
-
+									System.out.println("this should be ehre tooooo");
 									RegionValues vals = (RegionValues) res.getResult();
 									param.Function f = vals.getResult(0).getInitStateValueAsFunction();
-									SeriesKey key = graph.addSeries(name + " = " + temp, f);
-									graph.plotSeries(key);
+									SeriesKey key = tempGraph.addSeries(name + " = " + temp, f);
+									tempGraph.plotSeries(key);
 
 								}
 							}
@@ -733,6 +766,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 								graph.setLowerBound(lBound);
 								graph.setUpperBound(uBound);
 
+								final ParametricGraph tempGraph = graph;
 								// plot the graphs
 								SwingUtilities.invokeLater(new Runnable() 
 								{
@@ -746,8 +780,8 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 
 											RegionValues vals = (RegionValues) res.getResult();
 											param.Function f = vals.getResult(0).getInitStateValueAsFunction();
-											SeriesKey key = graph.addSeries(name + " = " + temp1 + ", " + namePF + "=" + temp2, f);
-											graph.plotSeries(key);
+											SeriesKey key = tempGraph.addSeries(name + " = " + temp1 + ", " + namePF + "=" + temp2, f);
+											tempGraph.plotSeries(key);
 
 										}
 									}

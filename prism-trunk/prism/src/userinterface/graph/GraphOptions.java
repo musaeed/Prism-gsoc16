@@ -43,7 +43,7 @@ public class GraphOptions extends JDialog
 {
 	private GraphOptionsPanel gop;
 	/** Creates a new instance of MultiGraphOptions */
-	public GraphOptions(GUIPlugin plugin, ChartPanel theModel, JFrame gui, String title)
+	public GraphOptions(GUIPlugin plugin, JPanel theModel, JFrame gui, String title)
 	{
 		super(gui, title);
 		

@@ -12,5 +12,7 @@
 	<classpathentry kind="lib" path="lib/jas.jar"/>
 	<classpathentry kind="lib" path="lib/log4j.jar"/>
 	<classpathentry kind="lib" path="lib/nailgun-server.jar"/>
+	<classpathentry kind="lib" path="lib/orsoncharts-1.5.jar"/>
+	<classpathentry kind="lib" path="lib/itextpdf-5.5.9.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

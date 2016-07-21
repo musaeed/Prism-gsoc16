@@ -1,3 +1,29 @@
+//==============================================================================
+//	
+//	Copyright (c) 2016
+//	Authors:
+//	* Muhammad Omer Saeed <muhammad.omar555@gmail.com> (University of Bonn)
+//	
+//------------------------------------------------------------------------------
+//	
+//	This file is part of PRISM.
+//	
+//	PRISM is free software; you can redistribute it and/or modify
+//	it under the terms of the GNU General Public License as published by
+//	the Free Software Foundation; either version 2 of the License, or
+//	(at your option) any later version.
+//	
+//	PRISM is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//	GNU General Public License for more details.
+//	
+//	You should have received a copy of the GNU General Public License
+//	along with PRISM; if not, write to the Free Software Foundation,
+//	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//	
+//==============================================================================
+
 package userinterface.graph;
 
 import java.awt.Color;
@@ -28,11 +54,13 @@ import com.orsoncharts.util.Orientation;
 
 import settings.ChoiceSetting;
 import settings.ColorSetting;
+import settings.DoubleSetting;
 import settings.FontColorPair;
 import settings.FontColorSetting;
 import settings.MultipleLineStringSetting;
 import settings.Setting;
 import settings.SettingDisplay;
+import settings.SettingException;
 import settings.SettingOwner;
 import userinterface.properties.GUIGraphHandler;
 
@@ -55,18 +83,25 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	private DisplaySettings3D displaySettings;
 	
 	/** Settings of this graph. */
-	private MultipleLineStringSetting graphTitle;
+	protected MultipleLineStringSetting graphTitle;
 	private FontColorSetting titleFont;
 	private ChoiceSetting legendOrientation;
 	private ChoiceSetting scaleMethod;
 	private ColorSetting lowColor;
 	private ColorSetting highColor;
+	private DoubleSetting rotateIncrement;
+	private DoubleSetting rollIncrement;
 	
-	
+	/**
+	 * 
+	 */
 	public Graph3D(){
 	
 	}
 	
+	/**
+	 * 
+	 */
 	public void initSettings(){
 		
 		xAxisSetting = new AxisSettings3D("x axis settings", AxisSettings3D.XAXIS, this);
@@ -79,7 +114,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		graphTitle = new MultipleLineStringSetting("title", "", 
 				"the main title heading for the chart", this, false);
 		
-		titleFont = new FontColorSetting("title font", new FontColorPair(new Font(Font.SANS_SERIF, Font.PLAIN, 15), 
+		titleFont = new FontColorSetting("title font", new FontColorPair(new Font(Font.SANS_SERIF, Font.PLAIN, 11), 
 				Color.BLACK), "the font of the chart's title", this, false);
 		
 		legendOrientation = new ChoiceSetting("legend orientation", new String[]{"Horizontal","Vertical"}, "Horizontal" 
@@ -93,19 +128,34 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		
 		highColor = new ColorSetting("high color", Color.BLACK, "high color of the gradient scale", this, false);
 		highColor.setEnabled(false);
+		
+		rotateIncrement = new DoubleSetting("Rotate increment", 10.0, "rotate increment value for the plot", this, false);
+		rollIncrement = new DoubleSetting("roll increment", 10.0, "roll increment for the plot", this, false);
 	}
 	
 	
 
 
+	/**
+	 * 
+	 * @return
+	 */
 	public Chart3D getChart() {
 		return chart;
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	public XYZPlot getPlot() {
 		return plot;
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	public SurfaceRenderer getRenderer() {
 		return renderer;
 	}
@@ -159,7 +209,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 
 	@Override
 	public int getNumSettings() {
-		return 6;
+		return 8;
 	}
 
 
@@ -180,6 +230,10 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 			return this.lowColor;
 		case 5:
 			return this.highColor;
+		case 6:
+			return this.rotateIncrement;
+		case 7:
+			return this.rollIncrement;
 		default:
 				return null;
 		
@@ -204,6 +258,9 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		return display;
 	}
 	
+	/**
+	 * 
+	 */
 	public void updateGraph(){
 		
 		/*graph title*/
@@ -233,6 +290,13 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		}
 		else if(scaleMethod.getStringValue().equals("Gradient scale")){
 			
+			try {
+				legendOrientation.setValue("Horizontal");
+			} catch (SettingException e) {
+				e.printStackTrace();
+			}
+			
+			chart.setLegendOrientation(Orientation.HORIZONTAL);
 			lowColor.setEnabled(true);
 			highColor.setEnabled(true);
 			renderer.setColorScale(new GradientColorScale(new Range(0.0, 1.0), lowColor.getColorValue(), highColor.getColorValue()));
@@ -253,6 +317,16 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 			if(!highColor.getColorValue().equals(((GradientColorScale)renderer.getColorScale()).getHighColor()))
 				renderer.setColorScale(new GradientColorScale(new Range(0.0, 1.0), lowColor.getColorValue(), highColor.getColorValue()));
 		}
+		
+		/*rotate increment*/
+		if(rotateIncrement.getDoubleValue() != panel.getRotateIncrement()){
+			panel.setRotateIncrement(rotateIncrement.getDoubleValue());
+		}
+		
+		/*roll increment*/
+		if(rollIncrement.getDoubleValue() != panel.getRollIncrement()){
+			panel.setRollIncrement(rollIncrement.getDoubleValue());
+		}
 	}
 
 	@Override
@@ -260,14 +334,26 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		return 0;
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	public AxisSettings3D getxAxisSetting() {
 		return xAxisSetting;
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	public AxisSettings3D getyAxisSetting() {
 		return yAxisSetting;
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	public AxisSettings3D getzAxisSetting() {
 		return zAxisSetting;
 	}
@@ -276,10 +362,18 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		return displaySettings;
 	}
 	
+	/**
+	 * 
+	 * @param gh
+	 */
 	public void addMouseListener(GUIGraphHandler gh){
 		this.graphHandler = gh;
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
 	public Chart3DPanel getChart3DPanel(){
 		return this.panel;
 	}

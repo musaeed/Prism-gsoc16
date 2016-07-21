@@ -601,7 +601,7 @@ public class GUIMultiProperties extends GUIPlugin implements MouseListener, List
 							param.Function f = vals.getResult(0).getInitStateValueAsFunction();
 							
 							graph3d.setFunction(f);
-							graph3d.plot(propertiesString, params[0],"Probability",params[1]);
+							graph3d.plot(propertiesString.replace("\n", " "), params[0],"Probability",params[1]);
 						}
 
 					}

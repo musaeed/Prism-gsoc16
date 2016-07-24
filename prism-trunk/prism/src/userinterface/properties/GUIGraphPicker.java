@@ -50,6 +50,15 @@ import userinterface.graph.GraphResultListener;
 import userinterface.graph.ParametricGraph;
 import userinterface.graph.PrismXYDataItem;
 import userinterface.graph.SeriesKey;
+import javax.swing.JPanel;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import javax.swing.JRadioButton;
+import javax.swing.JLabel;
+import javax.swing.JComboBox;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
 
 public class GUIGraphPicker extends javax.swing.JDialog
 {
@@ -311,6 +320,17 @@ public class GUIGraphPicker extends javax.swing.JDialog
 		// create picker list
 		pickerList = new GraphConstantPickerList();
 		scroller.setViewportView(pickerList);
+		
+		// determine if 3d charts can be plotted or not
+		
+		plotType2d.setSelected(true);
+		selectYaxisConstantCombo.setEnabled(false);
+		
+		if(resultsCollection.getRangingConstants().size() == 1){
+		
+			plotType3d.setEnabled(false);
+			
+		}
 
 		// for each ranging constant in rc, add:
 		// (1) a row in the picker list
@@ -332,6 +352,23 @@ public class GUIGraphPicker extends javax.swing.JDialog
 		// and disable it in the picker list
 		pickerList.disableLine(0);
 
+		
+		// now check if the second axis can be selected or not
+		
+		if(resultsCollection.getRangingConstants().size() == 1 )
+		{
+			selectYaxisConstantCombo.setEnabled(false);
+		}
+		else{
+			
+			for (int i = 0; i < resultsCollection.getRangingConstants().size(); i++) {
+				DefinedConstant dc = (DefinedConstant) resultsCollection.getRangingConstants().get(i);
+				this.selectYaxisConstantCombo.addItem(dc.getName());
+			}
+			
+			this.selectYaxisConstantCombo.setSelectedIndex(1);
+		}
+		
 		// if there is only one ranging constant, disable controls
 		if (resultsCollection.getRangingConstants().size() == 1) {
 			selectAxisConstantCombo.setEnabled(false);
@@ -474,24 +511,65 @@ public class GUIGraphPicker extends javax.swing.JDialog
 		jPanel1.setBorder(new javax.swing.border.TitledBorder("Line Graph"));
 		jPanel1.setFocusable(false);
 		jPanel1.setEnabled(false);
-		jPanel3.setLayout(new java.awt.GridBagLayout());
+		GridBagLayout gbl_jPanel3 = new GridBagLayout();
+		gbl_jPanel3.rowWeights = new double[]{1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+		gbl_jPanel3.columnWeights = new double[]{0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+		jPanel3.setLayout(gbl_jPanel3);
+		
+		lblPlotType = new JLabel("Plot type:");
+		GridBagConstraints gbc_lblPlotType = new GridBagConstraints();
+		gbc_lblPlotType.anchor = GridBagConstraints.WEST;
+		gbc_lblPlotType.insets = new Insets(0, 0, 5, 5);
+		gbc_lblPlotType.gridx = 1;
+		gbc_lblPlotType.gridy = 0;
+		jPanel3.add(lblPlotType, gbc_lblPlotType);
+		
+		panel = new JPanel();
+		GridBagConstraints gbc_panel = new GridBagConstraints();
+		gbc_panel.anchor = GridBagConstraints.WEST;
+		gbc_panel.insets = new Insets(0, 0, 5, 5);
+		gbc_panel.fill = GridBagConstraints.VERTICAL;
+		gbc_panel.gridx = 3;
+		gbc_panel.gridy = 0;
+		jPanel3.add(panel, gbc_panel);
+		
+		plotType2d = new JRadioButton("2D");
+		plotType2d.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+			
+				plotType2DRadioActionPerformed(e);
+				
+			}
+		});
+		panel.add(plotType2d);
+		
+		plotType3d = new JRadioButton("3D");
+		plotType3d.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				plotType3DRadioActionPerformed(e);
+			}
+		});
+		panel.add(plotType3d);
 
 		gridBagConstraints = new java.awt.GridBagConstraints();
+		gridBagConstraints.insets = new Insets(0, 0, 5, 5);
 		gridBagConstraints.gridx = 0;
-		gridBagConstraints.gridy = 0;
+		gridBagConstraints.gridy = 1;
 		jPanel3.add(jPanel5, gridBagConstraints);
 
 		topComboLabel.setText("Select x axis constant:");
-		gridBagConstraints = new java.awt.GridBagConstraints();
-		gridBagConstraints.gridx = 1;
-		gridBagConstraints.gridy = 1;
-		gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-		jPanel3.add(topComboLabel, gridBagConstraints);
+		gridBagConstraints_1 = new java.awt.GridBagConstraints();
+		gridBagConstraints_1.insets = new Insets(0, 0, 5, 5);
+		gridBagConstraints_1.gridx = 1;
+		gridBagConstraints_1.gridy = 2;
+		gridBagConstraints_1.anchor = java.awt.GridBagConstraints.WEST;
+		jPanel3.add(topComboLabel, gridBagConstraints_1);
 
-		gridBagConstraints = new java.awt.GridBagConstraints();
-		gridBagConstraints.gridx = 2;
-		gridBagConstraints.gridy = 0;
-		jPanel3.add(jPanel6, gridBagConstraints);
+		gridBagConstraints_2 = new java.awt.GridBagConstraints();
+		gridBagConstraints_2.insets = new Insets(0, 0, 5, 5);
+		gridBagConstraints_2.gridx = 2;
+		gridBagConstraints_2.gridy = 1;
+		jPanel3.add(jPanel6, gridBagConstraints_2);
 
 		selectAxisConstantCombo.setPreferredSize(new java.awt.Dimension(100, 24));
 		selectAxisConstantCombo.addActionListener(new java.awt.event.ActionListener()
@@ -502,52 +580,83 @@ public class GUIGraphPicker extends javax.swing.JDialog
 			}
 		});
 
-		gridBagConstraints = new java.awt.GridBagConstraints();
-		gridBagConstraints.gridx = 3;
-		gridBagConstraints.gridy = 1;
-		gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-		jPanel3.add(selectAxisConstantCombo, gridBagConstraints);
+		gridBagConstraints_3 = new java.awt.GridBagConstraints();
+		gridBagConstraints_3.insets = new Insets(0, 0, 5, 5);
+		gridBagConstraints_3.gridx = 3;
+		gridBagConstraints_3.gridy = 2;
+		gridBagConstraints_3.fill = java.awt.GridBagConstraints.HORIZONTAL;
+		jPanel3.add(selectAxisConstantCombo, gridBagConstraints_3);
 
-		gridBagConstraints = new java.awt.GridBagConstraints();
-		gridBagConstraints.gridx = 0;
-		gridBagConstraints.gridy = 2;
-		jPanel3.add(jPanel7, gridBagConstraints);
+		gridBagConstraints_4 = new java.awt.GridBagConstraints();
+		gridBagConstraints_4.insets = new Insets(0, 0, 5, 5);
+		gridBagConstraints_4.gridx = 0;
+		gridBagConstraints_4.gridy = 3;
+		jPanel3.add(jPanel7, gridBagConstraints_4);
+		
+		lblSelectYAxis = new JLabel("Select y axis constant:");
+		GridBagConstraints gbc_lblSelectYAxis = new GridBagConstraints();
+		gbc_lblSelectYAxis.anchor = GridBagConstraints.WEST;
+		gbc_lblSelectYAxis.insets = new Insets(0, 0, 5, 5);
+		gbc_lblSelectYAxis.gridx = 1;
+		gbc_lblSelectYAxis.gridy = 4;
+		jPanel3.add(lblSelectYAxis, gbc_lblSelectYAxis);
+		
+		selectYaxisConstantCombo = new JComboBox();
+		GridBagConstraints gbc_selectYaxisConstantCombo = new GridBagConstraints();
+		gbc_selectYaxisConstantCombo.insets = new Insets(0, 0, 5, 5);
+		gbc_selectYaxisConstantCombo.fill = GridBagConstraints.HORIZONTAL;
+		gbc_selectYaxisConstantCombo.gridx = 3;
+		gbc_selectYaxisConstantCombo.gridy = 4;
+		jPanel3.add(selectYaxisConstantCombo, gbc_selectYaxisConstantCombo);
+		
+		panel_1 = new JPanel();
+		GridBagConstraints gbc_panel_1 = new GridBagConstraints();
+		gbc_panel_1.insets = new Insets(0, 0, 5, 5);
+		gbc_panel_1.fill = GridBagConstraints.BOTH;
+		gbc_panel_1.gridx = 1;
+		gbc_panel_1.gridy = 5;
+		jPanel3.add(panel_1, gbc_panel_1);
 
 		middleLabel.setText("Define other constants:");
-		gridBagConstraints = new java.awt.GridBagConstraints();
-		gridBagConstraints.gridx = 1;
-		gridBagConstraints.gridy = 4;
-		gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-		jPanel3.add(middleLabel, gridBagConstraints);
+		gridBagConstraints_5 = new java.awt.GridBagConstraints();
+		gridBagConstraints_5.insets = new Insets(0, 0, 5, 5);
+		gridBagConstraints_5.gridx = 1;
+		gridBagConstraints_5.gridy = 6;
+		gridBagConstraints_5.anchor = java.awt.GridBagConstraints.WEST;
+		jPanel3.add(middleLabel, gridBagConstraints_5);
 
 		constantTablePanel.setLayout(new java.awt.BorderLayout());
 
-		gridBagConstraints = new java.awt.GridBagConstraints();
-		gridBagConstraints.gridx = 3;
-		gridBagConstraints.gridy = 4;
-		gridBagConstraints.gridwidth = 3;
-		gridBagConstraints.gridheight = 2;
-		gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
-		gridBagConstraints.weightx = 1.0;
-		gridBagConstraints.weighty = 1.0;
-		jPanel3.add(constantTablePanel, gridBagConstraints);
+		gridBagConstraints_6 = new java.awt.GridBagConstraints();
+		gridBagConstraints_6.insets = new Insets(0, 0, 5, 5);
+		gridBagConstraints_6.gridx = 3;
+		gridBagConstraints_6.gridy = 6;
+		gridBagConstraints_6.gridwidth = 3;
+		gridBagConstraints_6.gridheight = 2;
+		gridBagConstraints_6.fill = java.awt.GridBagConstraints.BOTH;
+		gridBagConstraints_6.weightx = 1.0;
+		gridBagConstraints_6.weighty = 1.0;
+		jPanel3.add(constantTablePanel, gridBagConstraints_6);
 
-		gridBagConstraints = new java.awt.GridBagConstraints();
-		gridBagConstraints.gridx = 6;
-		gridBagConstraints.gridy = 0;
-		jPanel3.add(jPanel9, gridBagConstraints);
+		gridBagConstraints_7 = new java.awt.GridBagConstraints();
+		gridBagConstraints_7.insets = new Insets(0, 0, 5, 0);
+		gridBagConstraints_7.gridx = 6;
+		gridBagConstraints_7.gridy = 1;
+		jPanel3.add(jPanel9, gridBagConstraints_7);
 
-		gridBagConstraints = new java.awt.GridBagConstraints();
-		gridBagConstraints.gridx = 0;
-		gridBagConstraints.gridy = 6;
-		jPanel3.add(jPanel10, gridBagConstraints);
+		gridBagConstraints_8 = new java.awt.GridBagConstraints();
+		gridBagConstraints_8.insets = new Insets(0, 0, 5, 5);
+		gridBagConstraints_8.gridx = 0;
+		gridBagConstraints_8.gridy = 8;
+		jPanel3.add(jPanel10, gridBagConstraints_8);
 
 		jLabel3.setText("Add Series to:");
-		gridBagConstraints = new java.awt.GridBagConstraints();
-		gridBagConstraints.gridx = 1;
-		gridBagConstraints.gridy = 7;
-		gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-		jPanel3.add(jLabel3, gridBagConstraints);
+		gridBagConstraints_9 = new java.awt.GridBagConstraints();
+		gridBagConstraints_9.insets = new Insets(0, 0, 5, 5);
+		gridBagConstraints_9.gridx = 1;
+		gridBagConstraints_9.gridy = 9;
+		gridBagConstraints_9.anchor = java.awt.GridBagConstraints.WEST;
+		jPanel3.add(jLabel3, gridBagConstraints_9);
 
 		newGraphRadio.setText("New Graph");
 		buttonGroup1.add(newGraphRadio);
@@ -559,11 +668,12 @@ public class GUIGraphPicker extends javax.swing.JDialog
 			}
 		});
 
-		gridBagConstraints = new java.awt.GridBagConstraints();
-		gridBagConstraints.gridx = 3;
-		gridBagConstraints.gridy = 7;
-		gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-		jPanel3.add(newGraphRadio, gridBagConstraints);
+		gridBagConstraints_10 = new java.awt.GridBagConstraints();
+		gridBagConstraints_10.insets = new Insets(0, 0, 5, 5);
+		gridBagConstraints_10.gridx = 3;
+		gridBagConstraints_10.gridy = 9;
+		gridBagConstraints_10.anchor = java.awt.GridBagConstraints.WEST;
+		jPanel3.add(newGraphRadio, gridBagConstraints_10);
 
 		existingGraphRadio.setText("Existing Graph");
 		buttonGroup1.add(existingGraphRadio);
@@ -575,42 +685,48 @@ public class GUIGraphPicker extends javax.swing.JDialog
 			}
 		});
 
-		gridBagConstraints = new java.awt.GridBagConstraints();
-		gridBagConstraints.gridx = 3;
-		gridBagConstraints.gridy = 8;
-		gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-		jPanel3.add(existingGraphRadio, gridBagConstraints);
+		gridBagConstraints_11 = new java.awt.GridBagConstraints();
+		gridBagConstraints_11.insets = new Insets(0, 0, 5, 5);
+		gridBagConstraints_11.gridx = 3;
+		gridBagConstraints_11.gridy = 10;
+		gridBagConstraints_11.anchor = java.awt.GridBagConstraints.WEST;
+		jPanel3.add(existingGraphRadio, gridBagConstraints_11);
 
-		gridBagConstraints = new java.awt.GridBagConstraints();
-		gridBagConstraints.gridx = 4;
-		gridBagConstraints.gridy = 0;
-		jPanel3.add(jPanel11, gridBagConstraints);
+		gridBagConstraints_12 = new java.awt.GridBagConstraints();
+		gridBagConstraints_12.insets = new Insets(0, 0, 5, 5);
+		gridBagConstraints_12.gridx = 4;
+		gridBagConstraints_12.gridy = 1;
+		jPanel3.add(jPanel11, gridBagConstraints_12);
 
-		gridBagConstraints = new java.awt.GridBagConstraints();
-		gridBagConstraints.gridx = 5;
-		gridBagConstraints.gridy = 8;
-		gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-		gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-		jPanel3.add(existingGraphCombo, gridBagConstraints);
+		gridBagConstraints_13 = new java.awt.GridBagConstraints();
+		gridBagConstraints_13.insets = new Insets(0, 0, 5, 5);
+		gridBagConstraints_13.gridx = 5;
+		gridBagConstraints_13.gridy = 10;
+		gridBagConstraints_13.fill = java.awt.GridBagConstraints.HORIZONTAL;
+		gridBagConstraints_13.anchor = java.awt.GridBagConstraints.WEST;
+		jPanel3.add(existingGraphCombo, gridBagConstraints_13);
 
-		gridBagConstraints = new java.awt.GridBagConstraints();
-		gridBagConstraints.gridx = 0;
-		gridBagConstraints.gridy = 9;
-		jPanel3.add(jPanel12, gridBagConstraints);
+		gridBagConstraints_14 = new java.awt.GridBagConstraints();
+		gridBagConstraints_14.insets = new Insets(0, 0, 5, 5);
+		gridBagConstraints_14.gridx = 0;
+		gridBagConstraints_14.gridy = 11;
+		jPanel3.add(jPanel12, gridBagConstraints_14);
 
 		seriesNameLabel.setText("Series name:");
-		gridBagConstraints = new java.awt.GridBagConstraints();
-		gridBagConstraints.gridx = 1;
-		gridBagConstraints.gridy = 10;
-		gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-		jPanel3.add(seriesNameLabel, gridBagConstraints);
+		gridBagConstraints_15 = new java.awt.GridBagConstraints();
+		gridBagConstraints_15.insets = new Insets(0, 0, 0, 5);
+		gridBagConstraints_15.gridx = 1;
+		gridBagConstraints_15.gridy = 12;
+		gridBagConstraints_15.anchor = java.awt.GridBagConstraints.WEST;
+		jPanel3.add(seriesNameLabel, gridBagConstraints_15);
 
-		gridBagConstraints = new java.awt.GridBagConstraints();
-		gridBagConstraints.gridx = 3;
-		gridBagConstraints.gridy = 10;
-		gridBagConstraints.gridwidth = 3;
-		gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-		jPanel3.add(seriesNameField, gridBagConstraints);
+		gridBagConstraints_16 = new java.awt.GridBagConstraints();
+		gridBagConstraints_16.insets = new Insets(0, 0, 0, 5);
+		gridBagConstraints_16.gridx = 3;
+		gridBagConstraints_16.gridy = 12;
+		gridBagConstraints_16.gridwidth = 3;
+		gridBagConstraints_16.fill = java.awt.GridBagConstraints.HORIZONTAL;
+		jPanel3.add(seriesNameField, gridBagConstraints_16);
 
 		jPanel1.add(jPanel3, java.awt.BorderLayout.CENTER);
 
@@ -654,6 +770,18 @@ public class GUIGraphPicker extends javax.swing.JDialog
 	public boolean isGraphCancelled()
 	{
 		return graphCancelled;
+	}
+	
+	private void plotType2DRadioActionPerformed(java.awt.event.ActionEvent evt){
+		
+		this.plotType3d.setSelected(false);
+		this.selectYaxisConstantCombo.setEnabled(false);
+		
+	}
+	
+	private void plotType3DRadioActionPerformed(java.awt.event.ActionEvent evt){
+		this.plotType2d.setSelected(false);
+		this.selectYaxisConstantCombo.setEnabled(true);
 	}
 
 	private void lineCancelButtonActionPerformed(java.awt.event.ActionEvent evt)
@@ -807,6 +935,29 @@ public class GUIGraphPicker extends javax.swing.JDialog
 	private javax.swing.JTextField seriesNameField;
 	private javax.swing.JLabel seriesNameLabel;
 	private javax.swing.JLabel topComboLabel;
+	private JPanel panel;
+	private GridBagConstraints gridBagConstraints_1;
+	private GridBagConstraints gridBagConstraints_2;
+	private GridBagConstraints gridBagConstraints_3;
+	private GridBagConstraints gridBagConstraints_4;
+	private GridBagConstraints gridBagConstraints_5;
+	private GridBagConstraints gridBagConstraints_6;
+	private GridBagConstraints gridBagConstraints_7;
+	private GridBagConstraints gridBagConstraints_8;
+	private GridBagConstraints gridBagConstraints_9;
+	private GridBagConstraints gridBagConstraints_10;
+	private GridBagConstraints gridBagConstraints_11;
+	private GridBagConstraints gridBagConstraints_12;
+	private GridBagConstraints gridBagConstraints_13;
+	private GridBagConstraints gridBagConstraints_14;
+	private GridBagConstraints gridBagConstraints_15;
+	private GridBagConstraints gridBagConstraints_16;
+	private JRadioButton plotType2d;
+	private JRadioButton plotType3d;
+	private JLabel lblPlotType;
+	private JLabel lblSelectYAxis;
+	private JComboBox selectYaxisConstantCombo;
+	private JPanel panel_1;
 
 	// End of variables declaration
 

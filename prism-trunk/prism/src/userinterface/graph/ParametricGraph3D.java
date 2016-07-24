@@ -129,6 +129,9 @@ public class ParametricGraph3D extends Graph3D {
 	 */
 	public void plot(String title, String xLabel, String yLabel, String zLabel){
 		
+		this.xLabel = xLabel;
+		this.yLabel = zLabel;
+		
 		chart = Chart3DFactory.createSurfaceChart("", title, function, xLabel, yLabel, zLabel);
 		
 		panel = new Chart3DPanel(chart);
@@ -216,6 +219,9 @@ public class ParametricGraph3D extends Graph3D {
 		out.println("set xrange[" + lowerBoundX + ":" + upperBoundX + "]");
 		out.println("set yrange[" + lowerBoundY + ":" + upperBoundY + "]");
 		out.println("set title '" + this.graphTitle.getStringValue() + "'");
+		out.println("set xlabel " + "\"" + this.xLabel + "\"");
+		out.println("set ylabel " + "\"" + this.yLabel + "\"");
+		out.println("set zlabel " + "\"probability\"" );
 		out.println("set hidden3d");
 		out.println("set dgrid3d 50,50 qnorm 2");
 		out.println("set pm3d");

@@ -34,8 +34,6 @@ import java.awt.geom.Rectangle2D;
 import java.awt.print.PageFormat;
 import java.awt.print.Printable;
 import java.awt.print.PrinterException;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -43,13 +41,6 @@ import java.io.InputStream;
 import java.util.Observable;
 import java.util.Observer;
 
-import javax.print.DocFlavor;
-import javax.print.DocPrintJob;
-import javax.print.PrintException;
-import javax.print.PrintService;
-import javax.print.PrintServiceLookup;
-import javax.print.SimpleDoc;
-import javax.print.attribute.HashPrintRequestAttributeSet;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
@@ -59,7 +50,6 @@ import org.xml.sax.SAXException;
 
 import com.itextpdf.awt.DefaultFontMapper;
 import com.itextpdf.text.Document;
-import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.PageSize;
 import com.itextpdf.text.pdf.PdfContentByte;
 import com.itextpdf.text.pdf.PdfTemplate;
@@ -95,6 +85,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	protected XYZPlot plot;
 	protected SurfaceRenderer renderer;
 	protected GUIGraphHandler graphHandler;
+	protected String xLabel, yLabel;
 	
 	
 	/** Display for settings. Required to implement SettingsOwner */

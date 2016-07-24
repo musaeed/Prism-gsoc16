@@ -36,7 +36,6 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
-import java.awt.geom.Dimension2D;
 import java.io.IOException;
 import java.util.ArrayList;
 
@@ -54,10 +53,8 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 
 import org.jfree.chart.ChartPanel;
 
-import com.orsoncharts.fx.Chart3DViewer;
 import com.orsoncharts.graphics3d.ExportUtils;
 import com.orsoncharts.graphics3d.ViewPoint3D;
-import com.orsoncharts.graphics3d.swing.DisplayPanel3D;
 
 import prism.PrismException;
 import userinterface.GUIPlugin;

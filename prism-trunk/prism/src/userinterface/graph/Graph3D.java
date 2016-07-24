@@ -29,20 +29,41 @@ package userinterface.graph;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.geom.Rectangle2D;
 import java.awt.print.PageFormat;
 import java.awt.print.Printable;
 import java.awt.print.PrinterException;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Observable;
 import java.util.Observer;
 
+import javax.print.DocFlavor;
+import javax.print.DocPrintJob;
+import javax.print.PrintException;
+import javax.print.PrintService;
+import javax.print.PrintServiceLookup;
+import javax.print.SimpleDoc;
+import javax.print.attribute.HashPrintRequestAttributeSet;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 import org.xml.sax.EntityResolver;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
+import com.itextpdf.awt.DefaultFontMapper;
+import com.itextpdf.text.Document;
+import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.PageSize;
+import com.itextpdf.text.pdf.PdfContentByte;
+import com.itextpdf.text.pdf.PdfTemplate;
+import com.itextpdf.text.pdf.PdfWriter;
 import com.orsoncharts.Chart3D;
 import com.orsoncharts.Chart3DPanel;
 import com.orsoncharts.Range;
@@ -62,6 +83,7 @@ import settings.Setting;
 import settings.SettingDisplay;
 import settings.SettingException;
 import settings.SettingOwner;
+import userinterface.GUIPrism;
 import userinterface.properties.GUIGraphHandler;
 
 public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Observer, Printable{
@@ -376,5 +398,54 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	 */
 	public Chart3DPanel getChart3DPanel(){
 		return this.panel;
+	}
+	
+	/**
+	 * 
+	 * @param file
+	 * @param panel
+	 */
+	public static void exportToPDF(File file, Chart3DPanel panel){
+		
+		PdfWriter out = null;
+		Document document = new com.itextpdf.text.Document(PageSize.A4.rotate());
+		
+		int width = 800, height = 500;
+		
+		try{
+			
+			out = PdfWriter.getInstance(document, new FileOutputStream(file));
+			document.open();
+			PdfContentByte contentByte = out.getDirectContent();
+			PdfTemplate template = contentByte.createTemplate(width, height);
+			@SuppressWarnings("deprecation")
+			Graphics2D graphics2d = template.createGraphics(width, height,new DefaultFontMapper());
+			Rectangle2D rectangle2d = new Rectangle2D.Double(0, 0, width,height);
+
+			panel.getChart().draw(graphics2d, rectangle2d);
+
+			graphics2d.dispose();
+			contentByte.addTemplate(template, 0, 0);
+			
+			
+		} catch(Exception e){
+			
+			JOptionPane.showMessageDialog(GUIPrism.getGUI(), e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+			e.printStackTrace();
+			return;
+		}
+		
+		document.close();
+	}
+	
+	public void exportToGnuplot(File file) throws IOException{
+		
+	}
+	
+	/**
+	 * 
+	 */
+	public void createPrintJob(){
+
 	}
 }

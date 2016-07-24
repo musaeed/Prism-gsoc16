@@ -74,7 +74,7 @@ public class GUIImageExportDialog extends JDialog implements DocumentListener
     // End of variables declaration//GEN-END:variables
     
 	/** Creates new form GUIConstantsPicker */
-	public GUIImageExportDialog(GUIPrism parent, ChartPanel graph, int defaultImageType)
+	public GUIImageExportDialog(GUIPrism parent, JPanel graph, int defaultImageType)
 	{
 		super(parent, "Provide rendering information", true);
 		

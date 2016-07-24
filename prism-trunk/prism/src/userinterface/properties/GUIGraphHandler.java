@@ -36,6 +36,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
+import java.awt.geom.Dimension2D;
 import java.io.IOException;
 import java.util.ArrayList;
 
@@ -44,6 +45,7 @@ import javax.swing.Action;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JTabbedPane;
@@ -51,6 +53,11 @@ import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 import org.jfree.chart.ChartPanel;
+
+import com.orsoncharts.fx.Chart3DViewer;
+import com.orsoncharts.graphics3d.ExportUtils;
+import com.orsoncharts.graphics3d.ViewPoint3D;
+import com.orsoncharts.graphics3d.swing.DisplayPanel3D;
 
 import prism.PrismException;
 import userinterface.GUIPlugin;
@@ -155,7 +162,11 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 				if(mgm instanceof ChartPanel)
 					((ChartPanel)mgm).zoomInBoth(-1, -1);
 				else if(mgm instanceof Graph3D)
-					;//TODO
+				{
+					double rho = ((Graph3D)mgm).getChart3DPanel().getViewPoint().getRho();
+					((Graph3D)mgm).getChart3DPanel().getViewPoint().setRho(rho-5);
+					((Graph3D)mgm).getChart3DPanel().repaint();
+				}
 			}
 		};
 
@@ -173,7 +184,11 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 				if(mgm instanceof ChartPanel)
 					((ChartPanel)mgm).zoomOutBoth(-1, -1);
 				else if(mgm instanceof Graph3D)
-					;//TODO
+				{
+					double rho = ((Graph3D)mgm).getChart3DPanel().getViewPoint().getRho();
+					((Graph3D)mgm).getChart3DPanel().getViewPoint().setRho(rho+5);
+					((Graph3D)mgm).getChart3DPanel().repaint();			
+				}
 			}
 		};
 
@@ -191,7 +206,12 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 				if(mgm instanceof ChartPanel)
 					((ChartPanel)mgm).restoreAutoBounds();
 				else if(mgm instanceof Graph3D)
+				{
 					((Graph3D)mgm).getChart3DPanel().zoomToFit();
+					((Graph3D)mgm).getChart3DPanel().getDrawable().setViewPoint(new ViewPoint3D(-Math.PI / 2, Math.PI * 1.124, 70.0, 0.0));
+					((Graph3D)mgm).getChart3DPanel().repaint();
+					
+				}
 			}
 		};
 
@@ -242,14 +262,10 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				JPanel model = getModel(theTabs.getSelectedIndex());
+					JPanel model = getModel(theTabs.getSelectedIndex());
 				
-				if(model instanceof ChartPanel){
-				
-					GUIImageExportDialog imageDialog = new GUIImageExportDialog(plug.getGUI(), (ChartPanel)model, GUIImageExportDialog.JPEG);
-
+					GUIImageExportDialog imageDialog = new GUIImageExportDialog(plug.getGUI(), model, GUIImageExportDialog.JPEG);
 					saveImage(imageDialog);
-				}
 			}
 		};
 		exportImageJPG.putValue(Action.NAME, "JPEG Interchange Format (*.jpg, *.jpeg)");
@@ -262,13 +278,9 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 			public void actionPerformed(ActionEvent e)
 			{
 				JPanel model = getModel(theTabs.getSelectedIndex());
+				GUIImageExportDialog imageDialog = new GUIImageExportDialog(plug.getGUI(), model, GUIImageExportDialog.PNG);
+				saveImage(imageDialog);
 				
-				if(model instanceof ChartPanel){
-				
-					GUIImageExportDialog imageDialog = new GUIImageExportDialog(plug.getGUI(), (ChartPanel)model, GUIImageExportDialog.PNG);
-
-					saveImage(imageDialog);
-				}
 			}
 		};
 		exportImagePNG.putValue(Action.NAME, "Portable Network Graphics (*.png)");
@@ -289,6 +301,10 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 				
 				if(mgm instanceof ChartPanel)
 					Graph.exportToPDF(plug.getChooserFile(), ((ChartPanel)mgm).getChart());
+				else if(mgm instanceof Graph3D){
+
+					Graph3D.exportToPDF(plug.getChooserFile(), ((Graph3D)mgm).getChart3DPanel());
+				}
 				
 			}
 		};
@@ -371,6 +387,19 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 					}
 				}
 				
+				else if(mgm instanceof Graph3D){
+					
+					try{
+						
+						((Graph3D)mgm).exportToGnuplot(plug.getChooserFile());
+					
+					} catch(IOException ex){
+						
+						plug.error("Could not export Gnuplot file:\n" + ex.getMessage());
+						ex.printStackTrace();
+					}
+				}
+				
 				
 			}
 		};
@@ -417,9 +446,12 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 
 					}
 
-
-
 					((ChartPanel)graph).createChartPrintJob();
+				}
+				
+				if(graph instanceof Graph3D){
+					
+					((Graph3D)graph).createPrintJob();
 				}
 			}
 		};
@@ -543,6 +575,42 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 						plug.error("Could not export EPS file:\n" + ex.getMessage());
 					} catch (IOException ex) {
 						plug.error("Could not export EPS file:\n" + ex.getMessage());
+					}
+				}
+			}
+			
+			else if(graph instanceof Graph3D){
+				
+				Graph3D g3d = (Graph3D)graph;
+				
+				if (imageDialog.getImageType() == GUIImageExportDialog.JPEG) {
+					
+					if (plug.showSaveFileDialog(jpgFilter) != JFileChooser.APPROVE_OPTION)
+						return;
+					
+					try {
+						
+						ExportUtils.writeAsJPEG(g3d.getChart3DPanel().getDrawable(), imageDialog.getExportWidth(), imageDialog.getExportHeight(), plug.getChooserFile());
+						
+					} catch (IOException e) {
+						JOptionPane.showMessageDialog(this, e, "Error", JOptionPane.ERROR_MESSAGE);
+						e.printStackTrace();
+					}
+					
+				}
+				else if(imageDialog.getImageType() == GUIImageExportDialog.PNG){
+					
+					if (plug.showSaveFileDialog(jpgFilter) != JFileChooser.APPROVE_OPTION)
+						return;
+					
+					try{
+						
+						ExportUtils.writeAsPNG(g3d.getChart3DPanel().getDrawable(), imageDialog.getExportWidth(), imageDialog.getHeight(), plug.getChooserFile());
+						
+					}catch (IOException e) {
+						
+						JOptionPane.showMessageDialog(this, e, "Error", JOptionPane.ERROR_MESSAGE);
+						e.printStackTrace();
 					}
 				}
 			}

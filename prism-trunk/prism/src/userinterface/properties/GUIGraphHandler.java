@@ -36,7 +36,11 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 
 import javax.swing.AbstractAction;
@@ -337,13 +341,33 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 				if (plug.showSaveFileDialog(matlabFilter) != JFileChooser.APPROVE_OPTION)
 					return;
 				
-				Graph mgm = (Graph)models.get(theTabs.getSelectedIndex());
-
-				try {
-					mgm.exportToMatlab(plug.getChooserFile());
-				} catch (IOException ex) {
-					plug.error("Could not export Matlab file:\n" + ex.getMessage());
+				
+				JPanel mgm = models.get(theTabs.getSelectedIndex());
+				
+				if(mgm instanceof Graph){
+					
+					try {
+						
+						((Graph)mgm).exportToMatlab(plug.getChooserFile());
+					
+					} catch (IOException ex) {
+						plug.error("Could not export Matlab file:\n" + ex.getMessage());
+					}
+					
 				}
+				else if(mgm instanceof Graph3D){
+					
+					try {
+						
+						((Graph3D)mgm).exportToMatlab(plug.getChooserFile());
+					
+					} catch (IOException e1) {
+						
+						plug.error("Could not export Matlab file:\n" + e1.getMessage());
+						e1.printStackTrace();
+					}
+				}
+
 			}
 		};
 		exportMatlab.putValue(Action.NAME, "Matlab file (*.m)");
@@ -586,8 +610,21 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 						return;
 					
 					try {
-						
-						ExportUtils.writeAsJPEG(g3d.getChart3DPanel().getDrawable(), imageDialog.getExportWidth(), imageDialog.getExportHeight(), plug.getChooserFile());
+
+						File file = null;
+
+
+						if(!plug.getChooserFile().getName().contains(".jpg") || !plug.getChooserFile().getName().contains(".jpeg")){
+
+							file = new File(plug.getChooserFile().getAbsolutePath() + ".jpg");
+
+						}
+						else{
+
+							file = plug.getChooserFile();
+						}
+
+						ExportUtils.writeAsJPEG(g3d.getChart3DPanel().getDrawable(), imageDialog.getExportWidth(), imageDialog.getExportHeight(), file);
 						
 					} catch (IOException e) {
 						JOptionPane.showMessageDialog(this, e, "Error", JOptionPane.ERROR_MESSAGE);
@@ -597,12 +634,24 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 				}
 				else if(imageDialog.getImageType() == GUIImageExportDialog.PNG){
 					
-					if (plug.showSaveFileDialog(jpgFilter) != JFileChooser.APPROVE_OPTION)
+					if (plug.showSaveFileDialog(pngFilter) != JFileChooser.APPROVE_OPTION)
 						return;
+					
+					File file = null;
 					
 					try{
 						
-						ExportUtils.writeAsPNG(g3d.getChart3DPanel().getDrawable(), imageDialog.getExportWidth(), imageDialog.getHeight(), plug.getChooserFile());
+						if(!plug.getChooserFile().getName().contains(".png")){
+							
+							file = new File(plug.getChooserFile().getAbsolutePath() + ".png");
+							
+						}
+						else{
+							
+							file = plug.getChooserFile();
+						}
+						
+						ExportUtils.writeAsPNG(g3d.getChart3DPanel().getDrawable(), imageDialog.getExportWidth(), imageDialog.getHeight(), file);
 						
 					}catch (IOException e) {
 						
@@ -773,7 +822,7 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 
 		for (int i = 0; i < models.size(); i++) {
 			
-		if (e.getSource() == models.get(i)) {
+			if (e.getSource() == models.get(i)) {
 				
 				graphOptions.setEnabled(true);
 				zoomMenu.setEnabled(true);
@@ -784,6 +833,7 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 				printGraph.setEnabled(true);
 				deleteGraph.setEnabled(true);
 				
+				exportImageEPS.setEnabled(true);
 				exportMatlab.setEnabled(getModel(i) instanceof Graph);
 				exportXML.setEnabled(getModel(i) instanceof Graph);
 
@@ -792,6 +842,14 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 				return;
 			}
 		}
+	}
+	
+	public void doGraph3DEnables(){
+		
+		exportImageEPS.setEnabled(false);
+		exportXML.setEnabled(false);
+		printGraph.setEnabled(false);
+		
 	}
 
 	public void paintComponent(Graphics g)

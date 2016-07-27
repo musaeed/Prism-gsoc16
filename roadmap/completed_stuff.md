@@ -12,6 +12,8 @@
 - Added additional options to modify the properties of various plots that can be exported from the command line and support for auto format detection
 - fixed the progress for the simulation experiments
 - Added support for mixed plots (xy graphs and parametric graphs) to be plotted on the same plot
+- Added support for 3d charts using the orson chart library (parametric for now)
+- 3d plot exports to many formats including jpeg, png, pdf and gnuplot
 
 # Minor feature enhancements
 

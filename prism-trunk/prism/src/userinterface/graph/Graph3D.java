@@ -57,6 +57,7 @@ import com.itextpdf.text.pdf.PdfWriter;
 import com.orsoncharts.Chart3D;
 import com.orsoncharts.Chart3DPanel;
 import com.orsoncharts.Range;
+import com.orsoncharts.graphics3d.swing.DisplayPanel3D;
 import com.orsoncharts.plot.XYZPlot;
 import com.orsoncharts.renderer.GradientColorScale;
 import com.orsoncharts.renderer.RainbowScale;
@@ -81,6 +82,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	private static final long serialVersionUID = 1L;
 	
 	protected Chart3DPanel panel;
+	protected DisplayPanel3D dPanel;
 	protected Chart3D chart;
 	protected XYZPlot plot;
 	protected SurfaceRenderer renderer;
@@ -142,8 +144,8 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		highColor = new ColorSetting("high color", Color.BLACK, "high color of the gradient scale", this, false);
 		highColor.setEnabled(false);
 		
-		rotateIncrement = new DoubleSetting("Rotate increment", 10.0, "rotate increment value for the plot", this, false);
-		rollIncrement = new DoubleSetting("roll increment", 10.0, "roll increment for the plot", this, false);
+		rotateIncrement = new DoubleSetting("Rotate increment", 1.0, "rotate increment value for the plot", this, false);
+		rollIncrement = new DoubleSetting("roll increment", 1.0, "roll increment for the plot", this, false);
 	}
 	
 	
@@ -155,6 +157,10 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	 */
 	public Chart3D getChart() {
 		return chart;
+	}
+	
+	public DisplayPanel3D getDisplayPanel(){
+		return this.dPanel;
 	}
 
 	/**
@@ -430,7 +436,11 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	}
 	
 	public void exportToGnuplot(File file) throws IOException{
-		
+		//TODO
+	}
+	
+	public void exportToMatlab(File file) throws IOException{
+		//TODO
 	}
 	
 	/**

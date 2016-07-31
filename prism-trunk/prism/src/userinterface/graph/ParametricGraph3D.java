@@ -169,8 +169,8 @@ public class ParametricGraph3D extends Graph3D {
 		plot.getXAxis().setRange(lowerBoundX, upperBoundX);
 		plot.getZAxis().setRange(lowerBoundY, upperBoundY);
 		
-		renderer = (SurfaceRenderer) plot.getRenderer();
-		renderer.setColorScale(new RainbowScale(new Range(0.0, 1.0)));
+		rendererSurface = (SurfaceRenderer) plot.getRenderer();
+		rendererSurface.setColorScale(new RainbowScale(new Range(0.0, 1.0)));
 		
 		setLayout(new BorderLayout());
 		add(dPanel,  BorderLayout.CENTER);
@@ -220,12 +220,12 @@ public class ParametricGraph3D extends Graph3D {
 		
 		super.updateGraph();
 	
-		if(xResolution.getIntegerValue() != renderer.getXSamples()){
-			renderer.setXSamples(xResolution.getIntegerValue());
+		if(xResolution.getIntegerValue() != rendererSurface.getXSamples()){
+			rendererSurface.setXSamples(xResolution.getIntegerValue());
 		}
 		
-		if(yResolution.getIntegerValue() != renderer.getXSamples()){
-			renderer.setZSamples(yResolution.getIntegerValue());			
+		if(yResolution.getIntegerValue() != rendererSurface.getXSamples()){
+			rendererSurface.setZSamples(yResolution.getIntegerValue());			
 		}
 	}
 	
@@ -259,8 +259,8 @@ public class ParametricGraph3D extends Graph3D {
 		
 		out.println("#X		#Y		#Z");
 		
-		double rateX = (upperBoundX - lowerBoundX) / renderer.getXSamples();
-		double rateY = (upperBoundY - lowerBoundY) / renderer.getZSamples();
+		double rateX = (upperBoundX - lowerBoundX) / rendererSurface.getXSamples();
+		double rateY = (upperBoundY - lowerBoundY) / rendererSurface.getZSamples();
 		Function func = function.getFunction();
 		
 		for(double x = lowerBoundX ; x <= upperBoundX ; x+= rateX){

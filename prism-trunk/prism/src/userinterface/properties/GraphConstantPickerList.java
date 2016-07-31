@@ -100,4 +100,53 @@ public class GraphConstantPickerList extends JPanel implements Scrollable
     {
 	return (GraphConstantLine)rows.get(i);
     }
+    
+    public void disableLines(String nameX, String nameY)
+    {
+    	
+    	for(int i = 0 ; i < getNumConstants() ; i++)
+    	{
+    		
+    		GraphConstantLine line = getConstantLine(i);
+    		
+    		
+    		if(line.getName().equals(nameX) || line.getName().equals(nameY))
+    		{
+    			line.setEnabled(false);
+    		}
+    		else
+    		{
+    			line.setEnabled(true);
+    		}
+    		
+    	}
+    }
+    
+    public String getDisableConstantsInfo()
+    {
+    	String res = "";
+    	for(int i = 0 ; i < getNumConstants() ; i++)
+    	{
+    		
+    		GraphConstantLine line = getConstantLine(i);
+    		
+    		if(!line.isEnabled())
+    		{
+    			if(i==0)
+    				res = res + line.getDC().getName() + "=" + round(line.getDC().getLow()) + ":" + round(line.getDC().getStep()) + ":" + round(line.getDC().getHigh());
+    			else
+    				res = res + ", "+ line.getDC().getName() + "="  + round(line.getDC().getLow()) + ":" + round(line.getDC().getStep()) + ":" + round(line.getDC().getHigh());
+    		}
+    		
+    	}
+    	
+    	return res;
+    }
+    
+    public double round(Object num)
+    {
+    	double n = new Double(num.toString());
+    	
+    	return ((int)(n*1000.0)) / 1000.0;
+    }
 }

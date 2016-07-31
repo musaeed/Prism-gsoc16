@@ -26,6 +26,7 @@
 
 package userinterface.graph;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics;
@@ -38,6 +39,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Observable;
 import java.util.Observer;
 
@@ -55,12 +57,17 @@ import com.itextpdf.text.pdf.PdfContentByte;
 import com.itextpdf.text.pdf.PdfTemplate;
 import com.itextpdf.text.pdf.PdfWriter;
 import com.orsoncharts.Chart3D;
+import com.orsoncharts.Chart3DFactory;
 import com.orsoncharts.Chart3DPanel;
 import com.orsoncharts.Range;
+import com.orsoncharts.data.xyz.XYZDataItem;
+import com.orsoncharts.data.xyz.XYZSeries;
+import com.orsoncharts.data.xyz.XYZSeriesCollection;
 import com.orsoncharts.graphics3d.swing.DisplayPanel3D;
 import com.orsoncharts.plot.XYZPlot;
 import com.orsoncharts.renderer.GradientColorScale;
 import com.orsoncharts.renderer.RainbowScale;
+import com.orsoncharts.renderer.xyz.ScatterXYZRenderer;
 import com.orsoncharts.renderer.xyz.SurfaceRenderer;
 import com.orsoncharts.util.Orientation;
 
@@ -81,13 +88,15 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 
 	private static final long serialVersionUID = 1L;
 	
+	public static final int SCATTER = 1;
+	public static final int SURFACE = 2;
+	
 	protected Chart3DPanel panel;
 	protected DisplayPanel3D dPanel;
 	protected Chart3D chart;
 	protected XYZPlot plot;
-	protected SurfaceRenderer renderer;
 	protected GUIGraphHandler graphHandler;
-	protected String xLabel, yLabel;
+	protected String xLabel, yLabel, zLabel;
 	
 	
 	/** Display for settings. Required to implement SettingsOwner */
@@ -107,11 +116,24 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	private DoubleSetting rotateIncrement;
 	private DoubleSetting rollIncrement;
 	
+	/** For scatter plot */
+	private ScatterXYZRenderer rendererScatter;
+	private XYZSeries seriesScatter;
+	private XYZSeriesCollection seriesCollectionScatter;
+	
+	/**For surface plot*/
+	protected SurfaceRenderer rendererSurface;
+	
+	
+	ArrayList<XYZDataItem> dataCache;
+	
+	private int plotType;
+	
 	/**
 	 * 
 	 */
 	public Graph3D(){
-	
+		initSettings();
 	}
 	
 	/**
@@ -149,7 +171,52 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	}
 	
 	
-
+	public void initScatterPlot(){
+		
+		seriesCollectionScatter = new XYZSeriesCollection();
+		setLayout(new BorderLayout());
+		dataCache = new ArrayList<XYZDataItem>();
+		plotType = SCATTER;
+	}
+	
+	public void addPointToDataCache(XYZDataItem item){
+		dataCache.add(item);
+	}
+	
+	public void plotScatter(String seriesName){
+		
+		seriesScatter = new XYZSeries(seriesName);
+		
+		for(XYZDataItem item : dataCache){
+			seriesScatter.add(item);
+		}
+		
+		seriesCollectionScatter.add(seriesScatter);
+		chart = Chart3DFactory.createScatterChart("", "", seriesCollectionScatter, xLabel, zLabel, yLabel);
+		panel = new Chart3DPanel(chart);
+		panel.setComponentPopupMenu(graphHandler.getGraphMenu());
+		dPanel = new DisplayPanel3D(panel, true, false);
+		panel.addMouseListener(graphHandler);
+		add(dPanel,  BorderLayout.CENTER);
+	}
+	
+	public void setTitle(String title){
+		
+		try {
+			graphTitle.setValue(title);
+		} catch (SettingException e) {
+			e.printStackTrace();
+		}
+		
+		updateGraph();
+	}
+	
+	public void setAxisLabels(String xLabel, String yLabel, String zLabel){
+		
+		this.xLabel = xLabel;
+		this.yLabel = yLabel;
+		this.zLabel = zLabel;
+	}
 
 	/**
 	 * 
@@ -175,8 +242,8 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	 * 
 	 * @return
 	 */
-	public SurfaceRenderer getRenderer() {
-		return renderer;
+	public SurfaceRenderer getSurfaceRenderer() {
+		return rendererSurface;
 	}
 
 	@Override
@@ -244,15 +311,15 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		case 2:
 			return this.legendOrientation;
 		case 3:
-			return this.scaleMethod;
-		case 4:
-			return this.lowColor;
-		case 5:
-			return this.highColor;
-		case 6:
 			return this.rotateIncrement;
-		case 7:
+		case 4:
 			return this.rollIncrement;
+		case 5:
+			return this.scaleMethod;
+		case 6:
+			return this.lowColor;
+		case 7:
+			return this.highColor;
 		default:
 				return null;
 		
@@ -301,13 +368,13 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		}
 		
 		/*scale method*/
-		if(scaleMethod.getStringValue().equals("Rainbow scale")){
+		if(scaleMethod.getStringValue().equals("Rainbow scale") && plotType == SURFACE){
 			
 			lowColor.setEnabled(false);
 			highColor.setEnabled(false);
-			renderer.setColorScale(new RainbowScale(new Range(0.0, 1.0)));
+			rendererSurface.setColorScale(new RainbowScale(new Range(0.0, 1.0)));
 		}
-		else if(scaleMethod.getStringValue().equals("Gradient scale")){
+		else if(scaleMethod.getStringValue().equals("Gradient scale") && plotType == SURFACE){
 			
 			try {
 				legendOrientation.setValue("Horizontal");
@@ -318,23 +385,23 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 			chart.setLegendOrientation(Orientation.HORIZONTAL);
 			lowColor.setEnabled(true);
 			highColor.setEnabled(true);
-			renderer.setColorScale(new GradientColorScale(new Range(0.0, 1.0), lowColor.getColorValue(), highColor.getColorValue()));
+			rendererSurface.setColorScale(new GradientColorScale(new Range(0.0, 1.0), lowColor.getColorValue(), highColor.getColorValue()));
 		}
 		
 		/*low color*/
 		
-		if(lowColor.isEnabled()){
+		if(lowColor.isEnabled() && plotType == SURFACE){
 			
-			if(!lowColor.getColorValue().equals(((GradientColorScale)renderer.getColorScale()).getLowColor()))
-				renderer.setColorScale(new GradientColorScale(new Range(0.0, 1.0), lowColor.getColorValue(), highColor.getColorValue()));
+			if(!lowColor.getColorValue().equals(((GradientColorScale)rendererSurface.getColorScale()).getLowColor()))
+				rendererSurface.setColorScale(new GradientColorScale(new Range(0.0, 1.0), lowColor.getColorValue(), highColor.getColorValue()));
 		}
 		
 		/*high color*/
 		
-		if(highColor.isEnabled()){
+		if(highColor.isEnabled() && plotType == SURFACE){
 			
-			if(!highColor.getColorValue().equals(((GradientColorScale)renderer.getColorScale()).getHighColor()))
-				renderer.setColorScale(new GradientColorScale(new Range(0.0, 1.0), lowColor.getColorValue(), highColor.getColorValue()));
+			if(!highColor.getColorValue().equals(((GradientColorScale)rendererSurface.getColorScale()).getHighColor()))
+				rendererSurface.setColorScale(new GradientColorScale(new Range(0.0, 1.0), lowColor.getColorValue(), highColor.getColorValue()));
 		}
 		
 		/*rotate increment*/

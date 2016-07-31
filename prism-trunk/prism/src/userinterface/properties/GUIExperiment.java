@@ -380,6 +380,8 @@ public class GUIExperiment
 					undefinedConstants.iterateModel();
 					yield();
 				}
+				
+				results.setFinished(true);
 
 				SwingUtilities.invokeAndWait(new Runnable()
 				{

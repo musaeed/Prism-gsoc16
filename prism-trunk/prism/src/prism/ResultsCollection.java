@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Vector;
 
 import parser.Values;
+import userinterface.graph.GraphResultListener3D;
 import userinterface.graph.SeriesKey;
 
 /**
@@ -60,6 +61,8 @@ public class ResultsCollection
 	private String resultName;
 	
 	private boolean isCompleted;
+	
+	private boolean isFinished;
 
 	/** Creates a new instance of ResultsCollection */
 	public ResultsCollection(UndefinedConstants uCons)
@@ -82,6 +85,7 @@ public class ResultsCollection
 		this.root = (rangingConstants.size() > 0) ? new TreeNode(0) : new TreeLeaf();
 		this.resultName = (resultName == null) ? "Result" : resultName;
 		this.isCompleted = true;
+		this.isFinished = false;
 	}
 
 	public Vector<DefinedConstant> getRangingConstants()
@@ -130,6 +134,24 @@ public class ResultsCollection
 	
 	public boolean getIsCompleted(){
 		return isCompleted;
+	}
+	
+	public void setFinished(boolean finished){
+		this.isFinished = finished;
+		
+		if(!finished)
+			return;
+		
+		for(ResultListener listener : resultListeners){
+			
+			if(listener instanceof GraphResultListener3D){
+				((GraphResultListener3D)listener).done();
+			}
+		}
+	}
+	
+	public boolean isFinished(){
+		return this.isFinished;
 	}
 
 	public String getResultName()

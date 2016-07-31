@@ -46,7 +46,9 @@ import prism.ResultsCollection;
 import userinterface.GUIPlugin;
 import userinterface.GUIPrism;
 import userinterface.graph.Graph;
+import userinterface.graph.Graph3D;
 import userinterface.graph.GraphResultListener;
+import userinterface.graph.GraphResultListener3D;
 import userinterface.graph.ParametricGraph;
 import userinterface.graph.PrismXYDataItem;
 import userinterface.graph.SeriesKey;
@@ -71,13 +73,18 @@ public class GUIGraphPicker extends javax.swing.JDialog
 
 	private GraphConstantPickerList pickerList;
 
-	private String ranger;
-	private DefinedConstant rangingConstant;
+	private String rangerX, rangerY;
+	private DefinedConstant rangingConstantX, rangingConstantY;
 
 	private Values otherValues;
 	private Vector<DefinedConstant> multiSeries;
 
-	private userinterface.graph.Graph graphModel;
+	//used in case 2d plot is selected
+	private userinterface.graph.Graph graphModel2D;
+	
+	// used in case 3d plot is selected
+	private Graph3D graphModel3D;
+	
 	private boolean graphCancelled;
 
 	private static final int MAX_NUM_SERIES_BEFORE_QUERY = 11;
@@ -122,7 +129,7 @@ public class GUIGraphPicker extends javax.swing.JDialog
 		setVisible(true);
 
 		/* If OK was pressed. */
-		if (!graphCancelled) {
+		if (!graphCancelled && this.plotType2d.isSelected()) {
 			/* Collect series keys. */
 			Vector<SeriesKey> seriesKeys = new Vector<SeriesKey>();
 
@@ -160,11 +167,11 @@ public class GUIGraphPicker extends javax.swing.JDialog
 				// For properties that return an interval, we add a pair of series
 				// (the pair is stored as a linked list)
 				if (experiment.getPropertyType() instanceof TypeInterval) {
-					SeriesKey key = graphModel.addSeries(seriesName + " (min)");
-					key.next = graphModel.addSeries(seriesName + " (max)");
+					SeriesKey key = graphModel2D.addSeries(seriesName + " (min)");
+					key.next = graphModel2D.addSeries(seriesName + " (max)");
 					seriesKeys.add(key);
 				} else {
-					seriesKeys.add(graphModel.addSeries(seriesName));
+					seriesKeys.add(graphModel2D.addSeries(seriesName));
 				}
 			}
 
@@ -176,13 +183,13 @@ public class GUIGraphPicker extends javax.swing.JDialog
 					SeriesKey seriesKey = seriesKeys.get(series);
 
 					/** Range over x-axis. */
-					for (int i = 0; i < rangingConstant.getNumSteps(); i++) {
-						Object value = rangingConstant.getValue(i);
+					for (int i = 0; i < rangingConstantX.getNumSteps(); i++) {
+						Object value = rangingConstantX.getValue(i);
 
 						/** Values used in the one experiment for this series. */
 						Values useThis = new Values();
 						useThis.addValues(values);
-						useThis.addValue(ranger, value);
+						useThis.addValue(rangerX, value);
 
 						/** Get this particular result. **/
 						try {
@@ -203,22 +210,22 @@ public class GUIGraphPicker extends javax.swing.JDialog
 							if (validX) {
 								if (result instanceof Double) {
 									y = ((Double) result).doubleValue();
-									graphModel.addPointToSeries(seriesKey, new PrismXYDataItem(x, y));
+									graphModel2D.addPointToSeries(seriesKey, new PrismXYDataItem(x, y));
 								} else if (result instanceof Integer) {
 									y = ((Integer) result).intValue();
-									graphModel.addPointToSeries(seriesKey, new PrismXYDataItem(x, y));
+									graphModel2D.addPointToSeries(seriesKey, new PrismXYDataItem(x, y));
 								} else if (result instanceof Interval) {
 									Interval interval = (Interval) result;
 									if (interval.lower instanceof Double) {
 										y = ((Double) interval.lower).doubleValue();
-										graphModel.addPointToSeries(seriesKey, new PrismXYDataItem(x, y));
+										graphModel2D.addPointToSeries(seriesKey, new PrismXYDataItem(x, y));
 										y = ((Double) interval.upper).doubleValue();
-										graphModel.addPointToSeries(seriesKey.next, new PrismXYDataItem(x, y));
+										graphModel2D.addPointToSeries(seriesKey.next, new PrismXYDataItem(x, y));
 									} else if (result instanceof Integer) {
 										y = ((Integer) interval.lower).intValue();
-										graphModel.addPointToSeries(seriesKey, new PrismXYDataItem(x, y));
+										graphModel2D.addPointToSeries(seriesKey, new PrismXYDataItem(x, y));
 										y = ((Integer) interval.upper).intValue();
-										graphModel.addPointToSeries(seriesKey.next, new PrismXYDataItem(x, y));
+										graphModel2D.addPointToSeries(seriesKey.next, new PrismXYDataItem(x, y));
 									}
 								}
 							}
@@ -233,10 +240,18 @@ public class GUIGraphPicker extends javax.swing.JDialog
 					Values values = seriesValues.get(series);
 					SeriesKey seriesKey = seriesKeys.get(series);
 
-					GraphResultListener listener = new GraphResultListener(graphModel, seriesKey, ranger, values);
+					GraphResultListener listener = new GraphResultListener(graphModel2D, seriesKey, rangerX, values);
 					resultsCollection.addResultListener(listener);
 				}
 			}
+		}
+		else if(!graphCancelled && this.plotType3d.isSelected()){
+			
+			graphModel3D.setAxisLabels(selectAxisConstantCombo.getSelectedItem().toString(),
+					selectYaxisConstantCombo.getSelectedItem().toString(), "Result");
+			GraphResultListener3D listener = new GraphResultListener3D(graphModel3D, rangerX, rangerY, seriesNameField.getText());
+			resultsCollection.addResultListener(listener);
+			
 		}
 	}
 	
@@ -349,8 +364,6 @@ public class GUIGraphPicker extends javax.swing.JDialog
 			else
 				selectAxisConstantCombo.setSelectedIndex(0);
 		}
-		// and disable it in the picker list
-		pickerList.disableLine(0);
 
 		
 		// now check if the second axis can be selected or not
@@ -368,6 +381,9 @@ public class GUIGraphPicker extends javax.swing.JDialog
 			
 			this.selectYaxisConstantCombo.setSelectedIndex(1);
 		}
+		
+		// and disable it in the picker list
+		pickerList.disableLine(0);
 		
 		// if there is only one ranging constant, disable controls
 		if (resultsCollection.getRangingConstants().size() == 1) {
@@ -423,7 +439,7 @@ public class GUIGraphPicker extends javax.swing.JDialog
 		}
 
 		// see which constant is on x axis
-		ranger = selectAxisConstantCombo.getSelectedItem().toString();
+		rangerX = selectAxisConstantCombo.getSelectedItem().toString();
 		// init arrays
 		otherValues = new Values();
 		multiSeries = new Vector<DefinedConstant>();
@@ -432,7 +448,7 @@ public class GUIGraphPicker extends javax.swing.JDialog
 			// get constant
 			temp = pickerList.getConstantLine(j).getDC();
 			// ignore constant for x-axis
-			if (temp.getName().equals(ranger))
+			if (temp.getName().equals(rangerX))
 				continue;
 			// get value
 			value = pickerList.getConstantLine(j).getSelectedValue();
@@ -459,7 +475,7 @@ public class GUIGraphPicker extends javax.swing.JDialog
 	}
 	
 	public ParametricGraph getGraphModel(){
-		return (ParametricGraph)graphModel;
+		return (ParametricGraph)graphModel2D;
 	}
 
 	/** This method is called from within the constructor to
@@ -602,6 +618,15 @@ public class GUIGraphPicker extends javax.swing.JDialog
 		jPanel3.add(lblSelectYAxis, gbc_lblSelectYAxis);
 		
 		selectYaxisConstantCombo = new JComboBox();
+		selectYaxisConstantCombo.setPreferredSize(new java.awt.Dimension(100, 24));
+		selectYaxisConstantCombo.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				selectYAxisConstantComboActionPerformed(e);
+				
+			}
+		});
 		GridBagConstraints gbc_selectYaxisConstantCombo = new GridBagConstraints();
 		gbc_selectYaxisConstantCombo.insets = new Insets(0, 0, 5, 5);
 		gbc_selectYaxisConstantCombo.fill = GridBagConstraints.HORIZONTAL;
@@ -775,13 +800,35 @@ public class GUIGraphPicker extends javax.swing.JDialog
 	private void plotType2DRadioActionPerformed(java.awt.event.ActionEvent evt){
 		
 		this.plotType3d.setSelected(false);
+		this.lblSelectYAxis.setEnabled(false);
 		this.selectYaxisConstantCombo.setEnabled(false);
 		
+		if(this.graphHandler.getNumModels() > 0){
+			this.existingGraphCombo.setEnabled(true);
+			this.existingGraphCombo.setEnabled(true);
+		}
+		
+		if(!this.plotType3d.isEnabled()){
+			this.plotType2d.setSelected(true);
+		}
+		
+		pickerList.disableLine(selectAxisConstantCombo.getSelectedIndex());
+		seriesNameField.setText("");
 	}
 	
 	private void plotType3DRadioActionPerformed(java.awt.event.ActionEvent evt){
+		
 		this.plotType2d.setSelected(false);
+		this.existingGraphCombo.setEnabled(false);
+		this.existingGraphRadio.setEnabled(false);
+		this.newGraphRadio.setSelected(true);
 		this.selectYaxisConstantCombo.setEnabled(true);
+		this.lblSelectYAxis.setEnabled(true);
+		
+		pickerList.disableLines(selectAxisConstantCombo.getSelectedItem().toString(),
+								selectYaxisConstantCombo.getSelectedItem().toString());
+		
+		seriesNameField.setText(pickerList.getDisableConstantsInfo());
 	}
 
 	private void lineCancelButtonActionPerformed(java.awt.event.ActionEvent evt)
@@ -793,23 +840,28 @@ public class GUIGraphPicker extends javax.swing.JDialog
 	private void lineOkayButtonActionPerformed(java.awt.event.ActionEvent evt)
 	{
 		
+		if(!this.plotType2d.isSelected() && !this.plotType3d.isSelected()){
+			this.plugin.error("Please select a plot type!");
+			return;
+		}
+		
 		// this is for the parametric case, getselecteditem will be null then
 		if(selectAxisConstantCombo.getSelectedItem() == null){
 			
 			if (newGraphRadio.isSelected()) {
 				/* Make new graph. */
-				graphModel = new ParametricGraph("");
-				graphHandler.addGraph(graphModel);
+				graphModel2D = new ParametricGraph("");
+				graphHandler.addGraph(graphModel2D);
 				
 			} else {
 				/* Add to an existing graph. */
 				
 				if(!(graphHandler.getModel(existingGraphCombo.getSelectedItem().toString()) instanceof ParametricGraph)){
-					graphModel = null;
+					graphModel2D = null;
 					return;
 				}
 				
-				graphModel = (Graph)graphHandler.getModel(existingGraphCombo.getSelectedItem().toString());
+				graphModel2D = (Graph)graphHandler.getModel(existingGraphCombo.getSelectedItem().toString());
 			}
 			
 			graphCancelled = false;
@@ -822,7 +874,13 @@ public class GUIGraphPicker extends javax.swing.JDialog
 		int numSeries = 1;
 
 		// see which constant is on x axis
-		ranger = selectAxisConstantCombo.getSelectedItem().toString();
+		rangerX = selectAxisConstantCombo.getSelectedItem().toString();
+		
+		if(this.plotType3d.isSelected()){
+			
+			rangerY = selectYaxisConstantCombo.getSelectedItem().toString();
+			
+		}
 
 		// init arrays
 		otherValues = new Values();
@@ -833,11 +891,17 @@ public class GUIGraphPicker extends javax.swing.JDialog
 			// get constant
 			DefinedConstant tmpConstant = pickerList.getConstantLine(j).getDC();
 			// if its the constant for the x-axis, store info about the constant
-			if (tmpConstant.getName().equals(ranger)) {
-				rangingConstant = tmpConstant;
+			if (tmpConstant.getName().equals(rangerX)) {
+				rangingConstantX = tmpConstant;
 			}
 			// otherwise store info about the selected values
 			else {
+				
+				if(this.plotType3d.isSelected()){
+					if(tmpConstant.getName().equals(rangerY))
+						continue;
+				}
+				
 				// Is this constant just a value, or does it have a range?
 				Object value = pickerList.getConstantLine(j).getSelectedValue();
 				if (value instanceof String) {
@@ -850,9 +914,28 @@ public class GUIGraphPicker extends javax.swing.JDialog
 				}
 			}
 		}
+		
+		if(this.plotType3d.isSelected()){
+			
+			//go through all constants in the y axis picker list
+			for(int j = 0 ; j < pickerList.getNumConstants() ; j++){
+				
+				// get constant
+				DefinedConstant tmpConstant = pickerList.getConstantLine(j).getDC();
+				
+				if (tmpConstant.getName().equals(rangerY)) {
+					rangingConstantY = tmpConstant;
+				}
+			}
+			
+		}
 
 		//sort out which one to add it to
-		if (rangingConstant == null)
+		if (rangingConstantX == null)
+			return;
+		
+		//if 3d plot is selected and y axis is not selected, select it!
+		if(this.plotType3d.isSelected() && rangingConstantY == null)
 			return;
 
 		// if there are a lot of series, check if this is what the user really wanted
@@ -865,21 +948,40 @@ public class GUIGraphPicker extends javax.swing.JDialog
 				return;
 		}
 
-		if (newGraphRadio.isSelected()) {
-			/* Make new graph. */
-			//graphModel = new Graph();
-			graphModel = new ParametricGraph("");
-			graphHandler.addGraph(graphModel);
+		if(this.plotType2d.isSelected()){
 
-			graphModel.getYAxisSettings().setHeading(resultsCollection.getResultName());
-			graphModel.getXAxisSettings().setHeading(ranger);
-		} else {
-			/* Add to an existing graph. */
+			if (newGraphRadio.isSelected()) {
+				/* Make new graph. */
+				//graphModel = new Graph();
+				graphModel2D = new ParametricGraph("");
+				graphHandler.addGraph(graphModel2D);
+
+				graphModel2D.getYAxisSettings().setHeading(resultsCollection.getResultName());
+				graphModel2D.getXAxisSettings().setHeading(rangerX);
+			} else {
+				/* Add to an existing graph. */
+
+				graphModel2D = (Graph)graphHandler.getModel(existingGraphCombo.getSelectedItem().toString());
+				if (!rangerX.equals(graphModel2D.getXAxisSettings().getHeading())) //FIXME: must do this better in future
+					if (!roughExists(rangerX, graphModel2D.getXAxisSettings().getHeading()))
+						graphModel2D.getXAxisSettings().setHeading(graphModel2D.getXAxisSettings().getHeading() + ", " + rangerX);
+			}
+		
+		}
+		else if(this.plotType3d.isSelected()){
 			
-			graphModel = (Graph)graphHandler.getModel(existingGraphCombo.getSelectedItem().toString());
-			if (!ranger.equals(graphModel.getXAxisSettings().getHeading())) //FIXME: must do this better in future
-				if (!roughExists(ranger, graphModel.getXAxisSettings().getHeading()))
-					graphModel.getXAxisSettings().setHeading(graphModel.getXAxisSettings().getHeading() + ", " + ranger);
+			// always the new graph radio button will be selected since we can't have another 3d plot on the same plot
+			
+			if(selectAxisConstantCombo.getSelectedItem().toString().equals(selectYaxisConstantCombo.getSelectedItem().toString())){
+				
+				plugin.error("Please select diffrent variables for x and y axis!");
+				return;
+				
+			}
+			
+			graphModel3D = new Graph3D();
+			graphHandler.addGraph(graphModel3D);
+			
 		}
 
 		graphCancelled = false;
@@ -895,10 +997,30 @@ public class GUIGraphPicker extends javax.swing.JDialog
 	{
 		doEnables();
 	}
+	
+	private void selectYAxisConstantComboActionPerformed(java.awt.event.ActionEvent evt){
+		
+		pickerList.disableLines(selectAxisConstantCombo.getSelectedItem().toString(),
+								selectYaxisConstantCombo.getSelectedItem().toString());
+		resetAutoSeriesName();
+		
+		seriesNameField.setText(pickerList.getDisableConstantsInfo());
+	}
 
 	private void selectAxisConstantComboActionPerformed(java.awt.event.ActionEvent evt)
 	{
-		pickerList.disableLine(selectAxisConstantCombo.getSelectedIndex());
+		if(this.plotType2d.isSelected())
+		{
+			pickerList.disableLine(selectAxisConstantCombo.getSelectedIndex());
+		}
+		else if(this.plotType3d.isSelected())
+		{
+			pickerList.disableLines(selectAxisConstantCombo.getSelectedItem().toString(),
+					selectYaxisConstantCombo.getSelectedItem().toString());
+			
+			seriesNameField.setText(pickerList.getDisableConstantsInfo());
+		}
+	
 		resetAutoSeriesName();
 	}
 

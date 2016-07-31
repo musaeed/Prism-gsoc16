@@ -14,7 +14,6 @@ import settings.FontColorSetting;
 import settings.Setting;
 import settings.SettingDisplay;
 import settings.SettingOwner;
-import sun.awt.X11.XAbstractMenuItem;
 
 public class AxisSettings3D extends Observable implements SettingOwner{
 

@@ -249,7 +249,7 @@ public class GUIGraphPicker extends javax.swing.JDialog
 			
 			graphModel3D.setAxisLabels(selectAxisConstantCombo.getSelectedItem().toString(),
 					selectYaxisConstantCombo.getSelectedItem().toString(), "Result");
-			GraphResultListener3D listener = new GraphResultListener3D(graphModel3D, rangerX, rangerY, seriesNameField.getText());
+			GraphResultListener3D listener = new GraphResultListener3D(graphModel3D, rangingConstantX, rangingConstantY, seriesNameField.getText());
 			resultsCollection.addResultListener(listener);
 			
 		}

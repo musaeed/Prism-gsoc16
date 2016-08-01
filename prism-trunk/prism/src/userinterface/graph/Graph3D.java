@@ -60,6 +60,7 @@ import com.orsoncharts.Chart3D;
 import com.orsoncharts.Chart3DFactory;
 import com.orsoncharts.Chart3DPanel;
 import com.orsoncharts.Range;
+import com.orsoncharts.data.function.Function3D;
 import com.orsoncharts.data.xyz.XYZDataItem;
 import com.orsoncharts.data.xyz.XYZSeries;
 import com.orsoncharts.data.xyz.XYZSeriesCollection;
@@ -71,6 +72,7 @@ import com.orsoncharts.renderer.xyz.ScatterXYZRenderer;
 import com.orsoncharts.renderer.xyz.SurfaceRenderer;
 import com.orsoncharts.util.Orientation;
 
+import prism.DefinedConstant;
 import settings.ChoiceSetting;
 import settings.ColorSetting;
 import settings.DoubleSetting;
@@ -110,11 +112,12 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	protected MultipleLineStringSetting graphTitle;
 	private FontColorSetting titleFont;
 	private ChoiceSetting legendOrientation;
+	private DoubleSetting rotateIncrement;
+	private DoubleSetting rollIncrement;
+	private ChoiceSetting chartType;
 	private ChoiceSetting scaleMethod;
 	private ColorSetting lowColor;
 	private ColorSetting highColor;
-	private DoubleSetting rotateIncrement;
-	private DoubleSetting rollIncrement;
 	
 	/** For scatter plot */
 	private ScatterXYZRenderer rendererScatter;
@@ -123,9 +126,11 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	
 	/**For surface plot*/
 	protected SurfaceRenderer rendererSurface;
+	private DataInterpolateFunction function;
+	private DefinedConstant rangingConstantX, rangingConstantY;
 	
 	
-	ArrayList<XYZDataItem> dataCache;
+	private ArrayList<XYZDataItem> dataCache;
 	
 	private int plotType;
 	
@@ -157,6 +162,11 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		legendOrientation = new ChoiceSetting("legend orientation", new String[]{"Horizontal","Vertical"}, "Horizontal" 
 				, "change the orientation of the legend", this, false);
 		
+		rotateIncrement = new DoubleSetting("Rotate increment", 1.0, "rotate increment value for the plot", this, false);
+		rollIncrement = new DoubleSetting("roll increment", 1.0, "roll increment for the plot", this, false);
+		
+		chartType = new ChoiceSetting("Plot type", new String[]{"Scatter plot","Surface plot"}, "Scatter plot" , "select the plot type to visualize the data", this, false);
+		
 		scaleMethod = new ChoiceSetting("scale method", new String[]{"Rainbow scale", "Gradient scale"}, "Rainbow scale", 
 				"change the scale method for the chart", this, false);
 		
@@ -166,8 +176,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		highColor = new ColorSetting("high color", Color.BLACK, "high color of the gradient scale", this, false);
 		highColor.setEnabled(false);
 		
-		rotateIncrement = new DoubleSetting("Rotate increment", 1.0, "rotate increment value for the plot", this, false);
-		rollIncrement = new DoubleSetting("roll increment", 1.0, "roll increment for the plot", this, false);
+		dataCache = new ArrayList<XYZDataItem>();
 	}
 	
 	
@@ -175,7 +184,6 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		
 		seriesCollectionScatter = new XYZSeriesCollection();
 		setLayout(new BorderLayout());
-		dataCache = new ArrayList<XYZDataItem>();
 		plotType = SCATTER;
 	}
 	
@@ -197,6 +205,48 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		panel.setComponentPopupMenu(graphHandler.getGraphMenu());
 		dPanel = new DisplayPanel3D(panel, true, false);
 		panel.addMouseListener(graphHandler);
+		
+		// make sure there is nothing inside this panel
+		{
+			removeAll();
+			revalidate();
+			repaint();
+		}
+		
+		add(dPanel,  BorderLayout.CENTER);
+	}
+	
+	public void initSurfacePlot(){
+		
+		function = new DataInterpolateFunction();
+		setLayout(new BorderLayout());
+		plotType = SURFACE;
+	}
+	
+	public void setRangingConstants(DefinedConstant rX, DefinedConstant rY){
+		
+		this.rangingConstantX = rX;
+		this.rangingConstantY = rY;
+	}
+	
+	public void plotSurface(){
+		
+		chart = Chart3DFactory.createSurfaceChart("", "", function, xLabel, zLabel, yLabel);
+		plot = (XYZPlot)chart.getPlot();
+		plot.getXAxis().setRange(new Double(rangingConstantX.getLow().toString()), new Double(rangingConstantX.getHigh().toString()));
+		plot.getZAxis().setRange(new Double(rangingConstantY.getLow().toString()), new Double(rangingConstantY.getHigh().toString()));
+		panel = new Chart3DPanel(chart);
+		panel.setComponentPopupMenu(graphHandler.getGraphMenu());
+		dPanel = new DisplayPanel3D(panel, true, false);
+		panel.addMouseListener(graphHandler);
+		
+		// make sure there is nothing inside this panel
+		{
+			removeAll();
+			revalidate();
+			repaint();
+		}
+		
 		add(dPanel,  BorderLayout.CENTER);
 	}
 	
@@ -295,7 +345,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 
 	@Override
 	public int getNumSettings() {
-		return 8;
+		return 9;
 	}
 
 
@@ -315,10 +365,12 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		case 4:
 			return this.rollIncrement;
 		case 5:
-			return this.scaleMethod;
+			return this.chartType;
 		case 6:
-			return this.lowColor;
+			return this.scaleMethod;
 		case 7:
+			return this.lowColor;
+		case 8:
 			return this.highColor;
 		default:
 				return null;
@@ -367,14 +419,42 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 			chart.setLegendOrientation(Orientation.VERTICAL);
 		}
 		
+		/*rotate increment*/
+		if(rotateIncrement.getDoubleValue() != panel.getRotateIncrement()){
+			panel.setRotateIncrement(rotateIncrement.getDoubleValue());
+		}
+		
+		/*roll increment*/
+		if(rollIncrement.getDoubleValue() != panel.getRollIncrement()){
+			panel.setRollIncrement(rollIncrement.getDoubleValue());
+		}
+		
+		/*chart type*/
+		
+		if(chartType.getStringValue().equals("Scatter plot") && plotType == SURFACE){
+			
+			initScatterPlot();
+			plotScatter("Series");
+			plotType = SCATTER;
+			
+		}
+		
+		if(chartType.getStringValue().equals("Surface plot") && plotType == SCATTER){
+			
+			initSurfacePlot();
+			function.setData(dataCache);
+			plotSurface();
+			plotType = SURFACE;
+		}
+		
 		/*scale method*/
-		if(scaleMethod.getStringValue().equals("Rainbow scale") && plotType == SURFACE){
+		if(scaleMethod.getStringValue().equals("Rainbow scale") && plotType == SURFACE && rendererSurface != null){
 			
 			lowColor.setEnabled(false);
 			highColor.setEnabled(false);
 			rendererSurface.setColorScale(new RainbowScale(new Range(0.0, 1.0)));
 		}
-		else if(scaleMethod.getStringValue().equals("Gradient scale") && plotType == SURFACE){
+		else if(scaleMethod.getStringValue().equals("Gradient scale") && plotType == SURFACE && rendererSurface != null){
 			
 			try {
 				legendOrientation.setValue("Horizontal");
@@ -392,27 +472,18 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		
 		if(lowColor.isEnabled() && plotType == SURFACE){
 			
-			if(!lowColor.getColorValue().equals(((GradientColorScale)rendererSurface.getColorScale()).getLowColor()))
+			if(!lowColor.getColorValue().equals(((GradientColorScale)rendererSurface.getColorScale()).getLowColor()) && rendererSurface != null)
 				rendererSurface.setColorScale(new GradientColorScale(new Range(0.0, 1.0), lowColor.getColorValue(), highColor.getColorValue()));
 		}
 		
 		/*high color*/
 		
-		if(highColor.isEnabled() && plotType == SURFACE){
+		if(highColor.isEnabled() && plotType == SURFACE && rendererSurface != null){
 			
 			if(!highColor.getColorValue().equals(((GradientColorScale)rendererSurface.getColorScale()).getHighColor()))
 				rendererSurface.setColorScale(new GradientColorScale(new Range(0.0, 1.0), lowColor.getColorValue(), highColor.getColorValue()));
 		}
 		
-		/*rotate increment*/
-		if(rotateIncrement.getDoubleValue() != panel.getRotateIncrement()){
-			panel.setRotateIncrement(rotateIncrement.getDoubleValue());
-		}
-		
-		/*roll increment*/
-		if(rollIncrement.getDoubleValue() != panel.getRollIncrement()){
-			panel.setRollIncrement(rollIncrement.getDoubleValue());
-		}
 	}
 
 	@Override
@@ -515,5 +586,71 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	 */
 	public void createPrintJob(){
 
+	}
+	
+	private class DataInterpolateFunction implements Function3D{
+		
+		private static final long serialVersionUID = -4229820807542439735L;
+		private double [][] data;
+		private double xLow, xHigh, xStep, yLow, yHigh, yStep;
+		
+		public DataInterpolateFunction(){
+			
+			this.xLow = (double)rangingConstantX.getLow();
+			this.xHigh = (double)rangingConstantX.getHigh();
+			this.xStep = (double)rangingConstantX.getStep();
+			
+			this.yLow = (double)rangingConstantY.getLow();
+			this.yHigh = (double)rangingConstantY.getHigh();
+			this.yStep = (double)rangingConstantY.getStep();
+		}
+		
+		public void setData(ArrayList<XYZDataItem> cache){
+			
+			data = new double[rangingConstantX.getNumSteps()][rangingConstantY.getNumSteps()];
+			
+			int index = 0;
+			
+			for(int i = 0 ; i < rangingConstantX.getNumSteps() ; i++){
+				for(int j = 0 ; j < rangingConstantY.getNumSteps() ; j++){
+					
+					data[i][j] = cache.get(index++).getY();
+				}
+			}
+			
+		}
+		
+		public void printData(){
+			
+			int index = 0;
+			
+			for(int i = 0 ; i < rangingConstantX.getNumSteps() ; i++){
+				for(int j = 0 ; j < rangingConstantY.getNumSteps() ; j++){
+					
+					XYZDataItem item = dataCache.get(index++);
+					double x = item.getX();
+					double y = item.getZ();
+					
+					System.out.println("(" + x + "," + y + ")" + " = " + data[i][j] + " ");
+				}
+			}
+		}
+
+		@Override
+		public double getValue(double x, double y) {
+			
+			if(x < xLow || x > xHigh || y < yLow || y > yHigh){
+				return 0.0;
+			}
+			
+			int xIndexLow = (int)((x-xLow) / xStep);
+			int xIndexHigh = xIndexLow+1 > xHigh ? xIndexLow : xIndexLow + 1;
+			
+			int yIndexLow = (int)((x - yLow) / yStep);
+			int yIndexHigh = yIndexLow+1 > yHigh ? yIndexLow : yIndexLow + 1;
+			
+			return (data[xIndexLow][yIndexLow] + data[xIndexLow][yIndexHigh] + data[xIndexHigh][yIndexLow] + data[xIndexHigh][yIndexHigh]) / 4.0;
+		}
+		
 	}
 }

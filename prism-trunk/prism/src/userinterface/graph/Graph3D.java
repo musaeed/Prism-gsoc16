@@ -115,6 +115,12 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	private DoubleSetting rotateIncrement;
 	private DoubleSetting rollIncrement;
 	private ChoiceSetting chartType;
+	
+	/**Settings specifically for scatter plot*/
+	private DoubleSetting pointSize;
+	private ColorSetting dataColor;
+	
+	/**Settings specifically for surface plot*/
 	private ChoiceSetting scaleMethod;
 	private ColorSetting lowColor;
 	private ColorSetting highColor;
@@ -132,7 +138,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	
 	private ArrayList<XYZDataItem> dataCache;
 	
-	private int plotType;
+	protected int plotType;
 	
 	/**
 	 * 
@@ -176,10 +182,15 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		highColor = new ColorSetting("high color", Color.BLACK, "high color of the gradient scale", this, false);
 		highColor.setEnabled(false);
 		
+		pointSize = new DoubleSetting("Size of data points", 0.2, "change the size of data points in 3d space", this, false);
+		dataColor = new ColorSetting("data color", Color.RED, "the color of the data points in 3d space", this, false);
+		
 		dataCache = new ArrayList<XYZDataItem>();
 	}
 	
-	
+	/**
+	 * 
+	 */
 	public void initScatterPlot(){
 		
 		seriesCollectionScatter = new XYZSeriesCollection();
@@ -187,10 +198,18 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		plotType = SCATTER;
 	}
 	
+	/**
+	 * 
+	 * @param item
+	 */
 	public void addPointToDataCache(XYZDataItem item){
 		dataCache.add(item);
 	}
 	
+	/**
+	 * 
+	 * @param seriesName
+	 */
 	public void plotScatter(String seriesName){
 		
 		seriesScatter = new XYZSeries(seriesName);
@@ -201,6 +220,8 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		
 		seriesCollectionScatter.add(seriesScatter);
 		chart = Chart3DFactory.createScatterChart("", "", seriesCollectionScatter, xLabel, zLabel, yLabel);
+		plot = (XYZPlot)chart.getPlot();
+		rendererScatter = (ScatterXYZRenderer)plot.getRenderer();
 		panel = new Chart3DPanel(chart);
 		panel.setComponentPopupMenu(graphHandler.getGraphMenu());
 		dPanel = new DisplayPanel3D(panel, true, false);
@@ -214,8 +235,15 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		}
 		
 		add(dPanel,  BorderLayout.CENTER);
+		
+		/*update all the settings*/
+		updateGraph();
+		displaySettings.updateDisplay();
 	}
 	
+	/**
+	 * 
+	 */
 	public void initSurfacePlot(){
 		
 		function = new DataInterpolateFunction();
@@ -223,18 +251,27 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		plotType = SURFACE;
 	}
 	
+	/**
+	 * 
+	 * @param rX
+	 * @param rY
+	 */
 	public void setRangingConstants(DefinedConstant rX, DefinedConstant rY){
 		
 		this.rangingConstantX = rX;
 		this.rangingConstantY = rY;
 	}
 	
+	/**
+	 * 
+	 */
 	public void plotSurface(){
 		
 		chart = Chart3DFactory.createSurfaceChart("", "", function, xLabel, zLabel, yLabel);
 		plot = (XYZPlot)chart.getPlot();
 		plot.getXAxis().setRange(new Double(rangingConstantX.getLow().toString()), new Double(rangingConstantX.getHigh().toString()));
 		plot.getZAxis().setRange(new Double(rangingConstantY.getLow().toString()), new Double(rangingConstantY.getHigh().toString()));
+		rendererSurface = (SurfaceRenderer)plot.getRenderer();
 		panel = new Chart3DPanel(chart);
 		panel.setComponentPopupMenu(graphHandler.getGraphMenu());
 		dPanel = new DisplayPanel3D(panel, true, false);
@@ -248,8 +285,16 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		}
 		
 		add(dPanel,  BorderLayout.CENTER);
+		
+		/*update all the settings*/
+		updateGraph();
+		displaySettings.updateDisplay();
 	}
 	
+	/**
+	 * 
+	 * @param title
+	 */
 	public void setTitle(String title){
 		
 		try {
@@ -261,6 +306,12 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		updateGraph();
 	}
 	
+	/**
+	 * 
+	 * @param xLabel
+	 * @param yLabel
+	 * @param zLabel
+	 */
 	public void setAxisLabels(String xLabel, String yLabel, String zLabel){
 		
 		this.xLabel = xLabel;
@@ -345,7 +396,17 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 
 	@Override
 	public int getNumSettings() {
-		return 9;
+		
+		if(plotType == SCATTER){
+			return 8;
+		}
+		else if(plotType == SURFACE){
+			return 9;
+		}
+		else{
+			return 0;
+			
+		}
 	}
 
 
@@ -367,11 +428,11 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		case 5:
 			return this.chartType;
 		case 6:
-			return this.scaleMethod;
+			return plotType == SCATTER ? this.pointSize: this.scaleMethod;
 		case 7:
-			return this.lowColor;
+			return plotType == SCATTER ? this.dataColor : this.lowColor;
 		case 8:
-			return this.highColor;
+			return plotType == SCATTER ? null : this.highColor;
 		default:
 				return null;
 		
@@ -484,6 +545,24 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 				rendererSurface.setColorScale(new GradientColorScale(new Range(0.0, 1.0), lowColor.getColorValue(), highColor.getColorValue()));
 		}
 		
+		/*data point size*/
+		
+		if(plotType == SCATTER && rendererScatter != null){
+			
+			if(rendererScatter.getSize() != pointSize.getDoubleValue()){
+				rendererScatter.setSize(pointSize.getDoubleValue());
+			}
+			
+		}
+		
+		/*data point color*/
+		if(plotType == SCATTER && rendererScatter != null){
+			
+			if(!rendererScatter.getColorSource().getColor(0, 0).equals(dataColor.getColorValue())){
+				
+				rendererScatter.setColors(dataColor.getColorValue());
+			}
+		}
 	}
 
 	@Override
@@ -515,6 +594,10 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		return zAxisSetting;
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
 	public DisplaySettings3D getDisplaySettings(){
 		return displaySettings;
 	}
@@ -588,23 +671,38 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 
 	}
 	
+	/**
+	 * 
+	 * @author Muhammad Omer Saeed
+	 *
+	 */
 	private class DataInterpolateFunction implements Function3D{
 		
 		private static final long serialVersionUID = -4229820807542439735L;
 		private double [][] data;
-		private double xLow, xHigh, xStep, yLow, yHigh, yStep;
+		private double xLow, xHigh, xStep,  yLow, yHigh, yStep;
+		int xNumSteps,yNumSteps;
 		
+		/**
+		 * 
+		 */
 		public DataInterpolateFunction(){
 			
 			this.xLow = (double)rangingConstantX.getLow();
 			this.xHigh = (double)rangingConstantX.getHigh();
 			this.xStep = (double)rangingConstantX.getStep();
+			this.xNumSteps = rangingConstantX.getNumSteps();
 			
 			this.yLow = (double)rangingConstantY.getLow();
 			this.yHigh = (double)rangingConstantY.getHigh();
 			this.yStep = (double)rangingConstantY.getStep();
+			this.yNumSteps = rangingConstantY.getNumSteps();
 		}
 		
+		/**
+		 * 
+		 * @param cache
+		 */
 		public void setData(ArrayList<XYZDataItem> cache){
 			
 			data = new double[rangingConstantX.getNumSteps()][rangingConstantY.getNumSteps()];
@@ -620,6 +718,9 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 			
 		}
 		
+		/**
+		 * 
+		 */
 		public void printData(){
 			
 			int index = 0;
@@ -636,6 +737,9 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 			}
 		}
 
+		/**
+		 * 
+		 */
 		@Override
 		public double getValue(double x, double y) {
 			
@@ -643,13 +747,32 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 				return 0.0;
 			}
 			
-			int xIndexLow = (int)((x-xLow) / xStep);
-			int xIndexHigh = xIndexLow+1 > xHigh ? xIndexLow : xIndexLow + 1;
+			int xIndexLow = (int)((x-xLow) / xStep) > xNumSteps-1 ? xNumSteps-1 : (int)((x-xLow) / xStep);
+			int xIndexHigh = xIndexLow+1 > xNumSteps-1 ? xIndexLow : xIndexLow + 1;
+			int yIndexLow = (int)((y - yLow) / yStep) > yNumSteps-1 ? yNumSteps-1 : (int)((y - yLow) / yStep);
+			int yIndexHigh = yIndexLow+1 > yNumSteps-1 ? yIndexLow : yIndexLow + 1;
 			
-			int yIndexLow = (int)((x - yLow) / yStep);
-			int yIndexHigh = yIndexLow+1 > yHigh ? yIndexLow : yIndexLow + 1;
+			// if true then we just need to do linear interpolation in y
+			if(xIndexLow == xIndexHigh){
+				return data[xIndexLow][yIndexLow] + ((data[xIndexLow][yIndexHigh] - data[xIndexLow][yIndexLow]) / (yHigh - yLow))*(y - yLow);
+				
+			}
 			
-			return (data[xIndexLow][yIndexLow] + data[xIndexLow][yIndexHigh] + data[xIndexHigh][yIndexLow] + data[xIndexHigh][yIndexHigh]) / 4.0;
+			//if true we just need to do linear interpolation in x
+			if(yIndexLow == yIndexHigh){
+				
+				return data[xIndexLow][yIndexLow] + ((data[xIndexHigh][yIndexLow] - data[xIndexLow][yIndexLow]) / (xHigh - xLow))*(x - xLow);
+			}
+			
+			// bilinear interpolation see (https://en.wikipedia.org/wiki/Bilinear_interpolation)
+			double biLinearlyInterpolated = ((1.0)/((xHigh - xLow)*(yHigh - yLow))) * 
+											((data[xIndexLow][yIndexLow] * (xHigh - x)*(yHigh - y)) + 
+											(data[xIndexHigh][yIndexLow] * (x - xLow)*(yHigh - y)) +
+											(data[xIndexLow][yIndexHigh] * (xHigh - x) * (y - yLow)) +
+											(data[xIndexHigh][yIndexHigh] * (x - xLow) * (y - yLow)));
+
+			return biLinearlyInterpolated;
+			
 		}
 		
 	}

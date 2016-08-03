@@ -113,9 +113,14 @@ public class DisplaySettings3D extends Observable implements SettingOwner{
 		}
 		
 		/*draw face out lines?*/
-		if(faceoutLines.getBooleanValue() != ((SurfaceRenderer)((XYZPlot)graph.getChart().getPlot()).getRenderer()).getDrawFaceOutlines()){
-			((SurfaceRenderer)((XYZPlot)graph.getChart().getPlot()).getRenderer()).setDrawFaceOutlines(faceoutLines.getBooleanValue());
+		if(((XYZPlot)graph.getChart().getPlot()).getRenderer() instanceof SurfaceRenderer){
+			
+			if(faceoutLines.getBooleanValue() != ((SurfaceRenderer)((XYZPlot)graph.getChart().getPlot()).getRenderer()).getDrawFaceOutlines()){
+				((SurfaceRenderer)((XYZPlot)graph.getChart().getPlot()).getRenderer()).setDrawFaceOutlines(faceoutLines.getBooleanValue());
+			}
+			
 		}
+
 		
 		/*chart box color*/
 		if(!chartBoxColor.getColorValue().equals(graph.getChart().getChartBoxColor())){

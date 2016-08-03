@@ -84,6 +84,7 @@ public class ParametricGraph3D extends Graph3D {
 		
 		xResolution = new IntegerSetting("Sampling rate X", 25, "change the sampling rate of the x axis", this, false);
 		yResolution = new IntegerSetting("Sampling rate Y", 25, "change the sampling rate of the y axis", this, false);
+		plotType = SURFACE;
 	}
 	
 	/**
@@ -102,6 +103,7 @@ public class ParametricGraph3D extends Graph3D {
 		this.upperBoundX = upperBoundX;
 		this.lowerBoundY = lowerBoundY;
 		this.upperBoundY = upperBoundX;
+		plotType = SURFACE;
 	}
 	
 	/**

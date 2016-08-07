@@ -37,8 +37,10 @@ import java.awt.print.Printable;
 import java.awt.print.PrinterException;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Observable;
 import java.util.Observer;
@@ -66,7 +68,6 @@ import com.orsoncharts.data.xyz.XYZSeries;
 import com.orsoncharts.data.xyz.XYZSeriesCollection;
 import com.orsoncharts.graphics3d.swing.DisplayPanel3D;
 import com.orsoncharts.plot.XYZPlot;
-import com.orsoncharts.renderer.GradientColorScale;
 import com.orsoncharts.renderer.RainbowScale;
 import com.orsoncharts.renderer.xyz.ScatterXYZRenderer;
 import com.orsoncharts.renderer.xyz.SurfaceRenderer;
@@ -111,10 +112,10 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	/** Settings of this graph. */
 	protected MultipleLineStringSetting graphTitle;
 	private FontColorSetting titleFont;
-	private ChoiceSetting legendOrientation;
+	protected ChoiceSetting legendOrientation;
 	private DoubleSetting rotateIncrement;
 	private DoubleSetting rollIncrement;
-	private ChoiceSetting chartType;
+	protected ChoiceSetting chartType;
 	
 	/**Settings specifically for scatter plot*/
 	private DoubleSetting pointSize;
@@ -167,13 +168,14 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		
 		legendOrientation = new ChoiceSetting("legend orientation", new String[]{"Horizontal","Vertical"}, "Horizontal" 
 				, "change the orientation of the legend", this, false);
+		legendOrientation.setEnabled(false);
 		
 		rotateIncrement = new DoubleSetting("Rotate increment", 1.0, "rotate increment value for the plot", this, false);
 		rollIncrement = new DoubleSetting("roll increment", 1.0, "roll increment for the plot", this, false);
 		
 		chartType = new ChoiceSetting("Plot type", new String[]{"Scatter plot","Surface plot"}, "Scatter plot" , "select the plot type to visualize the data", this, false);
 		
-		scaleMethod = new ChoiceSetting("scale method", new String[]{"Rainbow scale", "Gradient scale"}, "Rainbow scale", 
+		scaleMethod = new ChoiceSetting("scale method", new String[]{"Rainbow scale", "Gradient scale", "GBR scale"}, "Rainbow scale", 
 				"change the scale method for the chart", this, false);
 		
 		lowColor = new ColorSetting("low color", Color.WHITE, "low color for the gradient scale", this, false);
@@ -298,6 +300,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	public void setTitle(String title){
 		
 		try {
+			
 			graphTitle.setValue(title);
 		} catch (SettingException e) {
 			e.printStackTrace();
@@ -493,11 +496,10 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		/*chart type*/
 		
 		if(chartType.getStringValue().equals("Scatter plot") && plotType == SURFACE){
-			
 			initScatterPlot();
 			plotScatter("Series");
 			plotType = SCATTER;
-			
+			legendOrientation.setEnabled(false);
 		}
 		
 		if(chartType.getStringValue().equals("Surface plot") && plotType == SCATTER){
@@ -506,6 +508,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 			function.setData(dataCache);
 			plotSurface();
 			plotType = SURFACE;
+			legendOrientation.setEnabled(true);
 		}
 		
 		/*scale method*/
@@ -513,20 +516,19 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 			
 			lowColor.setEnabled(false);
 			highColor.setEnabled(false);
-			rendererSurface.setColorScale(new RainbowScale(new Range(0.0, 1.0)));
+			rendererSurface.setColorScale(new RainbowScale(plot.getYAxis().getRange()));
 		}
 		else if(scaleMethod.getStringValue().equals("Gradient scale") && plotType == SURFACE && rendererSurface != null){
-			
-			try {
-				legendOrientation.setValue("Horizontal");
-			} catch (SettingException e) {
-				e.printStackTrace();
-			}
-			
-			chart.setLegendOrientation(Orientation.HORIZONTAL);
+
 			lowColor.setEnabled(true);
 			highColor.setEnabled(true);
-			rendererSurface.setColorScale(new GradientColorScale(new Range(0.0, 1.0), lowColor.getColorValue(), highColor.getColorValue()));
+			rendererSurface.setColorScale(new GradientColorScale(plot.getYAxis().getRange(), lowColor.getColorValue(), highColor.getColorValue()));
+		}
+		else if(scaleMethod.getStringValue().equals("GBR scale") && plotType == SURFACE && rendererSurface != null){
+			
+			lowColor.setEnabled(false);
+			highColor.setEnabled(false);
+			rendererSurface.setColorScale(new GBRColorScale(plot.getYAxis().getRange()));
 		}
 		
 		/*low color*/
@@ -656,19 +658,182 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		document.close();
 	}
 	
+	/**
+	 * 
+	 * @param file
+	 * @throws IOException
+	 */
 	public void exportToGnuplot(File file) throws IOException{
-		//TODO
+		
+		PrintWriter out = new PrintWriter(new FileWriter(file));
+		
+		out.println("#=========================================");
+		out.println("# Generated by PRISM Chart Package");
+		out.println("#=========================================");
+		out.println("# usage: gnuplot <filename>");
+		out.println("# Written by Muhammad Omer Saeed <muhammad.omar555@gmail.com>");
+		
+		out.println();
+		
+		/*setting general plot properties*/
+		
+		out.println("set xrange[" + rangingConstantX.getLow() + ":" + rangingConstantX.getHigh() + "]");
+		out.println("set yrange[" + rangingConstantY.getLow() + ":" + rangingConstantY.getHigh() + "]");
+		out.println("set title '" + this.graphTitle.getStringValue() + "'");
+		out.println("set xlabel " + "\"" + this.xLabel + "\"");
+		out.println("set ylabel " + "\"" + this.yLabel + "\"");
+		out.println("set zlabel " + "\"probability\"" );
+		
+		if(plotType == SURFACE){
+			
+			/*setting graph properties for surface plot*/
+			out.println("set hidden3d");
+			out.println("set dgrid3d 50,50 qnorm 2");
+			out.println("set pm3d");
+			out.println("set palette model HSV defined ( 0 0 1 1, 1 1 1 1 )");
+			
+			out.println("splot '-' with lines");
+			out.println();
+			
+			out.println("#X		#Y		#Z");
+			out.println();
+			
+			double rateX = (plot.getXAxis().getRange().getMax() - plot.getXAxis().getRange().getMin()) / rendererSurface.getXSamples();
+			double rateY = (plot.getZAxis().getRange().getMax() - plot.getZAxis().getRange().getMin()) / rendererSurface.getZSamples();
+			
+			/*Sample the function that will interpolate between the values*/
+			
+			for(double x = plot.getXAxis().getRange().getMin() ; x <= plot.getXAxis().getRange().getMax() ; x+=rateX ){
+				for(double y = plot.getZAxis().getRange().getMin() ; y <= plot.getZAxis().getRange().getMax() ; y+=rateY){
+					
+					double z = function.getValue(x, y);
+					
+					out.println(x + "      " + y + "      " + z);
+					
+				}
+			}
+			
+		}
+		else if(plotType == SCATTER){
+			
+			/*setting graph properties for scatter plot*/
+			
+			out.println("splot '-' using 1:2:3 with points palette pointsize 1 pointtype 5");
+			out.println();
+			
+			/*Writing data to file*/
+			
+			for(XYZDataItem item : dataCache){
+				
+				out.println(item.getX() + "    " + item.getY() + "    " + item.getZ());
+				
+			}
+			
+		}
+		
+		
+	
+		
+		/*finishing up*/
+		out.println("end plot 3d");
+		out.println();
+		
+		out.println("pause -1");
+		
+		/*closing the file safely*/
+		out.flush();
+		out.close();
 	}
 	
+	/**
+	 * 
+	 * @param file
+	 * @throws IOException
+	 */
 	public void exportToMatlab(File file) throws IOException{
-		//TODO
+		
+		PrintWriter out = new PrintWriter(new FileWriter(file));
+
+		out.println("%=========================================");
+		out.println("% Generated by PRISM Chart Package");
+		out.println("%=========================================");
+		out.println("% usage: run <filename>");
+		out.println("% Written by Muhammad Omer Saeed <muhammad.omar555@gmail.com>");
+		
+		/*writing data*/
+
+		out.println("data = [");
+		out.println("%X 	%Y		%Z");
+		
+		if(plotType == SURFACE){
+			
+			double rateX = (plot.getXAxis().getRange().getMax() - plot.getXAxis().getRange().getMin()) / 100.0;
+			double rateY = (plot.getZAxis().getRange().getMax() - plot.getZAxis().getRange().getMin()) / 100.0;
+			
+			/*Sample the function that will interpolate between the values*/
+			
+			for(double x = plot.getXAxis().getRange().getMin() ; x <= plot.getXAxis().getRange().getMax() ; x+=rateX ){
+				for(double y = plot.getZAxis().getRange().getMin() ; y <= plot.getZAxis().getRange().getMax() ; y+=rateY){
+					
+					double z = function.getValue(x, y);
+					
+					out.println(x + "    " + y + "    " + z + ";");
+				}
+			}
+			
+			out.println("];");
+			
+			out.println("X = reshape(data(:,1),  " + 100.0 + ", []);");
+			out.println("Y = reshape(data(:,2),  " + 100.0 + ", []);");
+			out.println("Z = reshape(data(:,3),  " + 100.0 + ", []);");
+
+			/*setting properties for surface*/
+			
+			out.println("figure;");
+			out.println("hold on;");
+			out.println("colormap(hsv);");
+			out.println("surf(X, Y, Z);");
+			out.println("title('" + graphTitle.getStringValue() + "');");
+			out.println("xlabel(' "+ this.xLabel +" ');");
+			out.println("ylabel(' "+ this.yLabel + "');");
+			out.println("zlabel('Probability');");
+			out.println("colorbar;");
+			out.println("hold off;");
+			
+		}
+		else if(plotType == SCATTER){
+			
+			/*Writing data to file*/
+			
+			for(XYZDataItem item : dataCache){
+				
+				out.println(item.getX() + "    " + item.getY() + "    " + item.getZ());
+				
+			}
+			
+			out.println("];");
+			
+			/*setting properties for scatter*/
+			out.println("figure;");
+			out.println("hold on;");
+			out.println("scatter3(data(:,1), data(:,2), data(:,3));");
+			out.println("xlabel(' "+ this.xLabel +" ');");
+			out.println("ylabel(' "+ this.yLabel + "');");
+			out.println("zlabel('Probability');");
+			out.println("hold off;");
+		}
+		
+		
+		/*finishing up*/
+		out.flush();
+		out.close();
 	}
 	
 	/**
 	 * 
 	 */
 	public void createPrintJob(){
-
+		//TODO 
 	}
 	
 	/**

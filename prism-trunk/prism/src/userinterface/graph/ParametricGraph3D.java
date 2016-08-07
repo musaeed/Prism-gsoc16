@@ -28,8 +28,6 @@
 package userinterface.graph;
 
 import java.awt.BorderLayout;
-import java.awt.Component;
-import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -85,6 +83,16 @@ public class ParametricGraph3D extends Graph3D {
 		xResolution = new IntegerSetting("Sampling rate X", 25, "change the sampling rate of the x axis", this, false);
 		yResolution = new IntegerSetting("Sampling rate Y", 25, "change the sampling rate of the y axis", this, false);
 		plotType = SURFACE;
+		
+		try {
+			this.chartType.setValue("Surface plot");
+			
+		} catch (SettingException e) {
+			e.printStackTrace();
+		}
+		
+		this.chartType.setEnabled(false);
+		this.legendOrientation.setEnabled(true);
 	}
 	
 	/**
@@ -104,6 +112,15 @@ public class ParametricGraph3D extends Graph3D {
 		this.lowerBoundY = lowerBoundY;
 		this.upperBoundY = upperBoundX;
 		plotType = SURFACE;
+		
+		try {
+			this.chartType.setValue("Surface plot");
+			
+		} catch (SettingException e) {
+			e.printStackTrace();
+		}
+		
+		this.chartType.setEnabled(false);
 	}
 	
 	/**
@@ -173,11 +190,8 @@ public class ParametricGraph3D extends Graph3D {
 		
 		rendererSurface = (SurfaceRenderer) plot.getRenderer();
 		rendererSurface.setColorScale(new RainbowScale(new Range(0.0, 1.0)));
-		
 		setLayout(new BorderLayout());
 		add(dPanel,  BorderLayout.CENTER);
-		
-		initSettings();
 		
 		/*Update all the settings*/
 		
@@ -195,21 +209,21 @@ public class ParametricGraph3D extends Graph3D {
 
 	@Override
 	public int getNumSettings() {
-		return 10;
+		return 11;
 	}
 
 	@Override
 	public Setting getSetting(int index) {
 
-		if(index < 8){
+		if(index < 9){
 			return super.getSetting(index);
 		}
 
 		switch(index){
 		
-		case 8:
-			return xResolution;
 		case 9:
+			return xResolution;
+		case 10:
 			return yResolution;
 		default:
 			return null;

@@ -30,8 +30,6 @@ package userinterface.properties;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -43,14 +41,10 @@ import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
-import javax.swing.BoxLayout;
 import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
@@ -68,8 +62,9 @@ import org.jfree.chart.ChartPanel;
 
 import com.orsoncharts.graphics3d.ExportUtils;
 import com.orsoncharts.graphics3d.ViewPoint3D;
-import com.sun.xml.internal.bind.v2.runtime.reflect.Lister.Pack;
 
+import cern.jet.math.Functions;
+import param.Function;
 import prism.PrismException;
 import userinterface.GUIPlugin;
 import userinterface.GUIPrism;
@@ -98,7 +93,7 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 	
 	private Action printGraph, deleteGraph;
 	private Action exportImageJPG, exportImagePNG, exportPDF, exportImageEPS, exportXML, exportMatlab, exportGnuplot;
-	private Action importXML;
+	private Action importXML, addFunction;
 
 	private JMenu zoomMenu, exportMenu, importMenu;
 
@@ -290,6 +285,26 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		importXML.putValue(Action.MNEMONIC_KEY, new Integer(KeyEvent.VK_I));
 		importXML.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallFileGraph.png"));
 		importXML.putValue(Action.LONG_DESCRIPTION, "Imports a saved PRISM graph from a file.");
+		
+		addFunction = new AbstractAction() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				
+				String function = JOptionPane.showInputDialog(GUIPrism.getGUI(), "Enter the function:", "Plot a function", JOptionPane.QUESTION_MESSAGE);
+				
+				if(function == null){
+					return;
+				}
+				
+				//TODO parse and plot this function
+				System.out.println(function);
+			}
+		};
+		addFunction.putValue(Action.NAME, "Plot function");
+		addFunction.putValue(Action.MNEMONIC_KEY, new Integer(KeyEvent.VK_P));
+		addFunction.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallFunction.png"));
+		addFunction.putValue(Action.LONG_DESCRIPTION, "Plots a new specified function on the current graph");
 
 		exportXML = new AbstractAction()
 		{
@@ -581,6 +596,7 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		graphMenu.addSeparator();
 		graphMenu.add(exportMenu);
 		graphMenu.add(importMenu);
+		graphMenu.add(addFunction);
 
 		/* Tab context menu */
 		backMenu.add(importXML);

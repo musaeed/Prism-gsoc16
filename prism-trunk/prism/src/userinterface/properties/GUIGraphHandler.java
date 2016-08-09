@@ -29,9 +29,14 @@ package userinterface.properties;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseWheelEvent;
@@ -45,8 +50,12 @@ import java.util.ArrayList;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
+import javax.swing.BoxLayout;
+import javax.swing.Icon;
+import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -59,6 +68,7 @@ import org.jfree.chart.ChartPanel;
 
 import com.orsoncharts.graphics3d.ExportUtils;
 import com.orsoncharts.graphics3d.ViewPoint3D;
+import com.sun.xml.internal.bind.v2.runtime.reflect.Lister.Pack;
 
 import prism.PrismException;
 import userinterface.GUIPlugin;
@@ -118,7 +128,48 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 
 	private void initComponents()
 	{
-		theTabs = new JTabbedPane();
+		theTabs = new JTabbedPane(){
+
+			@Override
+			public String getTitleAt(int index) {
+				try{
+					TabClosePanel panel = (TabClosePanel)getTabComponentAt(index);
+					return panel.getTitle();
+				}
+				catch(Exception e){
+					return "";
+				}
+			}
+
+			@Override
+			public String getToolTipTextAt(int index) {
+				return ((TabClosePanel)getTabComponentAt(index)).getToolTipText();
+			}
+
+			@Override
+			public void setTitleAt(int index, String title) {
+				
+				if(((TabClosePanel)getTabComponentAt(index)) == null){
+					return;
+				}
+				
+				((TabClosePanel)getTabComponentAt(index)).setTitle(title);
+			}
+
+			@Override
+			public void setIconAt(int index, Icon icon) {
+				((TabClosePanel)getTabComponentAt(index)).setIcon(icon);
+			}
+
+			@Override
+			public void setToolTipTextAt(int index, String toolTipText) {
+				((TabClosePanel)getTabComponentAt(index)).setToolTip(toolTipText);
+			}
+			
+			
+			
+		};
+		
 		theTabs.addMouseListener(this);
 		theTabs.addMouseWheelListener(new MouseWheelListener() {
 			
@@ -719,6 +770,11 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 
 		// increase the graph count and title the tab
 		theTabs.setTitleAt(index, tabName);
+		
+		//set the tabclosepanel component so we see the close button
+		TabClosePanel closePanel = new TabClosePanel(tabName);
+		closePanel.addMouseListener(this);
+		theTabs.setTabComponentAt(index, closePanel);
 
 		// make this new tab the default selection
 		theTabs.setSelectedIndex(theTabs.indexOfComponent(m));
@@ -870,6 +926,125 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 	
 	public JPopupMenu getGraphMenu(){
 		return this.graphMenu;
+	}
+	
+	/**
+	 * Class for adding a close button to the tabs
+	 * @author Muhammad Omer Saeed
+	 */
+	private class TabClosePanel extends JPanel{
+		
+		private static final long serialVersionUID = 3375988660604064366L;
+		private JLabel label;
+		private JButton close;
+		
+		public TabClosePanel(String title){
+			
+			init(title);
+			addToPanel();
+			addListeners();
+			addActions();
+
+		}
+
+		public void init(String title){
+			
+			setOpaque(false);
+			label = new JLabel(title);
+			label.setOpaque(false);
+			close = new JButton("<html><font size=2><b>X</b></font></html>");
+			close.setContentAreaFilled(false);
+			close.setPreferredSize(new Dimension(20, 10));
+			close.setBorderPainted(false);
+			close.setToolTipText("close this tab");
+			
+			
+		}
+		
+		public void addToPanel(){
+			setLayout(new BorderLayout());
+			add(label, BorderLayout.CENTER);
+			add(close, BorderLayout.EAST);
+			setPreferredSize(getPreferredSize());
+			validate();
+			
+		}
+		
+		public void addActions(){
+			close.addActionListener(new ActionListener() {
+
+				@Override
+				public void actionPerformed(ActionEvent arg0) {
+					
+					
+					String title = label.getText();
+					
+					int index = -1;
+					
+					for(int i = 0 ; i < theTabs.getComponentCount() ; i++){
+						
+						if(theTabs.getTitleAt(i).equals(title)){
+							index = i;
+						}
+					}
+					
+					if(index == -1){
+						return;
+					}
+					
+					JPanel graph = models.get(index);
+
+					models.remove(index);
+					options.remove(index);
+					theTabs.remove(graph);
+					
+				}
+			});
+		}
+		
+		public void addListeners(){
+			
+			close.addMouseListener(new MouseAdapter() {
+
+				@Override
+				public void mouseEntered(MouseEvent e) {
+					close.setForeground(Color.red);
+				}
+
+				@Override
+				public void mouseExited(MouseEvent e) {
+					close.setForeground(Color.BLACK);
+				}
+
+			});
+			}
+		
+		@Override
+		public void addMouseListener(MouseListener l){}
+		
+		public void setIcon(Icon icon){
+			label.setIcon(icon);
+		}
+
+		public void setTitle(String title){
+			label.setText(title);
+		}
+		
+		public void setToolTip(String tip) {
+			label.setToolTipText(tip);
+		}
+		
+		public String getTitle(){
+			return label.getText();
+		}
+
+		@Override
+		public String getToolTipText() {
+			return label.getToolTipText();
+		}
+		
+		
+		
 	}
 
 }

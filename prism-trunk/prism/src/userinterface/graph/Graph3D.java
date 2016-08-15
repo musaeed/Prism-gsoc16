@@ -136,6 +136,10 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	private DataInterpolateFunction function;
 	private DefinedConstant rangingConstantX, rangingConstantY;
 	
+	/**For showing series options in the graph options*/
+	private SeriesSettingsList seriesList;
+	private SeriesSettings seriesSettings;
+	
 	
 	private ArrayList<XYZDataItem> dataCache;
 	
@@ -188,6 +192,8 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		dataColor = new ColorSetting("data color", Color.RED, "the color of the data points in 3d space", this, false);
 		
 		dataCache = new ArrayList<XYZDataItem>();
+		
+		seriesList = new SeriesSettingsList(this);
 	}
 	
 	/**
@@ -220,6 +226,8 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 			seriesScatter.add(item);
 		}
 		
+		seriesSettings = new SeriesSettings(this, new SeriesKey());
+		
 		seriesCollectionScatter.add(seriesScatter);
 		chart = Chart3DFactory.createScatterChart("", "", seriesCollectionScatter, xLabel, zLabel, yLabel);
 		plot = (XYZPlot)chart.getPlot();
@@ -241,6 +249,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		/*update all the settings*/
 		updateGraph();
 		displaySettings.updateDisplay();
+		seriesList.updateSeriesList();
 	}
 	
 	/**
@@ -250,6 +259,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		
 		function = new DataInterpolateFunction();
 		setLayout(new BorderLayout());
+		seriesSettings = null;
 		plotType = SURFACE;
 	}
 	
@@ -348,6 +358,26 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	 */
 	public SurfaceRenderer getSurfaceRenderer() {
 		return rendererSurface;
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public SeriesSettingsList getGraphSeriesList(){
+		return this.seriesList;
+	}
+	
+	public SeriesSettings getSeriesSettings(){
+		return seriesSettings;
+	}
+	
+	public XYZSeries getScatterSeries(){
+		return this.seriesScatter;
+	}
+	
+	public int getPlotType(){
+		return this.plotType;
 	}
 
 	@Override

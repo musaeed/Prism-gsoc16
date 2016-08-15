@@ -39,18 +39,19 @@ import org.jfree.chart.ChartPanel;
 @SuppressWarnings("serial")
 public class SeriesSettingsList extends AbstractListModel implements Observer
 {
-	private ChartPanel graph;
+	private JPanel graph;
 	
 	private HashMap<Integer, SeriesKey> seriesKeys;
 	
-	public SeriesSettingsList(ChartPanel graph)
+	public SeriesSettingsList(JPanel graph)
 	{
 		this.graph = graph;
 		this.seriesKeys = new HashMap<Integer, SeriesKey>();
 	}	
 
+	@Override
 	public Object getElementAt(int index) 
-	{
+	{	
 		
 		if(graph instanceof Graph){
 			
@@ -62,7 +63,7 @@ public class SeriesSettingsList extends AbstractListModel implements Observer
 			}
 			
 		}
-		else{
+		else if(graph instanceof Histogram){
 			
 			Histogram temp = (Histogram) graph;
 			
@@ -70,6 +71,12 @@ public class SeriesSettingsList extends AbstractListModel implements Observer
 			{
 				return temp.getGraphSeries(seriesKeys.get(index));
 			}
+		}
+		// for graph3d
+		else{
+			Graph3D temp = (Graph3D)graph;
+			return temp.getSeriesSettings();
+			
 		}
 		
 	}
@@ -86,13 +93,17 @@ public class SeriesSettingsList extends AbstractListModel implements Observer
 			}
 			
 		}
-		else {
+		else if(graph instanceof Histogram){
 			
 			Histogram temp = (Histogram)graph;
 			synchronized (temp.getSeriesLock())
 			{
 				return seriesKeys.get(index);
 			}
+		}
+		else{
+			//for 3d graph
+			return new SeriesKey();
 		}
 
 	}
@@ -103,8 +114,7 @@ public class SeriesSettingsList extends AbstractListModel implements Observer
 	}
 	
 	public void updateSeriesList()
-	{
-		
+	{	
 		if(graph instanceof Graph){
 			
 			Graph temp = (Graph) graph;
@@ -153,6 +163,11 @@ public class SeriesSettingsList extends AbstractListModel implements Observer
 				}
 			}
 			
+		}
+		else if(graph instanceof Graph3D){
+			
+			seriesKeys.put(0, new SeriesKey());
+			((Graph3D)graph).getSeriesSettings().updateSeries();
 		}
 
 		fireContentsChanged(this, 0, this.getSize());		

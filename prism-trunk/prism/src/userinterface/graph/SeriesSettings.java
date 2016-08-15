@@ -36,6 +36,7 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Paint;
 import java.awt.Polygon;
+import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.Shape;
 import java.awt.Stroke;
@@ -44,6 +45,7 @@ import java.awt.geom.Rectangle2D;
 import java.util.Observable;
 
 import javax.swing.JComponent;
+import javax.swing.JPanel;
 
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
@@ -134,7 +136,7 @@ public class SeriesSettings extends Observable implements SettingOwner
 	};
 
 	/** Graph object. */
-	private ChartPanel graph;
+	private JPanel graph;
 
 	/** JFreeChart representation of graphs. */
 	private JFreeChart chart;
@@ -163,12 +165,16 @@ public class SeriesSettings extends Observable implements SettingOwner
 
 	private GraphSeriesIcon icon;
 
-	public SeriesSettings(ChartPanel graph, SeriesKey key)
+	public SeriesSettings(JPanel graph, SeriesKey key)
 	{
 		this.graph = graph;
 		this.key = key;
-		this.chart = graph.getChart();
-		this.plot = chart.getXYPlot();
+		
+		if(graph instanceof ChartPanel){
+			
+			this.chart = ((ChartPanel)graph).getChart();
+			this.plot = chart.getXYPlot();
+		}
 
 		/* This should really be checked first. */
 		if(graph instanceof Graph)
@@ -193,6 +199,24 @@ public class SeriesSettings extends Observable implements SettingOwner
 			lock = ((Graph)graph).getSeriesLock();
 		else if(graph instanceof Histogram)
 			lock = ((Histogram)graph).getSeriesLock();
+		
+		// for graph 3d
+		if(lock == null && graph instanceof Graph3D){
+			
+			try {
+				
+				seriesHeading.setValue(((Graph3D)graph).getScatterSeries().getKey());
+				seriesColour.setValue(Color.BLUE);
+				showPoints.setValue(true);
+				seriesShape.setSelectedIndex(CIRCLE);
+				
+			} catch (SettingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			return;
+		}
 
 		synchronized (lock)
 		{			
@@ -669,6 +693,14 @@ public class SeriesSettings extends Observable implements SettingOwner
 				icon.setMaximumSize(new Dimension(50,20));
 				icon.setPreferredSize(new Dimension(30,10));
 			}
+		}
+		else if(graph instanceof Graph3D){
+			icon = new GraphSeriesIcon(new Rectangle(), new BasicStroke(0.1f), seriesColour.getColorValue(), showLines.getBooleanValue(), showPoints.getBooleanValue());
+			icon.setOpaque(false);
+			icon.setMinimumSize(new Dimension(20,10));
+			icon.setMaximumSize(new Dimension(50,20));
+			icon.setPreferredSize(new Dimension(30,10));
+			
 		}
 	}
 

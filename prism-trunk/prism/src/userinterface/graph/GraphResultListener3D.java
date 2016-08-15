@@ -26,8 +26,19 @@ public class GraphResultListener3D implements ResultListener{
 	@Override
 	public void notifyResult(ResultsCollection resultsCollection, Values values, Object result) {
 		
+		double z = 0.0;
+		
+		if(result instanceof Double){
+			z =  new Double(result.toString());
+		}
+		else if(result instanceof prism.Pair<?, ?>){
+			z = ((prism.Pair<Double, Double>)result).first;
+		}
+		else if(result instanceof Exception)
+			return;
+		
 		try {
-			graphModel.addPointToDataCache(new XYZDataItem(new Double(values.getValueOf(rangeConstantX.getName()).toString()), new Double(result.toString()),new Double(values.getValueOf(rangeConstantY.getName()).toString()) ));
+			graphModel.addPointToDataCache(new XYZDataItem(new Double(values.getValueOf(rangeConstantX.getName()).toString()),z,new Double(values.getValueOf(rangeConstantY.getName()).toString()) ));
 		} catch (NumberFormatException | PrismLangException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

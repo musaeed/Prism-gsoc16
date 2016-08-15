@@ -132,6 +132,11 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 			((AxisSettingsHistogram)xAxisSettings).setDisplay(axisPropertiesTable);
 			((AxisSettingsHistogram)yAxisSettings).setDisplay(axisPropertiesTable);
 		}
+		else{
+			
+			((AxisSettings3D)xAxisSettings).setDisplay(axisPropertiesTable);
+			((AxisSettings3D)yAxisSettings).setDisplay(axisPropertiesTable);
+		}
 		
 		
 		own = new ArrayList();		
@@ -153,8 +158,8 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 			seriesList = new JList(((Histogram)theModel).getGraphSeriesList());
 		}
 		else if(theModel instanceof Graph3D){
-			// we dont have any series for a 3d graph
-			seriesList = new JList<>();
+			
+			seriesList = new JList(((Graph3D)theModel).getGraphSeriesList());
 		}
 
 		
@@ -417,7 +422,7 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
         
         if(theModel instanceof Graph)
         	viewData.setText("Edit Data");
-        else if(theModel instanceof Histogram)
+        else if(theModel instanceof Histogram || theModel instanceof Graph3D)
         	viewData.setText("View Data");
         
         viewData.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
@@ -480,6 +485,20 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
     		lock = ((Histogram)theModel).getSeriesLock();
     	}
     	
+    	// this is the case when we have the 3d scatter graph since we dont have any lock for it
+    	if(lock == null && theModel instanceof Graph3D){
+    		
+    		Graph3D graph = (Graph3D) theModel;
+    		
+    		if(graph.getPlotType() == Graph3D.SURFACE){
+    			return;
+    		}
+    		
+    		java.util.List<SeriesKey> list = new ArrayList<SeriesKey>();
+    		list.add(new SeriesKey());
+    		SeriesEditorDialog.makeSeriesEditor(plugin, parent, graph, list);
+    		return; 
+    	}
     	
     	synchronized (lock)
 		{
@@ -495,8 +514,7 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 					selected.add(((SeriesSettings)((Histogram)theModel).getGraphSeriesList().getElementAt(sel[i])).getSeriesKey());
 			}
 			
-			if(theModel instanceof ChartPanel)
-				SeriesEditorDialog.makeSeriesEditor(plugin, parent, (ChartPanel)theModel, selected);
+			SeriesEditorDialog.makeSeriesEditor(plugin, parent, (ChartPanel)theModel, selected);
 		}
     	
 	/*	ArrayList ss = seriesList.getSelectedSeries();
@@ -626,6 +644,10 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
     		lock = ((Histogram)theModel).getSeriesLock();
     	}
     	
+    	if(lock == null){
+    		return;
+    	}
+    	
 		synchronized (lock)
 		{
 			int[] sel = seriesList.getSelectedIndices();
@@ -703,6 +725,10 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 		moveDown.setEnabled(!hasLast && seriesList.getSelectedIndices().length >= 1);
 		
 		viewData.setEnabled(seriesList.getSelectedIndices().length >= 1);
+		
+		removeSeries.setEnabled(!(theModel instanceof Graph3D));
+		addSeries.setEnabled(!(theModel instanceof Graph3D));
+		moveDown.setEnabled(!(theModel instanceof Graph3D));
 	}
 		
 	public void valueChanged(ListSelectionEvent e)
@@ -734,6 +760,10 @@ public class GraphOptionsPanel extends JPanel implements ListSelectionListener
 	    	}
 	    	else if(theModel instanceof Histogram){
 	    		lock = ((Histogram)theModel).getSeriesLock();
+	    	}
+	    	
+	    	if(lock == null){
+	    		return;
 	    	}
 	    	
 			synchronized (lock)

@@ -33,6 +33,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 
+import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
 import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
@@ -48,10 +49,17 @@ import com.orsoncharts.renderer.xyz.SurfaceRenderer;
 
 import param.BigRational;
 import param.Function;
+import parser.ast.Expression;
 import settings.IntegerSetting;
 import settings.Setting;
 import settings.SettingException;
+import userinterface.GUIPrism;
 
+/**
+ * This class is responsible for plotting 3d continuous function graphs. We always need to provide a function to the class
+ * which can be evaluated at any point within the valid range
+ * @author Muhammad Omer Saeed
+ */
 public class ParametricGraph3D extends Graph3D {
 	
 	private static final long serialVersionUID = 1L;
@@ -64,16 +72,25 @@ public class ParametricGraph3D extends Graph3D {
 	private IntegerSetting yResolution;
 	
 	/**
-	 * 
-	 * @param func
+	 * Creates a new Parametric Graph using the Function func
+	 * @param func the function that will be plotted
 	 */
 	public ParametricGraph3D(Function func){
 		this();
-		function = new ParamFunction(func);
+		setFunction(func);
 	}
 	
 	/**
-	 * 
+	 * Creates a new Parametric Graph using the Expression that can be evaluated at any point in the valid range
+	 * @param expr the Expression to use
+	 */
+	public ParametricGraph3D(Expression expr){
+		this();
+		setExpression(expr);
+	}
+	
+	/**
+	 * Creates a new Parametric graph
 	 */
 	public ParametricGraph3D(){
 		initSettings();
@@ -97,11 +114,13 @@ public class ParametricGraph3D extends Graph3D {
 	
 	/**
 	 * 
-	 * @param func
-	 * @param lowerBoundX
-	 * @param upperBoundX
-	 * @param lowerBoundY
-	 * @param upperBoundY
+	 * Creates a new Parametric Graph with the following properties set
+	 * 
+	 * @param func	The function to be plotted
+	 * @param lowerBoundX	The lower bound of x axis
+	 * @param upperBoundX	The upper bound of the x axis
+	 * @param lowerBoundY	The lower bound of the y axis
+	 * @param upperBoundY	The upper bound of the y axis
 	 */
 	public ParametricGraph3D(Function func, double lowerBoundX, double upperBoundX, 
 			double lowerBoundY, double upperBoundY){
@@ -124,11 +143,12 @@ public class ParametricGraph3D extends Graph3D {
 	}
 	
 	/**
+	 * Sets the bounds or range of the x and y axis
 	 * 
-	 * @param lowerX
-	 * @param upperX
-	 * @param lowerY
-	 * @param upperY
+	 * @param lowerX The lower bound of x axis
+	 * @param upperX The upper bound of x axis
+	 * @param lowerY The lower bound of y axis
+	 * @param upperY The upper bound of y axis
 	 */
 	public void setBounds(double lowerX, double upperX, double lowerY, double upperY){
 		
@@ -139,29 +159,58 @@ public class ParametricGraph3D extends Graph3D {
 	}
 	
 	/**
-	 * 
-	 * @param func
+	 * Sets the function that has to be plotted
+	 * @param func 
 	 */
 	public void setFunction(Function func){
 		function = new ParamFunction(func);
 	}
+	
+	/**
+	 * Sets the expression that has to be plotted
+	 * @param expr
+	 */
+	public void setExpression(Expression expr){		
+		function = new ParamFunction(expr);
+	}
+	
+	/**
+	 * Sets the sampling rate of the x and the y axes
+	 * 
+	 * @param xSamples The sampling rate of x axis
+	 * @param ySamples The sampling rate of y axis
+	 */
+	public void setSamplingRates(int xSamples, int ySamples){
+		
+		rendererSurface.setXSamples(xSamples);
+		rendererSurface.setZSamples(ySamples);
+	}
 
 	/**
+	 * Plots the graph. Please note that the function should have already been initialized using either {@link param.Function}
+	 * or an {@link Expression}
 	 * 
-	 * @param title
-	 * @param xLabel
-	 * @param yLabel
-	 * @param zLabel
+	 * @param title The title of the plot
+	 * @param xLabel The x label of the plot
+	 * @param yLabel The y label of the plot
+	 * @param zLabel The z label of the plot
 	 */
 	public void plot(String title, String xLabel, String yLabel, String zLabel){
 		
 		this.xLabel = xLabel;
 		this.yLabel = zLabel;
 		
+		//check that the function is already initialized
+		if(function == null){
+			JOptionPane.showMessageDialog(GUIPrism.getGUI(), "Please provide a function before plotting!", "Error", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+		
 		chart = Chart3DFactory.createSurfaceChart("", title, function, xLabel, yLabel, zLabel);
 		
 		panel = new Chart3DPanel(chart);
 		panel.setComponentPopupMenu(graphHandler.getGraphMenu());
+		
 		graphHandler.getGraphMenu().addPopupMenuListener(new PopupMenuListener() {
 
 			@Override
@@ -200,6 +249,7 @@ public class ParametricGraph3D extends Graph3D {
 		} catch (SettingException e) {
 			e.printStackTrace();
 		}
+		
 		this.getDisplaySettings().updateDisplay();
 		this.updateGraph();
 		this.getxAxisSetting().updateAxis();
@@ -207,6 +257,9 @@ public class ParametricGraph3D extends Graph3D {
 		this.getzAxisSetting().updateAxis();
 	}
 
+	/**
+	 * The number of settings we have for this graph type
+	 */
 	@Override
 	public int getNumSettings() {
 		return 11;
@@ -231,6 +284,9 @@ public class ParametricGraph3D extends Graph3D {
 		}
 	}
 	
+	/**
+	 * Updates all the settings. Should be called after the user makes any change in the {@link GraphOptions}
+	 */
 	@Override
 	public void updateGraph(){
 		
@@ -245,6 +301,9 @@ public class ParametricGraph3D extends Graph3D {
 		}
 	}
 	
+	/**
+	 * Exports the plot as a GNU plot readable file
+	 */
 	@Override
 	public void exportToGnuplot(File file) throws IOException{
 		
@@ -301,6 +360,9 @@ public class ParametricGraph3D extends Graph3D {
 		out.close();
 	}
 
+	/**
+	 * Exports the plot as a MATLAB readable file
+	 */
 	@Override
 	public void exportToMatlab(File file) throws IOException{
 
@@ -362,7 +424,8 @@ public class ParametricGraph3D extends Graph3D {
 
 	
 	/**
-	 * 
+	 * Custom function that acts as an interface between the {@link Function} and {@link Function3D}.
+	 * This function can be evaluated at any point within the given valid range
 	 * @author Muhammad Omer Saeed
 	 *
 	 */
@@ -370,23 +433,60 @@ public class ParametricGraph3D extends Graph3D {
 		
 		private static final long serialVersionUID = 1L;
 		private Function func;
+		private Expression expr;
 		
+		/**
+		 * Creates a new {@link ParamFunction} using a {@link Function}
+		 * @param func
+		 */
 		public ParamFunction(Function func) {
 			this.func = func;
 		}
 		
+		/**
+		 * Creates a new {@linkp ParamFunction} using an {@link Expression}
+		 * @param expr
+		 */
+		public ParamFunction(Expression expr){
+			this.expr = expr;
+		}
+		
+		/**
+		 * Get the function if not {@code null}
+		 * @return
+		 */
 		public Function getFunction(){
 			return this.func;
 		}
+		
+		/**
+		 * Get the Expression if not {@code null}
+		 * @return
+		 */
+		public Expression getExpression(){
+			return this.expr;
+		}
 
+		/**
+		 * Evaluates the function value at different x and y values depending upon our sampling rate of the two axes
+		 * @param x the x value
+		 * @param y the y value
+		 */
 		@Override
 		public double getValue(double x, double y) {
 			
-			BigRational xVal = new BigRational((int) (x*1000000.0), 1000000);
-			BigRational yVal = new BigRational((int) (y*1000000.0), 1000000);
-			
-			BigRational br = func.evaluate(new param.Point(new BigRational[] {xVal, yVal}));
-			return br.doubleValue();
+			if(func != null){
+				BigRational xVal = new BigRational((int) (x*1000000.0), 1000000);
+				BigRational yVal = new BigRational((int) (y*1000000.0), 1000000);
+
+				BigRational br = func.evaluate(new param.Point(new BigRational[] {xVal, yVal}));
+				return br.doubleValue();
+			}
+			// use the expression instead to evaluate
+			else{
+				
+				return 0.0;
+			}
 		}
 		
 	}

@@ -87,6 +87,10 @@ import settings.SettingOwner;
 import userinterface.GUIPrism;
 import userinterface.properties.GUIGraphHandler;
 
+/**
+ * Can be used to plot a 3d graph. Currently a scatter and surface plots (via Bilinear interpolation) are supported in 3d
+ * @author Muhammad Omer Saeed
+ */
 public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Observer, Printable{
 
 	private static final long serialVersionUID = 1L;
@@ -105,6 +109,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	/** Display for settings. Required to implement SettingsOwner */
 	private SettingDisplay display;
 	
+	/**Settings for the x,y and z axes*/
 	private AxisSettings3D xAxisSetting, yAxisSetting, zAxisSetting;
 	
 	private DisplaySettings3D displaySettings;
@@ -140,20 +145,20 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	private SeriesSettingsList seriesList;
 	private SeriesSettings seriesSettings;
 	
-	
+	/**This will hold our data for the plot*/
 	private ArrayList<XYZDataItem> dataCache;
 	
 	protected int plotType;
 	
 	/**
-	 * 
+	 * Creates an empty 3d Graph 
 	 */
 	public Graph3D(){
 		initSettings();
 	}
 	
 	/**
-	 * 
+	 * Initialize all the settings and set the properties
 	 */
 	public void initSettings(){
 		
@@ -197,7 +202,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	}
 	
 	/**
-	 * 
+	 * Initializes the scatter plot
 	 */
 	public void initScatterPlot(){
 		
@@ -207,22 +212,23 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	}
 	
 	/**
-	 * 
-	 * @param item
+	 * Add new data to the current data cache
+	 * @param item the new data that has to be added
 	 */
 	public void addPointToDataCache(XYZDataItem item){
 		dataCache.add(item);
 	}
 	
 	/**
-	 * 
-	 * @param seriesName
+	 * Plots the scatter plot with the given series name
+	 * @param seriesName the name of the series to be plotted
 	 */
 	public void plotScatter(String seriesName){
 		
 		seriesScatter = new XYZSeries(seriesName);
 		
 		for(XYZDataItem item : dataCache){
+			// copy data cache to our series
 			seriesScatter.add(item);
 		}
 		
@@ -237,7 +243,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		dPanel = new DisplayPanel3D(panel, true, false);
 		panel.addMouseListener(graphHandler);
 		
-		// make sure there is nothing inside this panel
+		// make sure there is nothing inside this panel before we add our scatter plot
 		{
 			removeAll();
 			revalidate();
@@ -253,7 +259,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	}
 	
 	/**
-	 * 
+	 * Intializes the surface plot
 	 */
 	public void initSurfacePlot(){
 		
@@ -264,6 +270,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	}
 	
 	/**
+	 * Set the ranging constants for this graph. They will be used to set the range etc
 	 * 
 	 * @param rX
 	 * @param rY
@@ -275,7 +282,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	}
 	
 	/**
-	 * 
+	 * Plots the surface plot in the current graph panel
 	 */
 	public void plotSurface(){
 		
@@ -304,8 +311,8 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	}
 	
 	/**
-	 * 
-	 * @param title
+	 * Set the title of the graph
+	 * @param title the title to set
 	 */
 	public void setTitle(String title){
 		
@@ -320,10 +327,11 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	}
 	
 	/**
+	 * Set the labels of the different axes
 	 * 
-	 * @param xLabel
-	 * @param yLabel
-	 * @param zLabel
+	 * @param xLabel The x label
+	 * @param yLabel The y label
+	 * @param zLabel The z label
 	 */
 	public void setAxisLabels(String xLabel, String yLabel, String zLabel){
 		
@@ -332,20 +340,25 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		this.zLabel = zLabel;
 	}
 
+	
 	/**
-	 * 
+	 * Get the current 3d chart
 	 * @return
 	 */
 	public Chart3D getChart() {
 		return chart;
 	}
 	
+	/**
+	 * Get the display panel for this chart
+	 * @return
+	 */
 	public DisplayPanel3D getDisplayPanel(){
 		return this.dPanel;
 	}
 
 	/**
-	 * 
+	 * Get the plot of the current chart
 	 * @return
 	 */
 	public XYZPlot getPlot() {
@@ -353,7 +366,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	}
 
 	/**
-	 * 
+	 * Get the surface renderer of the current chart
 	 * @return
 	 */
 	public SurfaceRenderer getSurfaceRenderer() {
@@ -361,21 +374,33 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	}
 	
 	/**
-	 * 
+	 * Get the list of all the series (only valid for the scatter plot case)
 	 * @return
 	 */
 	public SeriesSettingsList getGraphSeriesList(){
 		return this.seriesList;
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
 	public SeriesSettings getSeriesSettings(){
 		return seriesSettings;
 	}
 	
+	/**
+	 * Return the series if the current plot is scatter {@code null} otherwise
+	 * @return
+	 */
 	public XYZSeries getScatterSeries(){
 		return this.seriesScatter;
 	}
 	
+	/**
+	 * Returns the current type of the plot. Can be scatter or surface
+	 * @return
+	 */
 	public int getPlotType(){
 		return this.plotType;
 	}
@@ -491,7 +516,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	}
 	
 	/**
-	 * 
+	 * Update all the settings of the graph when user changes something
 	 */
 	public void updateGraph(){
 		
@@ -603,7 +628,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	}
 
 	/**
-	 * 
+	 * Return the x axis setting
 	 * @return
 	 */
 	public AxisSettings3D getxAxisSetting() {
@@ -611,7 +636,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	}
 
 	/**
-	 * 
+	 * Return the y axis setting
 	 * @return
 	 */
 	public AxisSettings3D getyAxisSetting() {
@@ -619,7 +644,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	}
 
 	/**
-	 * 
+	 * Return the z axis setting
 	 * @return
 	 */
 	public AxisSettings3D getzAxisSetting() {
@@ -627,7 +652,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	}
 	
 	/**
-	 * 
+	 * Return the display settings
 	 * @return
 	 */
 	public DisplaySettings3D getDisplaySettings(){
@@ -643,7 +668,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	}
 	
 	/**
-	 * 
+	 * Get the chart panel for this graph
 	 * @return
 	 */
 	public Chart3DPanel getChart3DPanel(){
@@ -651,9 +676,10 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	}
 	
 	/**
+	 * Exports the 3d graph as a pdf
 	 * 
-	 * @param file
-	 * @param panel
+	 * @param file The pdf file to which the data should be written
+	 * @param panel The chart panel that has to be exported
 	 */
 	public static void exportToPDF(File file, Chart3DPanel panel){
 		
@@ -679,7 +705,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 			
 			
 		} catch(Exception e){
-			
+			// in case any error occurs tell the user what the error is (sometimes useful if there is a problem of writing rights)
 			JOptionPane.showMessageDialog(GUIPrism.getGUI(), e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 			e.printStackTrace();
 			return;
@@ -689,9 +715,10 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	}
 	
 	/**
+	 * Exports the plot to a GNU plot readable file
 	 * 
-	 * @param file
-	 * @throws IOException
+	 * @param file The file to which the data should be written
+	 * @throws IOException 
 	 */
 	public void exportToGnuplot(File file) throws IOException{
 		
@@ -776,8 +803,8 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	}
 	
 	/**
-	 * 
-	 * @param file
+	 * Exports the plot to a MATLAB readable file
+	 * @param file The file to which the data should be written
 	 * @throws IOException
 	 */
 	public void exportToMatlab(File file) throws IOException{
@@ -860,16 +887,17 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	}
 	
 	/**
-	 * 
+	 * Creates a print job for this graph
 	 */
 	public void createPrintJob(){
 		//TODO 
 	}
 	
 	/**
-	 * 
+	 * Custom function class that takes discrete data and provides continuous data to the plotter for
+	 * creating a surface using the bi-linear interpolation
+	 *  
 	 * @author Muhammad Omer Saeed
-	 *
 	 */
 	private class DataInterpolateFunction implements Function3D{
 		
@@ -879,7 +907,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		int xNumSteps,yNumSteps;
 		
 		/**
-		 * 
+		 * Creates a new function with default values set
 		 */
 		public DataInterpolateFunction(){
 			
@@ -895,7 +923,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		}
 		
 		/**
-		 * 
+		 * Set the data that will be used for interpolation
 		 * @param cache
 		 */
 		public void setData(ArrayList<XYZDataItem> cache){
@@ -904,6 +932,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 			
 			int index = 0;
 			
+			// data has to be reshaped to a grid for easy access
 			for(int i = 0 ; i < rangingConstantX.getNumSteps() ; i++){
 				for(int j = 0 ; j < rangingConstantY.getNumSteps() ; j++){
 					
@@ -914,7 +943,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		}
 		
 		/**
-		 * 
+		 * Print the reshaped data, used for debugging
 		 */
 		public void printData(){
 			
@@ -933,7 +962,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 		}
 
 		/**
-		 * 
+		 * Gets the interpolated value at position x and y
 		 */
 		@Override
 		public double getValue(double x, double y) {

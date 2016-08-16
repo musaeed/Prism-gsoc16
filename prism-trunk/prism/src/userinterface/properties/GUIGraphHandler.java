@@ -29,10 +29,15 @@ package userinterface.properties;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -45,8 +50,13 @@ import java.util.ArrayList;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
 import javax.swing.Icon;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -54,7 +64,13 @@ import javax.swing.JMenu;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
+import javax.swing.JRadioButton;
+import javax.swing.JSpinner;
 import javax.swing.JTabbedPane;
+import javax.swing.JTextField;
+import javax.swing.KeyStroke;
+import javax.swing.SpinnerNumberModel;
+import javax.swing.border.EtchedBorder;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
@@ -65,7 +81,10 @@ import com.orsoncharts.graphics3d.ViewPoint3D;
 
 import cern.jet.math.Functions;
 import param.Function;
+import parser.Values;
+import parser.ast.Expression;
 import prism.PrismException;
+import prism.PrismLangException;
 import userinterface.GUIPlugin;
 import userinterface.GUIPrism;
 import userinterface.graph.GUIImageExportDialog;
@@ -75,6 +94,9 @@ import userinterface.graph.GraphException;
 import userinterface.graph.GraphOptions;
 import userinterface.graph.Histogram;
 import userinterface.graph.ParametricGraph;
+import userinterface.graph.ParametricGraph3D;
+import userinterface.graph.PrismXYDataItem;
+import userinterface.graph.SeriesKey;
 
 @SuppressWarnings("serial")
 public class GUIGraphHandler extends JPanel implements MouseListener
@@ -291,14 +313,7 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				
-				String function = JOptionPane.showInputDialog(GUIPrism.getGUI(), "Enter the function:", "Plot a function", JOptionPane.QUESTION_MESSAGE);
-				
-				if(function == null){
-					return;
-				}
-				
-				//TODO parse and plot this function
-				System.out.println(function);
+				plotNewFunction();
 			}
 		};
 		addFunction.putValue(Action.NAME, "Plot function");
@@ -942,6 +957,357 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 	
 	public JPopupMenu getGraphMenu(){
 		return this.graphMenu;
+	}
+	
+	public void plotNewFunction(){
+		
+		JDialog dialog;
+		JRadioButton radio2d, radio3d, newGraph, existingGraph;
+		JTextField functionField, seriesName;
+		JSpinner xSamples, ySamples, xMin, xMax, yMin, yMax;
+		JButton ok, cancel;
+		JComboBox<String> chartOptions;
+		JLabel example;
+		
+		//init all the fields of the dialog
+		dialog = new JDialog(GUIPrism.getGUI());
+		radio2d = new JRadioButton("2D");
+		radio3d = new JRadioButton("3D");
+		newGraph = new JRadioButton("New Graph");
+		existingGraph = new JRadioButton("Exisiting");
+		chartOptions = new JComboBox<String>();
+		functionField = new JTextField();
+		ok = new JButton("Plot");
+		cancel = new JButton("Cancel");
+		seriesName = new JTextField();
+		xSamples = new JSpinner(new SpinnerNumberModel(25, 0, 100, 1));
+		ySamples = new JSpinner(new SpinnerNumberModel(25, 0, 100, 1));
+		xMin = new JSpinner(new SpinnerNumberModel(0.0, -5e3, 5e3, 0.2));
+		xMax = new JSpinner(new SpinnerNumberModel(100.0, -5e3, 5e3, 0.2));
+		yMin = new JSpinner(new SpinnerNumberModel(0.0, -5e3, 5e3, 0.2));
+		yMax = new JSpinner(new SpinnerNumberModel(100.0, -5e3, 5e3, 0.2));
+		example = new JLabel("<html><font size=3 color=red>Example:</font><font size=3>f(x)= x/2 + 5</font></html>");
+		example.addMouseListener(new MouseAdapter() {
+
+			@Override
+			public void mouseEntered(MouseEvent e) {
+				example.setCursor(new Cursor(Cursor.HAND_CURSOR));
+				example.setForeground(Color.BLUE);
+			}
+
+			@Override
+			public void mouseExited(MouseEvent e) {
+				example.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+				example.setForeground(Color.BLACK);
+			}
+
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				
+				if(e.getButton() == MouseEvent.BUTTON1){
+					
+					functionField.setText("f(x) = x/2 + 5");
+					functionField.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 15));
+					functionField.setForeground(Color.BLACK);
+					
+				}
+			}
+			
+			
+			
+		});
+		
+		//set dialog properties
+		dialog.setSize(600, 450);
+		dialog.setTitle("Plot a new function");
+		dialog.setModal(true);
+		dialog.setLayout(new BoxLayout(dialog.getContentPane(), BoxLayout.Y_AXIS));
+		dialog.setLocationRelativeTo(GUIPrism.getGUI());
+		
+		//add every component to their dedicated panels
+		JPanel graphTypePanel = new JPanel(new FlowLayout());
+		graphTypePanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Function type"));
+		graphTypePanel.add(radio2d);
+		graphTypePanel.add(radio3d);
+		
+		JPanel functionFieldPanel = new JPanel(new BorderLayout());
+		functionFieldPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Function"));
+		functionFieldPanel.add(functionField, BorderLayout.CENTER);
+		functionFieldPanel.add(example, BorderLayout.SOUTH);
+		
+		JPanel chartSelectPanel = new JPanel();
+		chartSelectPanel.setLayout(new BoxLayout(chartSelectPanel, BoxLayout.Y_AXIS));
+		chartSelectPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Plot function to"));
+		JPanel radioPlotPanel = new JPanel(new FlowLayout());
+		radioPlotPanel.add(newGraph);
+		radioPlotPanel.add(existingGraph);
+		JPanel chartOptionsPanel = new JPanel(new FlowLayout());
+		chartOptionsPanel.add(chartOptions);
+		chartSelectPanel.add(radioPlotPanel);
+		chartSelectPanel.add(chartOptionsPanel);
+		
+		JPanel bottomControlPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+		bottomControlPanel.add(ok);
+		bottomControlPanel.add(cancel);
+		
+		JPanel samplesPanel = new JPanel(new FlowLayout());
+		samplesPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Sample rate"));
+		samplesPanel.add(new JLabel("X samples:"));
+		samplesPanel.add(xSamples);
+		samplesPanel.add(new JLabel("Y samples:"));
+		samplesPanel.add(ySamples);
+		
+		JPanel seriesNamePanel = new JPanel(new BorderLayout());
+		seriesNamePanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Series name"));
+		seriesNamePanel.add(seriesName, BorderLayout.CENTER);
+		
+		JPanel rangePanel = new JPanel(new FlowLayout());
+		rangePanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Function range"));
+		rangePanel.add(new JLabel("X min:"));
+		rangePanel.add(xMin);
+		rangePanel.add(new JLabel("X max:"));
+		rangePanel.add(xMax);
+		rangePanel.add(new JLabel("Y min:"));
+		rangePanel.add(yMin);
+		rangePanel.add(new JLabel("Y max:"));
+		rangePanel.add(yMax);
+		
+		// add all the panels to the dialog
+		
+		dialog.add(graphTypePanel);
+		dialog.add(functionFieldPanel);
+		dialog.add(chartSelectPanel);
+		dialog.add(rangePanel);
+		dialog.add(samplesPanel);
+		dialog.add(seriesNamePanel);
+		dialog.add(bottomControlPanel);
+		
+		// do all the enables and set properties
+		
+		radio2d.setSelected(true);
+		newGraph.setSelected(true);
+		functionField.setText("Add function expression here....");
+		functionField.setFont(new Font(Font.SANS_SERIF, Font.ITALIC, 15));
+		functionField.setForeground(Color.GRAY);
+		seriesName.setText("New function");
+		ok.setMnemonic('P');
+		cancel.setMnemonic('C');
+		yMax.setEnabled(false);
+		yMin.setEnabled(false);
+		ySamples.setEnabled(false);
+		example.setToolTipText("click to try out");
+		
+		ok.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "ok");
+		ok.getActionMap().put("ok", new AbstractAction() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				ok.doClick();
+			}
+		});
+		
+		cancel.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "cancel");
+		cancel.getActionMap().put("cancel", new AbstractAction() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				cancel.doClick();
+			}
+		});
+		
+		boolean found = false;
+		
+		for(int i = 0 ; i < theTabs.getTabCount() ; i++){
+			
+			if(theTabs.getComponentAt(i) instanceof Graph){
+				chartOptions.addItem(getGraphName(i));
+				found = true;
+			}
+		}
+		
+		if(!found){
+			
+			existingGraph.setEnabled(false);
+			chartOptions.setEnabled(false);
+		}
+		
+		//add all the action listeners
+		
+		radio2d.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				
+				if(radio2d.isSelected()){
+					
+					radio3d.setSelected(false);
+					yMin.setEnabled(false);
+					yMax.setEnabled(false);
+					
+					if(chartOptions.getItemCount() > 0){
+						existingGraph.setEnabled(true);
+						chartOptions.setEnabled(true);
+					}
+					
+					ySamples.setEnabled(false);
+				}
+			}
+		});
+		
+		radio3d.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				
+				if(radio3d.isSelected()){
+					
+					radio2d.setSelected(false);
+					yMin.setEnabled(true);
+					yMax.setEnabled(true);
+					newGraph.setSelected(true);
+					existingGraph.setEnabled(false);
+					chartOptions.setEnabled(false);
+					ySamples.setEnabled(true);
+					
+				}
+				
+			}
+		});
+		
+		newGraph.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				
+				if(newGraph.isSelected()){
+					existingGraph.setSelected(false);
+					chartOptions.setEnabled(false);
+				}
+			}
+		});
+		
+		existingGraph.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				
+				if(existingGraph.isSelected()){
+					
+					newGraph.setSelected(false);
+					chartOptions.setEnabled(true);
+				}
+			}
+		});
+		
+		ok.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				
+				String function = functionField.getText();
+				function = function.substring(function.indexOf('='));
+				
+				Expression expr = null;
+				
+				try {
+					
+					expr = GUIPrism.getGUI().getPrism().parseSingleExpressionString(function);
+					
+				} catch (PrismLangException e1) {
+					e1.printStackTrace();
+					JOptionPane.showMessageDialog(dialog, e1.getMessage(), "Function Parse Exception", JOptionPane.ERROR_MESSAGE);
+					return;
+				}
+				
+				
+				if(radio2d.isSelected()){
+					
+					ParametricGraph graph = null;
+					
+					if(newGraph.isSelected()){
+						
+						graph = new ParametricGraph("");
+					}
+					else{
+						
+						for(int i = 0 ; i < theTabs.getComponentCount() ; i++){
+							
+							if(theTabs.getTitleAt(i).equals(chartOptions.getSelectedItem())){
+								
+								graph = (ParametricGraph)theTabs.getComponent(i);
+							}
+						}
+						
+					}
+					
+					
+					SeriesKey key = graph.addSeries(seriesName.getText());
+					double rateX = (((double)xMax.getValue()) - ((double)xMin.getValue())) / (double)((int)xSamples.getValue());
+					
+					for(double x = (double)xMin.getValue() ; x < (double)xMax.getValue() ; x += rateX){
+						//evaluate the function here TODO
+						double ans = -1;
+						
+						graph.addPointToSeries(key, new PrismXYDataItem(x, ans));
+					}
+					
+					if(newGraph.isSelected()){
+						addGraph(graph);
+					}
+					
+				}
+				else if(radio3d.isSelected()){
+					
+					// its always a new graph
+					
+					ParametricGraph3D graph = new ParametricGraph3D(expr);
+					graph.setSamplingRates((int)xSamples.getValue(), (int)ySamples.getValue());
+					graph.plot(seriesName.getText(), "X", "Y", "Z");
+					addGraph(graph);
+				}
+				
+				dialog.dispose();
+			}
+		});
+		
+		cancel.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				dialog.dispose();
+			}
+		});
+		
+		// we will show info about the function when field is out of focus
+		functionField.addFocusListener(new FocusListener() {
+			
+			@Override
+			public void focusLost(FocusEvent e) {
+				
+				if(!functionField.getText().equals("")){
+					return;
+				}
+				
+				functionField.setText("Add function expression here....");
+				functionField.setFont(new Font(Font.SANS_SERIF, Font.ITALIC, 15));
+				functionField.setForeground(Color.GRAY);
+			}
+			
+			@Override
+			public void focusGained(FocusEvent e) {
+				
+				if(!functionField.getText().equals("Add function expression here....")){
+					return;
+				}
+				
+				functionField.setForeground(Color.BLACK);
+				functionField.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 15));
+				functionField.setText("");
+			}
+		});
+		
+		// show the dialog
+		dialog.setVisible(true);
 	}
 	
 	/**

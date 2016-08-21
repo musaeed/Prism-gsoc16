@@ -176,6 +176,49 @@ public class ConstantLine extends javax.swing.JPanel
 	
 	}
 	
+	/**
+	 * This function will keep only the single value fields enabled
+	 */
+	public void doFuncEnables(boolean enableSingle){
+		
+		if(enableSingle){
+			rangeCombo.setEnabled(false);
+			startValueField.setEnabled(false);
+			endValueField.setEnabled(false);
+			stepValueField.setEnabled(false);
+			singleValueCombo.setSelected(true);
+			singleValueField.setEnabled(true);
+		}
+		else{
+			
+			rangeCombo.setEnabled(true);
+			startValueField.setEnabled(true);
+			endValueField.setEnabled(true);
+			stepValueField.setEnabled(true);
+			rangeCombo.setSelected(true);
+		}
+	}
+	
+	/**
+	 * Returns the total number of values the constant line describes. For example if a the single value combo box is selected then
+	 * function returns 1 and if the range combo box is selected then it returns (end-start)/step_value to the closest integer
+	 * @return
+	 */
+	public int getTotalNumOfValues(){
+		
+		if(singleValueCombo.isSelected()){
+			return 1;
+		}
+		else{
+			//when the range value combo is selected
+			double startValue = Double.parseDouble(getStartValue());
+			double endValue = Double.parseDouble(getEndValue());
+			double stepValue = Double.parseDouble(getStepValue());
+			
+			return (int)((endValue - startValue) / stepValue);
+		}
+	}
+	
 	//ACCESS METHODS
 	
 	public Type getType()

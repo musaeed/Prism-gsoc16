@@ -31,6 +31,8 @@ import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.LineBorder;
 
+import prism.PrismException;
+
 import java.awt.*;
 import java.util.*;
 
@@ -97,6 +99,38 @@ public class ConstantPickerList extends JPanel implements Scrollable
 	public ConstantLine getConstantLine(int i)
 	{
 		return rows.get(i);
+	}
+	
+	/**
+	 * Returns the constant line with the specified name
+	 * @param constantName the name of the constant line to be retrieved
+	 * @return
+	 */
+	public ConstantLine getConstantLine(String constantName)
+	{
+		
+		for(ConstantLine line : rows)
+		{
+			
+			if(line.getName().equals(constantName))
+			{
+				return line;
+			}
+		}
+		return null;
+	}
+	
+	/**
+	 * Checks the validity of all the constant lines in the current list
+	 */
+	public void checkValid() throws PrismException
+	{
+		for(ConstantLine line : rows)
+		{
+			
+			line.checkValid();
+			
+		}
 	}
 
 }

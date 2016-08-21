@@ -30,6 +30,7 @@ package userinterface.properties;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
+import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
@@ -38,6 +39,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -46,7 +49,10 @@ import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Vector;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
@@ -57,6 +63,7 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
+import javax.swing.JEditorPane;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -65,12 +72,17 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JRadioButton;
+import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.KeyStroke;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingUtilities;
 import javax.swing.border.EtchedBorder;
+import javax.swing.border.TitledBorder;
+import javax.swing.event.HyperlinkEvent;
+import javax.swing.event.HyperlinkListener;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
@@ -83,6 +95,10 @@ import cern.jet.math.Functions;
 import param.Function;
 import parser.Values;
 import parser.ast.Expression;
+import parser.ast.ExpressionConstant;
+import parser.ast.ExpressionIdent;
+import parser.type.TypeDouble;
+import parser.visitor.ASTTraverseModify;
 import prism.PrismException;
 import prism.PrismLangException;
 import userinterface.GUIPlugin;
@@ -964,7 +980,6 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		JDialog dialog;
 		JRadioButton radio2d, radio3d, newGraph, existingGraph;
 		JTextField functionField, seriesName;
-		JSpinner xSamples, ySamples, xMin, xMax, yMin, yMax;
 		JButton ok, cancel;
 		JComboBox<String> chartOptions;
 		JLabel example;
@@ -980,13 +995,7 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		ok = new JButton("Plot");
 		cancel = new JButton("Cancel");
 		seriesName = new JTextField();
-		xSamples = new JSpinner(new SpinnerNumberModel(25, 0, 100, 1));
-		ySamples = new JSpinner(new SpinnerNumberModel(25, 0, 100, 1));
-		xMin = new JSpinner(new SpinnerNumberModel(0.0, -5e3, 5e3, 0.2));
-		xMax = new JSpinner(new SpinnerNumberModel(100.0, -5e3, 5e3, 0.2));
-		yMin = new JSpinner(new SpinnerNumberModel(0.0, -5e3, 5e3, 0.2));
-		yMax = new JSpinner(new SpinnerNumberModel(100.0, -5e3, 5e3, 0.2));
-		example = new JLabel("<html><font size=3 color=red>Example:</font><font size=3>f(x)= x/2 + 5</font></html>");
+		example = new JLabel("<html><font size=3 color=red>Example:</font><font size=3>x/2 + 5</font></html>");
 		example.addMouseListener(new MouseAdapter() {
 
 			@Override
@@ -1006,7 +1015,13 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 				
 				if(e.getButton() == MouseEvent.BUTTON1){
 					
-					functionField.setText("f(x) = x/2 + 5");
+					if(radio2d.isSelected()){
+						functionField.setText("x/2 + 5");
+					}
+					else{
+						functionField.setText("x+y+5");
+					}
+					
 					functionField.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 15));
 					functionField.setForeground(Color.BLACK);
 					
@@ -1018,7 +1033,7 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		});
 		
 		//set dialog properties
-		dialog.setSize(600, 450);
+		dialog.setSize(400, 350);
 		dialog.setTitle("Plot a new function");
 		dialog.setModal(true);
 		dialog.setLayout(new BoxLayout(dialog.getContentPane(), BoxLayout.Y_AXIS));
@@ -1050,35 +1065,15 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		bottomControlPanel.add(ok);
 		bottomControlPanel.add(cancel);
 		
-		JPanel samplesPanel = new JPanel(new FlowLayout());
-		samplesPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Sample rate"));
-		samplesPanel.add(new JLabel("X samples:"));
-		samplesPanel.add(xSamples);
-		samplesPanel.add(new JLabel("Y samples:"));
-		samplesPanel.add(ySamples);
-		
 		JPanel seriesNamePanel = new JPanel(new BorderLayout());
 		seriesNamePanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Series name"));
 		seriesNamePanel.add(seriesName, BorderLayout.CENTER);
-		
-		JPanel rangePanel = new JPanel(new FlowLayout());
-		rangePanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED), "Function range"));
-		rangePanel.add(new JLabel("X min:"));
-		rangePanel.add(xMin);
-		rangePanel.add(new JLabel("X max:"));
-		rangePanel.add(xMax);
-		rangePanel.add(new JLabel("Y min:"));
-		rangePanel.add(yMin);
-		rangePanel.add(new JLabel("Y max:"));
-		rangePanel.add(yMax);
 		
 		// add all the panels to the dialog
 		
 		dialog.add(graphTypePanel);
 		dialog.add(functionFieldPanel);
 		dialog.add(chartSelectPanel);
-		dialog.add(rangePanel);
-		dialog.add(samplesPanel);
 		dialog.add(seriesNamePanel);
 		dialog.add(bottomControlPanel);
 		
@@ -1086,15 +1081,13 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		
 		radio2d.setSelected(true);
 		newGraph.setSelected(true);
+		chartOptions.setEnabled(false);
 		functionField.setText("Add function expression here....");
 		functionField.setFont(new Font(Font.SANS_SERIF, Font.ITALIC, 15));
 		functionField.setForeground(Color.GRAY);
 		seriesName.setText("New function");
 		ok.setMnemonic('P');
 		cancel.setMnemonic('C');
-		yMax.setEnabled(false);
-		yMin.setEnabled(false);
-		ySamples.setEnabled(false);
 		example.setToolTipText("click to try out");
 		
 		ok.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "ok");
@@ -1141,15 +1134,13 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 				if(radio2d.isSelected()){
 					
 					radio3d.setSelected(false);
-					yMin.setEnabled(false);
-					yMax.setEnabled(false);
 					
 					if(chartOptions.getItemCount() > 0){
 						existingGraph.setEnabled(true);
 						chartOptions.setEnabled(true);
 					}
 					
-					ySamples.setEnabled(false);
+					example.setText("<html><font size=3 color=red>Example:</font><font size=3>x/2 + 5</font></html>");
 				}
 			}
 		});
@@ -1162,12 +1153,10 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 				if(radio3d.isSelected()){
 					
 					radio2d.setSelected(false);
-					yMin.setEnabled(true);
-					yMax.setEnabled(true);
 					newGraph.setSelected(true);
 					existingGraph.setEnabled(false);
 					chartOptions.setEnabled(false);
-					ySamples.setEnabled(true);
+					example.setText("<html><font size=3 color=red>Example:</font><font size=3>x+y+5</font></html>");
 					
 				}
 				
@@ -1205,17 +1194,58 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 			public void actionPerformed(ActionEvent e) {
 				
 				String function = functionField.getText();
-				function = function.substring(function.indexOf('='));
 				
 				Expression expr = null;
 				
 				try {
 					
 					expr = GUIPrism.getGUI().getPrism().parseSingleExpressionString(function);
+					expr = (Expression) expr.accept(new ASTTraverseModify()
+					{
+
+						@Override
+						public Object visit(ExpressionIdent e) throws PrismLangException 
+						{
+							return new ExpressionConstant(e.getName(), TypeDouble.getInstance());
+						}
+						
+					});
+					
+					expr.typeCheck();
+					expr.semanticCheck();
 					
 				} catch (PrismLangException e1) {
-					e1.printStackTrace();
-					JOptionPane.showMessageDialog(dialog, e1.getMessage(), "Function Parse Exception", JOptionPane.ERROR_MESSAGE);
+					
+					// for copying style
+				    JLabel label = new JLabel();
+
+				    // html content in our case the error we want to show
+				    JEditorPane ep = new JEditorPane("text/html","<html> There was an error parsing the function. To read about what built-in"
+							+ " functions are supported <br>and some more information on the functions, visit "
+							+ "<a href='http://www.prismmodelchecker.org/manual/ThePRISMLanguage/Expressions'>Prism expressions site</a>."
+							+ "<br><br><font color=red>Error: </font>" + e1.getMessage() +" </html>"); 
+
+				    // handle link events
+				    ep.addHyperlinkListener(new HyperlinkListener()
+				    {
+				        @Override
+				        public void hyperlinkUpdate(HyperlinkEvent e)
+				        {
+				            if (e.getEventType().equals(HyperlinkEvent.EventType.ACTIVATED)){
+								try {
+									Desktop.getDesktop().browse(e.getURL().toURI());
+								} catch (IOException | URISyntaxException e1) {
+									
+									e1.printStackTrace();
+								}
+				            }
+				        }
+				    });
+				    ep.setEditable(false);
+				    ep.setBackground(label.getBackground());
+
+				    // show the error dialog
+				    JOptionPane.showMessageDialog(dialog, ep, "Parse Error", JOptionPane.ERROR_MESSAGE);					
 					return;
 				}
 				
@@ -1240,30 +1270,41 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 						
 					}
 					
-					
-					SeriesKey key = graph.addSeries(seriesName.getText());
-					double rateX = (((double)xMax.getValue()) - ((double)xMin.getValue())) / (double)((int)xSamples.getValue());
-					
-					for(double x = (double)xMin.getValue() ; x < (double)xMax.getValue() ; x += rateX){
-						//evaluate the function here TODO
-						double ans = -1;
-						
-						graph.addPointToSeries(key, new PrismXYDataItem(x, ans));
-					}
-					
-					if(newGraph.isSelected()){
-						addGraph(graph);
-					}
+					dialog.dispose();
+					defineConstantsAndPlot(expr, graph,seriesName.getText(), newGraph.isSelected(),  true);
 					
 				}
 				else if(radio3d.isSelected()){
 					
-					// its always a new graph
+					try {
+
+						expr = (Expression) expr.accept(new ASTTraverseModify()
+						{
+							@Override
+							public Object visit(ExpressionIdent e) throws PrismLangException
+							{
+								return new ExpressionConstant(e.getName(), TypeDouble.getInstance());
+							}
+
+						});
+
+						expr.semanticCheck();
+						expr.typeCheck();
+						
+					} catch (PrismLangException e1) {
+						e1.printStackTrace();
+					}
 					
+					if(expr.getAllConstants().size() < 2){
+						
+						JOptionPane.showMessageDialog(dialog, "There are not enough variables in the function to plot a 3D chart!", "Error", JOptionPane.ERROR_MESSAGE);
+						return;
+					}
+					
+					// its always a new graph
 					ParametricGraph3D graph = new ParametricGraph3D(expr);
-					graph.setSamplingRates((int)xSamples.getValue(), (int)ySamples.getValue());
-					graph.plot(seriesName.getText(), "X", "Y", "Z");
-					addGraph(graph);
+					dialog.dispose();
+					defineConstantsAndPlot(expr, graph,seriesName.getText(), true, false);
 				}
 				
 				dialog.dispose();
@@ -1308,6 +1349,458 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 		
 		// show the dialog
 		dialog.setVisible(true);
+	}
+	
+	public void defineConstantsAndPlot(Expression expr, JPanel graph, String seriesName, Boolean isNewGraph, boolean is2D){
+		
+		JDialog dialog;
+		JButton ok, cancel;
+		JScrollPane scrollPane;
+		ConstantPickerList constantList;
+		JComboBox<String> xAxis, yAxis;
+		
+		//init everything
+		dialog = new JDialog(GUIPrism.getGUI());
+		dialog.setTitle("Define constants and select axes");
+		dialog.setSize(500,400);
+		dialog.setLocationRelativeTo(GUIPrism.getGUI());
+		dialog.setLayout(new BoxLayout(dialog.getContentPane(), BoxLayout.Y_AXIS));
+		dialog.setModal(true);
+		
+		constantList = new ConstantPickerList();
+		scrollPane = new JScrollPane(constantList);
+		
+		xAxis = new JComboBox<String>();
+		yAxis = new JComboBox<String>();
+		
+		ok = new JButton("Ok");
+		ok.setMnemonic('O');
+		cancel = new JButton("Cancel");
+		cancel.setMnemonic('C');
+		
+		//add all components to their dedicated panels
+		JPanel exprPanel = new JPanel(new FlowLayout());
+		exprPanel.setBorder(new TitledBorder("Function"));
+		exprPanel.add(new JLabel(expr.toString()));
+		
+		JPanel axisPanel = new JPanel();
+		axisPanel.setBorder(new TitledBorder("Select axis constants"));
+		axisPanel.setLayout(new BoxLayout(axisPanel, BoxLayout.Y_AXIS));
+		JPanel xAxisPanel = new JPanel(new FlowLayout());
+		xAxisPanel.add(new JLabel("X axis:"));
+		xAxisPanel.add(xAxis);
+		JPanel yAxisPanel = new JPanel(new FlowLayout());
+		yAxisPanel.add(new JLabel("Y axis:"));
+		yAxisPanel.add(yAxis);
+		axisPanel.add(xAxisPanel);
+		axisPanel.add(yAxisPanel);
+		
+		JPanel constantPanel = new JPanel(new BorderLayout());
+		constantPanel.setBorder(new TitledBorder("Please define the following constants"));
+		constantPanel.add(scrollPane, BorderLayout.CENTER);
+		constantPanel.add(new ConstantHeader(), BorderLayout.NORTH);
+		
+		JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+		bottomPanel.add(ok);
+		bottomPanel.add(cancel);
+		
+		//fill the axes components
+		
+		for(int i = 0 ; i < expr.getAllConstants().size() ; i++){
+			
+			xAxis.addItem(expr.getAllConstants().get(i));
+			
+			if(!is2D)
+				yAxis.addItem(expr.getAllConstants().get(i));
+		}
+		
+		if(!is2D){
+			yAxis.setSelectedIndex(1);
+		}
+		
+		
+		//fill the constants table
+		
+		for(int i = 0 ; i < expr.getAllConstants().size() ; i++){
+			
+			ConstantLine line = new ConstantLine(expr.getAllConstants().get(i), TypeDouble.getInstance());
+			constantList.addConstant(line);
+			
+			if(!is2D){
+				if(line.getName().equals(xAxis.getSelectedItem().toString()) ||
+						line.getName().equals(yAxis.getSelectedItem().toString())){
+
+					line.doFuncEnables(false);
+				}
+				else{
+					line.doFuncEnables(true);
+				}
+			}
+			
+		}
+		
+		//do enables
+		
+		if(is2D){
+			yAxis.setEnabled(false);
+		}
+		
+		ok.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "ok");
+		ok.getActionMap().put("ok", new AbstractAction() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				ok.doClick();
+			}
+		});
+		
+		cancel.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "cancel");
+		cancel.getActionMap().put("cancel", new AbstractAction() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				cancel.doClick();
+			}
+		});
+		
+		//add action listeners
+		
+		xAxis.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+
+				if(is2D){
+					return;
+				}
+				
+				String item = xAxis.getSelectedItem().toString();
+
+				if(item.equals(yAxis.getSelectedItem().toString())){
+
+					int index = yAxis.getSelectedIndex();
+
+					if(index != yAxis.getItemCount()-1){
+						yAxis.setSelectedIndex(++index);
+					}
+					else{
+						yAxis.setSelectedIndex(--index);
+					}
+
+
+				}
+
+				for(int i = 0 ; i < constantList.getNumConstants() ; i++){
+
+					ConstantLine line = constantList.getConstantLine(i);
+
+					if(line.getName().equals(xAxis.getSelectedItem().toString())
+							|| line.getName().equals(yAxis.getSelectedItem().toString())){
+
+						line.doFuncEnables(false);	
+					}
+					else{
+
+						line.doFuncEnables(true);
+					}
+
+				}
+			}
+		});
+
+		yAxis.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+
+				String item = yAxis.getSelectedItem().toString();
+
+				if(item.equals(xAxis.getSelectedItem().toString())){
+
+					int index = xAxis.getSelectedIndex();
+
+					if(index != xAxis.getItemCount()-1){
+						xAxis.setSelectedIndex(++index);
+					}
+					else{
+						xAxis.setSelectedIndex(--index);
+					}
+				}
+
+				for(int i = 0 ; i < constantList.getNumConstants() ; i++){
+
+					ConstantLine line = constantList.getConstantLine(i);
+
+					if(line.getName().equals(xAxis.getSelectedItem().toString())
+							|| line.getName().equals(yAxis.getSelectedItem().toString())){
+
+						line.doFuncEnables(false);	
+					}
+					else{
+
+						line.doFuncEnables(true);
+					}
+
+				}
+			}
+		});
+
+		ok.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				
+				try {
+					
+					constantList.checkValid();
+			
+				} catch (PrismException e2) {
+					JOptionPane.showMessageDialog(dialog, "<html> One or more of the defined constants are invalid. <br> Error:"+ 
+							e2.getMessage() + "</html>", "Parse Error", JOptionPane.ERROR_MESSAGE);
+					e2.printStackTrace();
+					return;
+				}
+				
+
+				if(is2D){
+
+					// it will always be a parametric graph in 2d case
+					ParametricGraph pGraph = (ParametricGraph)graph;
+
+					ConstantLine xAxisConstant = constantList.getConstantLine(xAxis.getSelectedItem().toString());
+
+					if(xAxisConstant == null){
+						//should never happen
+						JOptionPane.showMessageDialog(dialog, "The selected axis is invalid.", "Error", JOptionPane.ERROR_MESSAGE);
+						return;
+					}
+
+					double xStartValue = Double.parseDouble(xAxisConstant.getStartValue());
+					double xEndValue = Double.parseDouble(xAxisConstant.getEndValue());
+					double xStepValue = Double.parseDouble(xAxisConstant.getStepValue());
+
+
+					int seriesCount = 0;
+
+					for(int i = 0 ; i < constantList.getNumConstants() ; i++){
+
+						ConstantLine line = constantList.getConstantLine(i);
+
+						if(line.getName().equals(xAxis.getSelectedItem().toString())){
+							seriesCount++;
+						}
+						else{
+
+							seriesCount += line.getTotalNumOfValues();
+
+						}
+					}
+
+					// if there will be too many series to be plotted, ask the user if they are sure they know what they are doing
+					if(seriesCount > 10){
+
+						int res = JOptionPane.showConfirmDialog(dialog, "This configuration will create " + seriesCount + " series. Continue?", "Confirm", JOptionPane.YES_NO_OPTION);
+
+						if(res == JOptionPane.NO_OPTION){
+							return;
+						}
+
+					}
+
+					Values singleValuesGlobal = new Values();
+
+					//add the single values to a global values list
+
+					for(int i = 0 ; i < constantList.getNumConstants() ; i++){
+
+						ConstantLine line = constantList.getConstantLine(i);
+
+						if(line.getTotalNumOfValues() == 1){
+
+							double singleValue = Double.parseDouble(line.getSingleValue());
+							singleValuesGlobal.addValue(line.getName(), singleValue);
+						}
+					}
+
+					// we just have one variable so we can plot directly
+					if(constantList.getNumConstants() == 1 || singleValuesGlobal.getNumValues() == constantList.getNumConstants()-1){
+
+
+						SeriesKey key = pGraph.addSeries(seriesName);
+
+						for(double x = xStartValue ; x <= xEndValue ; x+= xStepValue){
+
+							double ans = -1;
+
+							Values vals = new Values();
+							vals.addValue(xAxis.getSelectedItem().toString(), x);
+							
+							for(int ii = 0 ; ii < singleValuesGlobal.getNumValues() ; ii++){
+								
+								try {
+									vals.addValue(singleValuesGlobal.getName(ii), singleValuesGlobal.getDoubleValue(ii));
+								} catch (PrismLangException e1) {
+									// TODO Auto-generated catch block
+									e1.printStackTrace();
+								}
+								
+							}
+
+							try {
+								ans = expr.evaluateDouble(vals);
+							} catch (PrismLangException e1) {
+								// TODO Auto-generated catch block
+								e1.printStackTrace();
+							}
+
+							pGraph.addPointToSeries(key, new PrismXYDataItem(x, ans));
+
+						}
+
+						if(isNewGraph){
+							addGraph(pGraph);
+						}
+
+						dialog.dispose();	
+						return;
+					}
+					
+					for(int i = 0 ; i < constantList.getNumConstants() ; i++){
+						
+						ConstantLine line = constantList.getConstantLine(i);
+						
+						if(line == xAxisConstant || singleValuesGlobal.contains(line.getName())){
+							continue;
+						}
+						
+						double lineStart = Double.parseDouble(line.getStartValue());
+						double lineEnd = Double.parseDouble(line.getEndValue());
+						double lineStep = Double.parseDouble(line.getStepValue());
+						
+						for(double j = lineStart ; j < lineEnd ; j+=lineStep){
+							
+							SeriesKey key = pGraph.addSeries(seriesName);
+							
+							for(double x = xStartValue ; x <= xEndValue ; x+= xStepValue){
+								
+								double ans = -1;
+
+								Values vals = new Values();
+								vals.addValue(xAxis.getSelectedItem().toString(), x);
+								vals.addValue(line.getName(), j);
+								
+								for(int ii = 0 ; ii < singleValuesGlobal.getNumValues() ; ii++){
+									
+									try {
+										vals.addValue(singleValuesGlobal.getName(ii), singleValuesGlobal.getDoubleValue(ii));
+									} catch (PrismLangException e1) {
+										// TODO Auto-generated catch block
+										e1.printStackTrace();
+									}
+									
+								}
+								
+								for(int ii = 0 ; ii < constantList.getNumConstants() ; ii++){
+									
+									if(constantList.getConstantLine(ii) == xAxisConstant 
+											|| singleValuesGlobal.contains(constantList.getConstantLine(ii).getName())
+											|| constantList.getConstantLine(ii) == line){
+										
+										continue;
+									}
+									
+									ConstantLine temp = constantList.getConstantLine(ii);
+									double val = Double.parseDouble(temp.getStartValue());
+									
+									vals.addValue(temp.getName(), val);
+								}
+								
+								try {
+									ans = expr.evaluateDouble(vals);
+								} catch (PrismLangException e1) {
+									// TODO Auto-generated catch block
+									e1.printStackTrace();
+								}
+
+								pGraph.addPointToSeries(key, new PrismXYDataItem(x, ans));
+							}
+						}
+						
+					}
+
+					if(isNewGraph){
+						addGraph(graph);
+					}
+				}
+				else{
+					
+					// this will always be a parametric graph for the 3d case
+					ParametricGraph3D pGraph = (ParametricGraph3D)graph;
+					
+					//add the graph to the gui
+					addGraph(pGraph);
+					
+					//Get the constants we want to put on the x and y axis
+					ConstantLine xAxisConstant = constantList.getConstantLine(xAxis.getSelectedItem().toString());
+					ConstantLine yAxisConstant = constantList.getConstantLine(yAxis.getSelectedItem().toString());
+
+					//add the single values to a global values list
+
+					Values singleValuesGlobal = new Values();
+					
+					for(int i = 0 ; i < constantList.getNumConstants() ; i++){
+
+						ConstantLine line = constantList.getConstantLine(i);
+
+						if(line.getTotalNumOfValues() == 1){
+
+							double singleValue = Double.parseDouble(line.getSingleValue());
+							singleValuesGlobal.addValue(line.getName(), singleValue);
+						}
+					}
+					
+					pGraph.setGlobalValues(singleValuesGlobal);
+					pGraph.setAxisConstants(xAxis.getSelectedItem().toString(), yAxis.getSelectedItem().toString());
+					pGraph.setBounds(xAxisConstant.getStartValue(), xAxisConstant.getEndValue(), yAxisConstant.getStartValue(), yAxisConstant.getEndValue());
+
+					SwingUtilities.invokeLater(new Runnable() {
+						
+						@Override
+						public void run() {
+							//plot the graph
+							pGraph.plot(expr.toString(), xAxis.getSelectedItem().toString(), "Function", yAxis.getSelectedItem().toString());
+							
+							//calculate the sampling rates from the step sizes as given by the user
+							
+							int xSamples = (int)((Double.parseDouble(xAxisConstant.getEndValue()) - Double.parseDouble(xAxisConstant.getStartValue())) / Double.parseDouble(xAxisConstant.getStepValue()));
+							int ySamples = (int)((Double.parseDouble(xAxisConstant.getEndValue()) - Double.parseDouble(xAxisConstant.getStartValue())) / Double.parseDouble(xAxisConstant.getStepValue()));
+							
+							pGraph.setSamplingRates(xSamples, ySamples);	
+						}
+					});
+
+				}
+				
+				dialog.dispose();
+			}
+		});
+		
+		cancel.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				dialog.dispose();
+			}
+		});
+		
+		//add everything to the dialog show the dialog
+		
+		dialog.add(exprPanel);
+		dialog.add(axisPanel);
+		dialog.add(constantPanel);
+		dialog.add(bottomPanel);
+		dialog.setVisible(true);
+		
 	}
 	
 	/**

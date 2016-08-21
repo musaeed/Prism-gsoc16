@@ -49,7 +49,13 @@ import com.orsoncharts.renderer.xyz.SurfaceRenderer;
 
 import param.BigRational;
 import param.Function;
+import parser.Values;
 import parser.ast.Expression;
+import parser.ast.ExpressionConstant;
+import parser.ast.ExpressionIdent;
+import parser.type.TypeDouble;
+import parser.visitor.ASTTraverseModify;
+import prism.PrismLangException;
 import settings.IntegerSetting;
 import settings.Setting;
 import settings.SettingException;
@@ -70,6 +76,10 @@ public class ParametricGraph3D extends Graph3D {
 	
 	private IntegerSetting xResolution;
 	private IntegerSetting yResolution;
+	
+	//needed when we plot using an expression rather a function
+	private Values singleGlobalValues;
+	private String xAxisConstant, yAxisConstant;
 	
 	/**
 	 * Creates a new Parametric Graph using the Function func
@@ -159,6 +169,22 @@ public class ParametricGraph3D extends Graph3D {
 	}
 	
 	/**
+	 * Parses the arguments from string to doubles and sets the bounds or range of x and y axis
+	 * 
+	 * @param lowerX The lower bound of x axis
+	 * @param upperX The upper bound of x axis
+	 * @param lowerY The lower bound of y axis
+	 * @param upperY The upper bound of y axis
+	 */
+	public void setBounds(String lowerX, String upperX, String lowerY, String upperY){
+		
+		this.lowerBoundX = Double.parseDouble(lowerX);
+		this.upperBoundX = Double.parseDouble(upperX);
+		this.lowerBoundY = Double.parseDouble(lowerY);
+		this.upperBoundY = Double.parseDouble(upperY);
+	}
+	
+	/**
 	 * Sets the function that has to be plotted
 	 * @param func 
 	 */
@@ -167,10 +193,30 @@ public class ParametricGraph3D extends Graph3D {
 	}
 	
 	/**
+	 * Sets the global values needed sometimes to evaluate an expression
+	 * @param vals the global values
+	 */
+	public void setGlobalValues(Values vals){
+		this.singleGlobalValues = vals;
+	}
+	
+	/**
+	 * Sets the axis constants to be used in plotting the 3d graph
+	 * @param x
+	 * @param y
+	 */
+	public void setAxisConstants(String x, String y){
+		
+		this.xAxisConstant = x;
+		this.yAxisConstant = y;
+	}
+	
+	/**
 	 * Sets the expression that has to be plotted
 	 * @param expr
 	 */
-	public void setExpression(Expression expr){		
+	public void setExpression(Expression expr){
+		
 		function = new ParamFunction(expr);
 	}
 	
@@ -485,7 +531,29 @@ public class ParametricGraph3D extends Graph3D {
 			// use the expression instead to evaluate
 			else{
 				
-				return 0.0;
+				Values vals = new Values();
+				vals.addValue(xAxisConstant, x);
+				vals.addValue(yAxisConstant, y);
+				
+				for(int i = 0 ; i < singleGlobalValues.getNumValues() ; i++){
+					try {
+					
+						vals.addValue(singleGlobalValues.getName(i), singleGlobalValues.getDoubleValue(i));
+					
+					} catch (PrismLangException e) {
+						e.printStackTrace();
+					}
+				}
+				
+				double ans = -1.0;
+				
+				try {
+					ans = (double)expr.evaluate(vals);
+				} catch (PrismLangException e) {
+					e.printStackTrace();
+				}
+				
+				return ans;
 			}
 		}
 		

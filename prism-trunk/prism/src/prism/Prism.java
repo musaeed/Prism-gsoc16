@@ -43,6 +43,7 @@ import odd.ODDUtils;
 import param.BigRational;
 import param.ModelBuilder;
 import param.ParamModelChecker;
+import param.ParamResult;
 import param.RegionValues;
 import parser.ExplicitFiles2ModulesFile;
 import parser.PrismParser;
@@ -54,6 +55,7 @@ import parser.ast.LabelList;
 import parser.ast.ModulesFile;
 import parser.ast.PropertiesFile;
 import parser.ast.Property;
+import parser.type.TypeBool;
 import pta.DigitalClocks;
 import pta.PTAModelChecker;
 import simulator.GenerateSimulationPath;
@@ -1587,7 +1589,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	 * Parse a single PRISM expression from a string.
 	 * @param s String to parse
 	 */
-	public Expression parseSingleExpressionString(String s) throws PrismLangException
+	public static Expression parseSingleExpressionString(String s) throws PrismLangException
 	{
 		PrismParser prismParser;
 		Expression expr;
@@ -2750,6 +2752,24 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 
 	/**
 	 * Perform model checking of a property on the currently loaded model and return result.
+	 * Here, the property is passed as a string and parsed first. Usually, you would use the other
+	 * model checking methods which assume you have already parsed the property separately.
+	 * This is just a simplified method for convenience. The property string can in fact be a whole
+	 * properties file, e.g. you can define labels/constants/etc. too, but an exception will be
+	 * thrown if there is more than one property present.    
+	 * @param propertyString The property (in fact properties file) to check as a string
+	 */
+	public Result modelCheck(String propertyString) throws PrismException
+	{
+		PropertiesFile propertiesFile = parsePropertiesString(currentModelGenerator, propertyString);
+		if (propertiesFile.getNumProperties() != 1) {
+			throw new PrismException("There should be exactly one property to check (there are " + propertiesFile.getNumProperties() + ")");
+		}
+		return modelCheck(propertiesFile, propertiesFile.getPropertyObject(0));
+	}
+
+	/**
+	 * Perform model checking of a property on the currently loaded model and return result.
 	 * @param propertiesFile Parent property file of property (for labels/constants/...)
 	 * @param expr The property to check
 	 */
@@ -3055,16 +3075,11 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		mc.setModulesFileAndPropertiesFile(currentModulesFile, propertiesFile);
 		Result result = mc.check(modelExpl, prop.getExpression());
 
-		// Convert result of parametric model checking to just a rational
+		// Convert result of parametric model checking to a single value,
+		// either boolean for boolean properties or a rational for numeric properties
 		// There should be just one region since no parameters are used
-		RegionValues regVals = (RegionValues) result.getResult();
-		if (regVals.getNumRegions() != 1)
-			throw new PrismException("Unexpected result from paramteric model checker");
-		param.Function func = regVals.getResult(0).getInitStateValueAsFunction();
-		// Evaluate the function at an arbitrary point (should not depend on parameter values)
-		BigRational rat = func.evaluate(new param.Point(new BigRational[] { new BigRational(0) }));
-		// Restore in result object
-		result.setResult(rat);
+		ParamResult paramResult = (ParamResult) result.getResult();
+		result.setResult(paramResult.getSimpleResult(prop.getType()));
 
 		// Print result to log
 		String resultString = "Result";
@@ -3606,6 +3621,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		// Close down CUDD/JDD
 		if (cuddStarted) {
 			JDD.CloseDownCUDD(check);
+			// reset CUDD status
+			cuddStarted = false;
 		}
 	}
 
@@ -3722,7 +3739,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	//------------------------------------------------------------------------------
 
 	/**
-	 * Old API: 
+	 * @deprecated
 	 * Load a PRISM model, build it, store for later use and return.
 	 * Reachability and model construction are done symbolically, i.e. using (MT)BDDs.
 	 * It is assumed that all constants in the PRISM model file have been defined by now.  
@@ -3736,7 +3753,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Old API:
+	 * @deprecated
 	 * Load a (built) model and export its transition matrix to a Spy file.
 	 * @param model The model
 	 * @param file File to export to
@@ -3748,7 +3765,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Old API:
+	 * @deprecated
 	 * Load a (built) model and export the MTBDD for its transition matrix to a Dot file.
 	 * @param model The model
 	 * @param file File to export to
@@ -3760,7 +3777,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Old API:
+	 * @deprecated
 	 * Load a (built) model and export its transition matrix to a file
 	 * @param model The model
 	 * @param ordered Ensure that (source) states are in ascending order?
@@ -3780,7 +3797,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Old API:
+	 * @deprecated
 	 * Load a (built) model and export its transition matrix to a file (or to the log)
 	 * @param model The model
 	 * @param ordered Ensure that (source) states are in ascending order?
@@ -3801,7 +3818,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Old API:
+	 * @deprecated
 	 * Load a (built) model and export its state rewards to a file
 	 * @param model The model
 	 * @param exportType Type of export; one of: <ul>
@@ -3818,7 +3835,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Old API:
+	 * @deprecated
 	 * Load a (built) model and export its transition rewards to a file
 	 * @param model The model
 	 * @param ordered Ensure that (source) states are in ascending order?
@@ -3837,7 +3854,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Old API:
+	 * @deprecated
 	 * Load a (built) model and export its bottom strongly connected components (BSCCs) to a file
 	 * @param model The model
 	 * @param exportType Type of export; one of: <ul>
@@ -3853,7 +3870,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Old API:
+	 * @deprecated
 	 * Load a (built) model and export the states satisfying labels from it and a properties file to a file
 	 * The PropertiesFile should correspond to the model. 
 	 * @param model The model
@@ -3873,7 +3890,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Old API:
+	 * @deprecated
 	 * Load a (built) model and export its states to a file
 	 * @param model The model
 	 * @param exportType Type of export; one of: <ul>
@@ -3889,7 +3906,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Old API:
+	 * @deprecated
 	 * Load a (built) model, perform model checking of a property on it and return result.
 	 * @param model The model to check
 	 * @param propertiesFile Parent property file of property (for labels/constants/...)
@@ -3902,7 +3919,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Old API:
+	 * @deprecated
 	 * Load a PRISM PTA model, perform model checking of a property on it and return result.
 	 * @param modulesFile The corresponding (parsed) PRISM model (for the labels)
 	 * @param propertiesFile Parent property file of property (for labels/constants/...)
@@ -3915,7 +3932,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Old API:
+	 * @deprecated
 	 */
 	public Result modelCheckSimulator(ModulesFile modulesFile, PropertiesFile propertiesFile, Expression expr, State initialState, long maxPathLength,
 			SimulationMethod simMethod) throws PrismException
@@ -3925,7 +3942,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Old API:
+	 * @deprecated
 	 */
 	public Result[] modelCheckSimulatorSimultaneously(ModulesFile modulesFile, PropertiesFile propertiesFile, List<Expression> exprs, State initialState,
 			long maxPathLength, SimulationMethod simMethod) throws PrismException
@@ -3935,7 +3952,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Old API:
+	 * @deprecated
 	 */
 	public void modelCheckSimulatorExperiment(ModulesFile modulesFile, PropertiesFile propertiesFile, UndefinedConstants undefinedConstants,
 			ResultsCollection results, Expression propertyToCheck, State initialState, long maxPathLength, SimulationMethod simMethod) throws PrismException,
@@ -3946,7 +3963,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Old API:
+	 * @deprecated
 	 * Load (built) model and compute steady-state probabilities (DTMCs/CTMCs only).
 	 * Output probability distribution to log. 
 	 */
@@ -3956,7 +3973,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Old API:
+	 * @deprecated
 	 * Load (built) model and compute steady-state probabilities (DTMCs/CTMCs only).
 	 * Output probability distribution to a file (or, if file is null, to log). 
 	 * The exportType should be EXPORT_PLAIN or EXPORT_MATLAB.
@@ -3968,7 +3985,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Old API:
+	 * @deprecated
 	 * Load (built) model and compute transient probabilities (DTMCs/CTMCs only).
 	 * Output probability distribution to log. 
 	 */
@@ -3978,7 +3995,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	}
 
 	/**
-	 * Old API:
+	 * @deprecated
 	 * Load (built) model and compute transient probabilities (DTMCs/CTMCs only).
 	 * Output probability distribution to a file (or, if file is null, to log). 
 	 * The exportType should be EXPORT_PLAIN or EXPORT_MATLAB.

@@ -29,6 +29,8 @@ package prism;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
@@ -222,6 +224,19 @@ public class PrismCL implements PrismModelListener
 				mainLog.println(st);
 			}
 			errorAndExit(e.getMessage() + ".\nTip: Try using the -cuddmaxmem switch to increase the memory available to CUDD");
+		} catch (com.martiansoftware.nailgun.NGExitException e) {
+			// we don't want to catch the nailgun exception below,
+			// so we catch it and rethrow
+			throw e;
+		} catch (Exception e) {
+			// We catch Exceptions here ourself to ensure that we actually exit
+			// In the presence of thread pools (e.g., in the JAS library when using -exact),
+			// the main thread dying does not necessarily quit the program...
+			StringWriter sw = new StringWriter();
+			sw.append("\n");
+			e.printStackTrace(new PrintWriter(sw));
+			mainLog.print(sw.toString());
+			errorAndExit("Caught unhandled exception, aborting...");
 		}
 		
 	/*	java.util.Map<Thread, StackTraceElement[]> map = Thread.getAllStackTraces();
@@ -254,6 +269,10 @@ public class PrismCL implements PrismModelListener
 		sortProperties();
 		
 		boolean isVerifyProperty = false;
+
+		if (param && numPropertiesToCheck == 0) {
+			errorAndExit("Parametric model checking requires at least one property to check");
+		}
 
 		// process info about undefined constants
 		try {
@@ -401,6 +420,9 @@ public class PrismCL implements PrismModelListener
 						// in case of build failure during model checking, store as result for any const values and continue
 						if (modelBuildFail) {
 							results[j].setMultipleErrors(definedMFConstants, null, modelBuildException);
+							if (test) {
+								doResultTest(propertiesToCheck.get(j), new Result(modelBuildException));
+							}
 							break;
 						}
 
@@ -439,21 +461,7 @@ public class PrismCL implements PrismModelListener
 
 						// if required, check result against expected value
 						if (test) {
-							try {
-								mainLog.println();
-								Values allConsts = new Values(modulesFile.getConstantValues(), propertiesFile.getConstantValues());
-								if (propertiesToCheck.get(j).checkAgainstExpectedResult(res.getResult(), allConsts)) {
-									mainLog.println("Testing result: PASS");
-								} else {
-									mainLog.println("Testing result: NOT TESTED");
-								}
-							} catch (PrismNotSupportedException e) {
-								mainLog.println("Testing result: UNSUPPORTED: " + e.getMessage());
-							} catch (PrismException e) {
-								mainLog.println("Testing result: FAIL: " + e.getMessage());
-								if (testExitsOnFail)
-									errorAndExit("Testing failed");
-							}
+							doResultTest(propertiesToCheck.get(j), res);
 						}
 
 						// iterate to next property
@@ -465,6 +473,9 @@ public class PrismCL implements PrismModelListener
 				if (modelBuildFail) {
 					for (j++; j < numPropertiesToCheck; j++) {
 						results[j].setMultipleErrors(definedMFConstants, null, modelBuildException);
+						if (test) {
+							doResultTest(propertiesToCheck.get(j), new Result(modelBuildException));
+						}
 					}
 					break;
 				}
@@ -973,6 +984,39 @@ public class PrismCL implements PrismModelListener
 			catch (PrismException e) {
 				error(e.getMessage());
 			}
+		}
+	}
+
+	/**
+	 * Test a model checking result against the RESULT specifications attached
+	 * to the property (test mode).
+	 * <br>
+	 * Note: This method should only be called directly after the model checking (i.e.,
+	 * from {@code run()}, as it relies on the fact that the constant values in
+	 * the {@code modulesFile} and {@propertiesFile} reflect the values used for
+	 * model checking.
+	 * <br>
+	 * Test results are output to the log. If a test fails and {@code testExitsOnFail}
+	 * is {@code true} then {@code errorAndExit} is called.
+	 * @param prop the property
+	 * @param res the result
+	 */
+	private void doResultTest(Property prop, Result res)
+	{
+		try {
+			mainLog.println();
+			Values allConsts = new Values(modulesFile.getConstantValues(), propertiesFile.getConstantValues());
+			if (prop.checkAgainstExpectedResult(res.getResult(), allConsts)) {
+				mainLog.println("Testing result: PASS");
+			} else {
+				mainLog.println("Testing result: NOT TESTED");
+			}
+		} catch (PrismNotSupportedException e) {
+			mainLog.println("Testing result: UNSUPPORTED: " + e.getMessage());
+		} catch (PrismException e) {
+			mainLog.println("Testing result: FAIL: " + e.getMessage());
+			if (testExitsOnFail)
+				errorAndExit("Testing failed");
 		}
 	}
 
@@ -1990,6 +2034,9 @@ public class PrismCL implements PrismModelListener
 			} else if (ext.equals("lab")) {
 				exportlabels = true;
 				exportLabelsFilename = basename.equals("stdout") ? "stdout" : basename + ".lab";
+			} else if (ext.equals("dot")) {
+				exporttransdotstates = true;
+				exportTransDotStatesFilename = basename.equals("stdout") ? "stdout" : basename + ".dot";
 			}
 			// Unknown extension
 			else {
@@ -2204,6 +2251,8 @@ public class PrismCL implements PrismModelListener
 				exportStatesFilename = exportStatesFilename.replaceFirst("modelFileBasename", modelFileBasename);
 			if (exportlabels)
 				exportLabelsFilename = exportLabelsFilename.replaceFirst("modelFileBasename", modelFileBasename);
+			if (exporttransdotstates)
+				exportTransDotStatesFilename = exportTransDotStatesFilename.replaceFirst("modelFileBasename", modelFileBasename);
 		}
 	}
 
@@ -2479,8 +2528,8 @@ public class PrismCL implements PrismModelListener
 			mainLog.println("Export the built model to file(s) (or to the screen if <file>=\"stdout\").");
 			mainLog.println("Use a list of file extensions to indicate which files should be generated, e.g.:");
 			mainLog.println("\n -exportmodel out.tra,sta\n");
-			mainLog.println("Possible extensions are: .tra, .srew, .trew, .sta, .lab");
-			mainLog.println("Use extension .all to export all and .rew to export both .srew/.trew, e.g.:");
+			mainLog.println("Possible extensions are: .tra, .srew, .trew, .sta, .lab, .dot");
+			mainLog.println("Use extension .all to export all (except .dot) and .rew to export both .srew/.trew, e.g.:");
 			mainLog.println("\n -exportmodel out.all\n");
 			mainLog.println("Omit the file basename to use the basename of the model file, e.g.:");
 			mainLog.println("\n -exportmodel .all\n");

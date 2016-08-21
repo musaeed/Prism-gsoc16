@@ -1025,7 +1025,6 @@ public class ProbModelChecker extends NonProbModelChecker
 			res = ((CTMCModelChecker) this).computeTotalRewards((CTMC) model, (MCRewards) modelRewards);
 			break;
 		case MDP:
-			break;
 		default:
 			throw new PrismNotSupportedException("Explicit engine does not yet handle the " + expr.getOperatorSymbol() + " reward operator for " + model.getModelType()
 					+ "s");

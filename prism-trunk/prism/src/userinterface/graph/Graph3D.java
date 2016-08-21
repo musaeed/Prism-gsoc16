@@ -890,7 +890,7 @@ public class Graph3D extends JPanel  implements SettingOwner, EntityResolver, Ob
 	 * Creates a print job for this graph
 	 */
 	public void createPrintJob(){
-		//TODO 
+		//TODO Haven't found a clean way to do this yet
 	}
 	
 	/**

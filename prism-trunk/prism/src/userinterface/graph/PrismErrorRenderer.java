@@ -62,7 +62,11 @@ import org.jfree.util.PaintUtilities;
 
 import userinterface.GUIPrism;
 
-
+/**
+ * Error renderer for our 2D charts, This class supports Error bars and Deviations as of yet.
+ * @author Muhammad Omer Saeed
+ *
+ */
 public class PrismErrorRenderer extends XYLineAndShapeRenderer{
 
 

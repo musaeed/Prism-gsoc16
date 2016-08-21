@@ -1,3 +1,29 @@
+//==============================================================================
+//	
+//	Copyright (c) 2016
+//	Authors:
+//	* Muhammad Omer Saeed <muhammad.omar555@gmail.com> (University of Bonn)
+//	
+//------------------------------------------------------------------------------
+//	
+//	This file is part of PRISM.
+//	
+//	PRISM is free software; you can redistribute it and/or modify
+//	it under the terms of the GNU General Public License as published by
+//	the Free Software Foundation; either version 2 of the License, or
+//	(at your option) any later version.
+//	
+//	PRISM is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//	GNU General Public License for more details.
+//	
+//	You should have received a copy of the GNU General Public License
+//	along with PRISM; if not, write to the Free Software Foundation,
+//	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//	
+//==============================================================================
+
 package userinterface.graph;
 
 import java.awt.Color;
@@ -15,6 +41,10 @@ import settings.Setting;
 import settings.SettingDisplay;
 import settings.SettingOwner;
 
+/**
+ * Creates a new instance of the Display settings for the 3D plots
+ * @author Muhammad Omer Saeed
+ */
 public class DisplaySettings3D extends Observable implements SettingOwner{
 
 	
@@ -24,10 +54,15 @@ public class DisplaySettings3D extends Observable implements SettingOwner{
 	/* Our graph object. */
 	private Graph3D graph;
 	
+	/*our settings that can be altered for the 3d chart display*/
 	private BooleanSetting antiAlias;
 	private BooleanSetting faceoutLines;
 	private ColorSetting chartBoxColor;
 	
+	/**
+	 * Initialize all the settings and set our graph object
+	 * @param graph
+	 */
 	public DisplaySettings3D(Graph3D graph) {
 		
 		this.graph = graph;
@@ -105,6 +140,10 @@ public class DisplaySettings3D extends Observable implements SettingOwner{
 		this.display = display;
 	}
 	
+	
+	/**
+	 * Updates the display of the chart with all the new settings when any setting is changed
+	 */
 	public void updateDisplay(){
 		
 		/*Draw anti aliased?*/
@@ -120,7 +159,6 @@ public class DisplaySettings3D extends Observable implements SettingOwner{
 			}
 			
 		}
-
 		
 		/*chart box color*/
 		if(!chartBoxColor.getColorValue().equals(graph.getChart().getChartBoxColor())){

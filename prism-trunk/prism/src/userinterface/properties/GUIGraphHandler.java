@@ -1555,9 +1555,8 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 					constantList.checkValid();
 			
 				} catch (PrismException e2) {
-					JOptionPane.showMessageDialog(dialog, "<html> One or more of the defined constants are invalid. <br> Error:"+ 
+					JOptionPane.showMessageDialog(dialog, "<html> One or more of the defined constants are invalid. <br><br> <font color=red>Error: </font>"+ 
 							e2.getMessage() + "</html>", "Parse Error", JOptionPane.ERROR_MESSAGE);
-					e2.printStackTrace();
 					return;
 				}
 				
@@ -1627,6 +1626,10 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 
 
 						SeriesKey key = pGraph.addSeries(seriesName);
+						
+						pGraph.hideShape(key);
+						pGraph.getXAxisSettings().setHeading(xAxis.getSelectedItem().toString());
+						pGraph.getYAxisSettings().setHeading("function");
 
 						for(double x = xStartValue ; x <= xEndValue ; x+= xStepValue){
 
@@ -1640,7 +1643,6 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 								try {
 									vals.addValue(singleValuesGlobal.getName(ii), singleValuesGlobal.getDoubleValue(ii));
 								} catch (PrismLangException e1) {
-									// TODO Auto-generated catch block
 									e1.printStackTrace();
 								}
 								
@@ -1649,7 +1651,6 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 							try {
 								ans = expr.evaluateDouble(vals);
 							} catch (PrismLangException e1) {
-								// TODO Auto-generated catch block
 								e1.printStackTrace();
 							}
 
@@ -1680,6 +1681,7 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 						for(double j = lineStart ; j < lineEnd ; j+=lineStep){
 							
 							SeriesKey key = pGraph.addSeries(seriesName);
+							pGraph.hideShape(key);
 							
 							for(double x = xStartValue ; x <= xEndValue ; x+= xStepValue){
 								
@@ -1718,7 +1720,6 @@ public class GUIGraphHandler extends JPanel implements MouseListener
 								try {
 									ans = expr.evaluateDouble(vals);
 								} catch (PrismLangException e1) {
-									// TODO Auto-generated catch block
 									e1.printStackTrace();
 								}
 

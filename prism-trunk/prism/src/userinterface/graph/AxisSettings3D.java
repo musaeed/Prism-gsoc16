@@ -1,3 +1,29 @@
+//==============================================================================
+//	
+//	Copyright (c) 2016-
+//	Authors:
+//	* Muhammad Omer Saeed <muhammad.omar555@gmail.com> (University of Bonn)
+//	
+//------------------------------------------------------------------------------
+//	
+//	This file is part of PRISM.
+//	
+//	PRISM is free software; you can redistribute it and/or modify
+//	it under the terms of the GNU General Public License as published by
+//	the Free Software Foundation; either version 2 of the License, or
+//	(at your option) any later version.
+//	
+//	PRISM is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//	GNU General Public License for more details.
+//	
+//	You should have received a copy of the GNU General Public License
+//	along with PRISM; if not, write to the Free Software Foundation,
+//	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//	
+//==============================================================================
+
 package userinterface.graph;
 
 import java.awt.Color;
@@ -15,11 +41,17 @@ import settings.Setting;
 import settings.SettingDisplay;
 import settings.SettingOwner;
 
+/**
+ * Provides the axis settings for the 3d plots
+ * @author Muhammad Omer Saeed
+ */
 public class AxisSettings3D extends Observable implements SettingOwner{
 
+	/*Type of current axis*/
 	public static final int XAXIS = 0;
 	public static final int YAXIS = 1;
 	public static final int ZAXIS = 2;
+	
 	
 	private String name;
 	private SettingDisplay display;
@@ -39,11 +71,18 @@ public class AxisSettings3D extends Observable implements SettingOwner{
 	/** tells us about the type of this axis */
 	private int axisType;
 	
+	/** the settings that can be altered*/
 	private FontColorSetting labelFont;
 	private BooleanSetting visible;
 	private BooleanSetting inverted;
 	
 	
+	/**
+	 * Creates a new instance of the axis settings for the specified axis and initializes all the settings
+	 * @param name The name of the axis
+	 * @param axisType The type of the axis
+	 * @param graph The graph to which the axis belongs
+	 */
 	public AxisSettings3D(String name, int axisType, Graph3D graph) {
 		
 		this.name = name;
@@ -128,8 +167,12 @@ public class AxisSettings3D extends Observable implements SettingOwner{
 		this.display = display;
 	}
 	
+	/**
+	 * Update the settings of the axis
+	 */
 	public void updateAxis(){
 		
+		// get the right axis to work on
 		switch(axisType){
 
 		case AxisSettings3D.XAXIS:

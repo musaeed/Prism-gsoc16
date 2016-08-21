@@ -1,3 +1,29 @@
+//==============================================================================
+//	
+//	Copyright (c) 2016
+//	Authors:
+//	* Muhammad Omer Saeed <muhammad.omar555@gmail.com> (University of Bonn)
+//	
+//------------------------------------------------------------------------------
+//	
+//	This file is part of PRISM.
+//	
+//	PRISM is free software; you can redistribute it and/or modify
+//	it under the terms of the GNU General Public License as published by
+//	the Free Software Foundation; either version 2 of the License, or
+//	(at your option) any later version.
+//	
+//	PRISM is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//	GNU General Public License for more details.
+//	
+//	You should have received a copy of the GNU General Public License
+//	along with PRISM; if not, write to the Free Software Foundation,
+//	Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//	
+//==============================================================================
+
 package userinterface.graph;
 
 import java.awt.Color;
@@ -39,6 +65,7 @@ public class AxisSettingsHistogram extends Observable implements SettingOwner{
 	/** True when this reprents the domain axis. */
 	private boolean isDomain;
 	
+	/**Our settings that can be changed for a histogram*/
 	private SingleLineStringSetting heading;
 	private FontColorSetting headingFont;
 	private FontColorSetting numberFont;
@@ -46,7 +73,12 @@ public class AxisSettingsHistogram extends Observable implements SettingOwner{
 	private BooleanSetting showGrid;
 	private ColorSetting gridColour;
 	
-	
+	/**
+	 * Creates a new instance of the axis settings for a histogram plot
+	 * @param name
+	 * @param isDomain
+	 * @param histogram
+	 */
 	public AxisSettingsHistogram(String name, boolean isDomain, Histogram histogram) {
 		
 		this.name = name;
@@ -58,6 +90,10 @@ public class AxisSettingsHistogram extends Observable implements SettingOwner{
 		init();
 	}
 	
+	
+	/**
+	 * Initializes all the settings
+	 */
 	public void init(){
 		
 		
@@ -278,6 +314,9 @@ public class AxisSettingsHistogram extends Observable implements SettingOwner{
 		}
 	}
 	
+	/**
+	 * Updates all the settings of the histogram axis after a change event is recieved
+	 */
 	private void updateAxis(){
 		
 		/** -- Check done, now look for smaller changes. */		

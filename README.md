@@ -8,15 +8,15 @@ Enhanced Graph Plotting And General GUI Improvements In Prism.
 * [Week 1](https://github.com/musaeed/Prism-gsoc16/blob/master/roadmap/week1.md)
 * [Week 2](https://github.com/musaeed/Prism-gsoc16/blob/master/roadmap/week2.md)
 * [Week 3](https://github.com/musaeed/Prism-gsoc16/blob/master/roadmap/week3.md)
-* Week 4
-* Week 5
-* Week 6
-* Week 7
-* Week 8
-* Week 9
-* Week 10
-* Week 11
-* Week 12
+* [Week 4](https://github.com/musaeed/Prism-gsoc16/blob/master/roadmap/week4.md)
+* [Week 5](https://github.com/musaeed/Prism-gsoc16/blob/master/roadmap/week5.md)
+* [Week 6](https://github.com/musaeed/Prism-gsoc16/blob/master/roadmap/week6.md)
+* [Week 7](https://github.com/musaeed/Prism-gsoc16/blob/master/roadmap/week7.md)
+* [Week 8](https://github.com/musaeed/Prism-gsoc16/blob/master/roadmap/week8.md)
+* [Week 9](https://github.com/musaeed/Prism-gsoc16/blob/master/roadmap/week9.md)
+* [Week 10](https://github.com/musaeed/Prism-gsoc16/blob/master/roadmap/week10.md)
+* [Week 11](https://github.com/musaeed/Prism-gsoc16/blob/master/roadmap/week11.md)
+* [Week 12](https://github.com/musaeed/Prism-gsoc16/blob/master/roadmap/week12.md)
 
 # Description of the features added during the GSoC
 

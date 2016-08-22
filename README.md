@@ -59,7 +59,7 @@ Enhanced Graph Plotting And General GUI Improvements In Prism.
 - Adding inspection mode for 2d charts for showing more information about each vertex easily
 
 # Tracking issues
-* [Prism model checker bug tracking](https://sourceforge.net/p/prism-mc/bugs/)
+* [Prism model checker bug tracking](https://github.com/prismmodelchecker/prism/issues)
 
 # Related readings
 * [Prism model checker documentation](http://www.prismmodelchecker.org/doc/)
